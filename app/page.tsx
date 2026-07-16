@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { copy } from "@/lib/copy";
 
 const MARQUEE_TEXT =
@@ -70,6 +71,14 @@ function EmailForm() {
   );
 }
 
+function ErrorBanner() {
+  const params = useSearchParams();
+  if (params.get("error") !== "expired") return null;
+  return (
+    <p className="t-body text-gdg-red/90 text-sm">{copy.errors.linkExpired}</p>
+  );
+}
+
 export default function LandingPage() {
   const [showEmail, setShowEmail] = useState(false);
 
@@ -103,6 +112,10 @@ export default function LandingPage() {
         </div>
 
         <p className="t-body text-cream/75">{copy.landing.sub}</p>
+
+        <Suspense fallback={null}>
+          <ErrorBanner />
+        </Suspense>
 
         <div className="flex flex-col items-center gap-3 w-full mt-2">
           <a

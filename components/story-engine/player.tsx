@@ -11,6 +11,7 @@ import { TapZones } from "./tap-zones";
 import { preloadStoryAssets } from "./preloader";
 import { useStoryEngine } from "./use-story-state";
 import type { Snapshot } from "@/lib/snapshot";
+import { copy } from "@/lib/copy";
 
 const ChapterGrid = dynamic(
   () => import("./chapter-grid").then((m) => m.ChapterGrid),
@@ -26,6 +27,7 @@ interface MeResponse {
 export function Player() {
   const { state, dispatch, progressRef, activeIndexes } = useStoryEngine();
   const [me, setMe] = useState<MeResponse>({ member: false });
+  const [dbDegraded, setDbDegraded] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -33,6 +35,7 @@ export function Player() {
       .then((r) => r.json())
       .then((data: MeResponse) => {
         setMe(data);
+        setDbDegraded(!!data.degraded);
         dispatch({ type: "SET_MEMBER", isMember: !!data.member });
       })
       .catch(() => {
@@ -41,6 +44,12 @@ export function Player() {
       });
     return () => controller.abort();
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!dbDegraded) return;
+    const timeout = setTimeout(() => setDbDegraded(false), 5000);
+    return () => clearTimeout(timeout);
+  }, [dbDegraded]);
 
   useEffect(() => {
     preloadStoryAssets(state.storyIndex);
@@ -106,6 +115,12 @@ export function Player() {
       {state.paused && !state.gridOpen && (
         <div className="toast absolute top-16 left-1/2 -translate-x-1/2 z-20 rounded-full bg-ink/70 text-cream px-3 py-1">
           <span className="t-label">PAUSED</span>
+        </div>
+      )}
+
+      {dbDegraded && (
+        <div className="toast absolute bottom-8 left-4 right-4 z-20 rounded-xl bg-ink/85 text-cream px-4 py-3">
+          <p className="t-body text-sm">{copy.errors.dbDown}</p>
         </div>
       )}
 
