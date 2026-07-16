@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-ink: #0f0f0f;
+  --color-ink-2: #161616;
+  --color-cream: #fff6e0;
+  --color-paper: #fdfbf7;
+  --color-cream-deep: #f8ecc9;
+  --color-gdg-blue: #4285f4;
+  --color-gdg-red: #ea4335;
+  --color-gdg-yellow: #faab00;
+  --color-gdg-green: #34a853;
+  --font-sans: var(--font-google-sans, "Google Sans"), system-ui, sans-serif;
+}
+
+:root {
+  --ease-spring: linear(
+    0,
+    0.006,
+    0.025 2.8%,
+    0.101 6.1%,
+    0.539 18.9%,
+    0.721 25.3%,
+    0.849 31.5%,
+    0.937 38.1%,
+    0.968 41.8%,
+    0.991 45.7%,
+    1.006 50.1%,
+    1.015 55%,
+    1.017 63.9%,
+    1.001 85.4%,
+    1
+  );
+}
+
+* {
+  font-family: var(--font-sans);
+}
+
+html,
+body {
+  background: var(--color-ink);
+  color: var(--color-cream);
+}
+
+/* ---------- Type scale (§3.2) ---------- */
+.t-display {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  font-size: clamp(3rem, 17.5cqw, 6.5rem);
+  text-box: trim-both cap alphabetic;
+}
+.t-monument {
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.85;
+  font-size: clamp(9rem, 62cqw, 22rem);
+  text-box: trim-both cap alphabetic;
+}
+.t-stat {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-size: clamp(2.75rem, 15cqw, 5.5rem);
+}
+.t-body {
+  font-weight: 500;
+  line-height: 1.35;
+  font-size: clamp(1rem, 4.6cqw, 1.25rem);
+}
+.t-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: clamp(0.625rem, 2.9cqw, 0.75rem);
+}
+.t-editorial {
+  font-family: var(--font-bricolage), serif;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.25;
+  font-size: clamp(1.375rem, 6.5cqw, 2rem);
+}
+
+/* ---------- Kinetic variable weight (§3.8) ---------- */
+@property --wght {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 700;
+}
+.kinetic {
+  font-variation-settings: "wght" var(--wght);
+}
+.kinetic-breathe {
+  animation: breathe 6s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    --wght: 550;
+  }
+  50% {
+    --wght: 800;
+  }
+}
+
+/* ---------- The 9:16 stage ---------- */
+.stage {
+  container-type: size;
+}
+
+/* ---------- Outlined display type (ported from GDGWebsite; see §3.4) ---------- */
+.text-outline-base {
+  color: black !important;
+  -webkit-text-fill-color: black !important;
+  line-height: 1.14;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+}
+.text-outline-cream {
+  filter: url(#stroke-cream);
+}
+.text-outline-blue {
+  filter: url(#stroke-blue);
+}
+.text-outline-red {
+  filter: url(#stroke-red);
+}
+.text-outline-yellow {
+  filter: url(#stroke-yellow);
+}
+.text-outline-green {
+  filter: url(#stroke-green);
+}
+@media (max-width: 48rem) {
+  .text-outline-base {
+    line-height: 1.18;
+    font-weight: 500;
+    letter-spacing: 0.035em;
+  }
+  .text-outline-cream {
+    filter: url(#stroke-cream-mobile);
+  }
+  .text-outline-blue {
+    filter: url(#stroke-blue-mobile);
+  }
+  .text-outline-red {
+    filter: url(#stroke-red-mobile);
+  }
+  .text-outline-yellow {
+    filter: url(#stroke-yellow-mobile);
+  }
+  .text-outline-green {
+    filter: url(#stroke-green-mobile);
+  }
+}
+
+/* ---------- Film grain (§3.5) ---------- */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* ---------- Dotted leader line (Story 1 receipt rows) ---------- */
+.leader {
+  flex: 1;
+  margin: 0 0.6em;
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1.5px);
+  background-size: 8px 2px;
+  background-repeat: repeat-x;
+  background-position: bottom;
+  height: 0.9em;
+  opacity: 0.4;
+}
+
+/* ---------- Perforated receipt edge (Story 1) ---------- */
+.perforation {
+  height: 12px;
+  background-image: radial-gradient(circle at 6px 6px, var(--color-ink) 4px, transparent 4.5px);
+  background-size: 16px 12px;
+  background-repeat: repeat-x;
+}
+
+/* ---------- Marquee (landing + story 1 backdrop) ---------- */
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+  will-change: transform;
+}
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ---------- Club card patterns (§9.8) — accent color via currentColor ---------- */
+.pattern-grid {
+  background-image:
+    linear-gradient(currentColor 1px, transparent 1px),
+    linear-gradient(90deg, currentColor 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+.pattern-waves {
+  background-image: repeating-radial-gradient(
+    circle at 0 120%,
+    transparent 0,
+    transparent 18px,
+    currentColor 18px,
+    currentColor 19px
+  );
+}
+.pattern-halftone {
+  background-image: radial-gradient(circle, currentColor 1.6px, transparent 2px);
+  background-size: 12px 12px;
+}
+.pattern-diagonals {
+  background-image: repeating-linear-gradient(
+    45deg,
+    currentColor 0,
+    currentColor 2px,
+    transparent 2px,
+    transparent 12px
+  );
+}
+
+/* ---------- Toast entrance (§3.8) ---------- */
+.toast {
+  transition:
+    opacity 0.24s,
+    translate 0.24s;
+  @starting-style {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+/* ---------- Cross-document view transition (§3.8) ---------- */
+@view-transition {
+  navigation: auto;
+}
+
+/* ---------- Reduced motion: kill non-essential animation globally ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
