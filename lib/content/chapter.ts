@@ -1,3 +1,5 @@
+import type { StoryId } from "@/lib/stories";
+
 export const CHAPTER = {
   members: 500, // TBD-confirm
   eventsRun: 23, // TBD-confirm
@@ -70,7 +72,7 @@ export const PEOPLE: Person[] = [
   { name: "Efegherimoni Oghenetejiri", role: "Core Team", section: "CORE", photo: "/people/efegherimoni-oghenetejiri.jpg" },
 ];
 
-export const ASSET_MANIFEST: Partial<Record<string, string[]>> = {
+export const ASSET_MANIFEST: Partial<Record<StoryId, string[]>> = {
   moments: MOMENTS.flatMap((m) => m.images),
   people: PEOPLE.map((p) => p.photo).filter((p): p is string => Boolean(p)),
 };
