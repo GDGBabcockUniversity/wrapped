@@ -41,6 +41,10 @@ static/CDN surfaces, not on compute or the database).
 4. Low-activity members are **never shamed** — their screens become invitations (§15).
 5. WhatsApp message **content** is never stored, logged, or transmitted — counts and timestamps only.
 6. The public experience must work with the database completely down.
+7. **The immersive layer (§3.7–3.8) is progressive enhancement.** WebGL shader fields, kinetic
+   variable type, view transitions, haptics, and live-card video are all feature-gated; a low-end
+   device or a failed capability check silently gets the complete CSS experience. No user ever
+   sees a degraded-looking or broken frame — they just see fewer layers of motion.
 
 ---
 
@@ -268,6 +272,10 @@ components/
   grain.tsx
   counter.tsx
   initials-avatar.tsx
+  gl/
+    shader-field.tsx
+    shaders.ts
+    use-gl-quality.ts
   story-engine/
     player.tsx
     use-story-state.ts
@@ -289,6 +297,8 @@ components/
     10-summary.tsx
   share/
     share-button.tsx
+    share-sheet.tsx
+    live-card.ts
     card-layouts.tsx
 lib/
   stories.ts
@@ -315,8 +325,9 @@ scripts/pipeline/
   write-snapshot.ts
   seed-fake.ts
   report.ts
-assets/fonts/                     # see §14.2
+assets/fonts/                     # see §14.2 (satori, server)
 public/
+  fonts/                          # same three TTFs again (live-card FontFace, client — §10.6)
   moments/                        # see §14.1
   people/                         # see §14.1
 data/                             # gitignored, empty in git (add data/.gitkeep? NO — fully gitignored)
@@ -366,14 +377,20 @@ Derived (only these, never ad-hoc rgba): border on ink = `rgba(255,246,224,0.14)
 
 Two families, loaded two ways:
 
-1. **Google Sans** — the ecosystem signature; ALL display and UI type. Loaded exactly like
-   GDGWebsite: CSS `@import` at the very top of `globals.css` (line 1):
-   ```css
-   @import url("https://fonts.cdnfonts.com/css/google-sans?styles=20887,20885,20886,20889,20888,20890");
+1. **Google Sans Flex** — the ecosystem signature family as a full VARIABLE font (weight axis
+   100–1000), self-hosted via `next/font/google` (the radar repo's precedent — no external CDN,
+   zero render-blocking):
+   ```ts
+   import { Google_Sans_Flex } from "next/font/google";
+   const googleSans = Google_Sans_Flex({
+     subsets: ["latin"], variable: "--font-google-sans", display: "swap", axes: ["wght"] as never,
+   });
    ```
-   Weights available: 400/500/700 (+italics). **Never request or synthesize weight 800+** — the
-   variable font caps at 700 and synthesized weights ghost the outlined type (see comment block in
-   `../GDGWebsite/app/globals.css` lines 258–290, which explains the bug in detail).
+   (If the `axes` option errors on this next/font version, request
+   `weight: "variable"` — the point is the full weight axis must load, because kinetic type §3.8
+   animates it.) Apply `googleSans.variable` on `<html>`. **Outlined type stays pinned at
+   weight 700** — synthesized weights beyond the axis ghost the stroke filter (see comment block
+   in `../GDGWebsite/app/globals.css` lines 258–290 explaining the bug).
 2. **Bricolage Grotesque** — the single editorial voice, via `next/font/google` in `app/layout.tsx`:
    ```ts
    import { Bricolage_Grotesque } from "next/font/google";
@@ -410,7 +427,6 @@ desktop letterboxing correct. **Do not change these to `vw`.**
 ### 3.3 `app/globals.css` — write this file exactly
 
 ```css
-@import url("https://fonts.cdnfonts.com/css/google-sans?styles=20887,20885,20886,20889,20888,20890");
 @import "tailwindcss";
 
 @theme inline {
@@ -423,10 +439,10 @@ desktop letterboxing correct. **Do not change these to `vw`.**
   --color-gdg-red: #ea4335;
   --color-gdg-yellow: #faab00;
   --color-gdg-green: #34a853;
-  --font-sans: "Google Sans", system-ui, sans-serif;
+  --font-sans: var(--font-google-sans, "Google Sans"), system-ui, sans-serif;
 }
 
-* { font-family: "Google Sans", system-ui, sans-serif; }
+* { font-family: var(--font-sans); }
 
 html, body { background: var(--color-ink); color: var(--color-cream); }
 
@@ -543,6 +559,194 @@ Motion grammar (memorize):
 - `useReducedMotion()` from `motion/react`: when true, render final values immediately —
   no count-ups, no springs, crossfade only (the CSS in §3.3 backstops this).
 
+### 3.7 The immersive layer — WebGL2 shader fields (write the GLSL verbatim)
+
+Every story's background is a **living shader field**: one persistent fullscreen-triangle WebGL2
+canvas behind the story DOM, driven by tiny uniforms. This is what separates the experience from
+"a slideshow" — the frame itself breathes, reacts to the pointer, and shifts personality per story.
+It is **pure progressive enhancement**: no library (raw WebGL2, ~6 KB of GLSL strings), and a
+device that fails any gate silently keeps the CSS fields from §9 (which remain painted beneath the
+canvas as the fallback).
+
+**Layering inside the stage (§6.4)**: CSS field color (z-0, always painted) → `<ShaderField />`
+canvas (z-[1], `position:absolute inset-0`) → story content (z-10) → engine UI (z-20) → grain (z-60).
+
+#### `components/gl/shader-field.tsx` + `components/gl/shaders.ts`
+
+Behavior contract:
+- Create context: `canvas.getContext("webgl2", { alpha: false, antialias: false,
+  powerPreference: "low-power", preserveDrawingBuffer: false })`.
+- **Quality gates — skip the layer entirely** (render nothing, CSS field shows) when ANY of:
+  context creation fails; `prefers-reduced-motion`; `navigator.deviceMemory < 4` (when defined);
+  `navigator.connection?.saveData`. Expose the decision as `useGlQuality(): "full" | "off"`.
+- Resolution: `min(devicePixelRatio, 1.5)`; `ResizeObserver` on the stage resizes the drawing
+  buffer. The shader is cheap by construction (≤ 4 fbm octaves) — 60 fps on a 2022 mid-range
+  Android is the bar; if `requestAnimationFrame` deltas average > 24 ms over 60 frames, drop DPR
+  to 1.0; if still slow, permanently switch to `"off"` for the session.
+- Uniforms, updated per frame: `u_time` (s), `u_res` (px), `u_pointer` (0..1 stage coords,
+  lerp-smoothed at factor 0.08/frame toward the real pointer; idle drift = slow lissajous
+  `0.5 + 0.22*sin(t*0.13), 0.5 + 0.22*cos(t*0.09)`), `u_progress` (active phase progress 0..1
+  from the engine), `u_fade` (see below).
+- Uniforms updated per story change: `u_story` (int, the story index 0–9), `u_field`
+  (0 ink / 1 cream), `u_accent` (vec3 from the story accent hex; for `your-club` use the member's
+  `CLUBS[id].hex`), `u_pattern` (int 0 grid / 1 waves / 2 halftone / 3 diagonals; only read by the
+  club story).
+- **Story transitions**: on story change animate `u_fade` 1→0 over 120 ms, swap `u_story`/
+  `u_accent`/`u_field`/`u_pattern`, animate `u_fade` 0→1 over 120 ms (total = `TIMING.storyFadeMs`,
+  in JS, not CSS). The shader multiplies its story layer by `u_fade` over the base field color.
+- Pause RAF on `document.hidden`; keep running while story-paused (the ambience continuing while
+  paused is intentional).
+
+Vertex shader (fullscreen triangle, no buffers — `gl.drawArrays(gl.TRIANGLES, 0, 3)`):
+
+```glsl
+#version 300 es
+void main() {
+  vec2 v = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+  gl_Position = vec4(v * 2.0 - 1.0, 0.0, 1.0);
+}
+```
+
+Fragment shader — ONE program for all ten stories (paste verbatim into `shaders.ts`):
+
+```glsl
+#version 300 es
+precision highp float;
+uniform vec2  u_res;
+uniform float u_time;
+uniform vec2  u_pointer;   // 0..1, y up
+uniform vec3  u_accent;    // story accent, linearized 0..1 rgb
+uniform float u_field;     // 0 = ink, 1 = cream
+uniform int   u_story;     // 0..9
+uniform int   u_pattern;   // club pattern id
+uniform float u_progress;  // phase progress 0..1
+uniform float u_fade;      // story crossfade 0..1
+out vec4 frag;
+
+const vec3 INK   = vec3(0.059, 0.059, 0.059);   // #0f0f0f
+const vec3 CREAM = vec3(1.000, 0.965, 0.878);   // #fff6e0
+
+float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+             mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+}
+float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / u_res;               // 0..1
+  vec2 p  = (gl_FragCoord.xy - 0.5 * u_res) / u_res.y;  // centered, aspect-correct
+  vec3 base = mix(INK, CREAM, u_field);
+  vec3 col = base;
+  float d = distance(uv, u_pointer);
+
+  if (u_story == 0) {            // THE YEAR: receipt-printer scanlines + drifting ink motes
+    float scan = smoothstep(0.996, 1.0, sin(uv.y * 420.0 + u_time * 1.5) * 0.5 + 0.5);
+    col += u_accent * scan * 0.05;
+    float motes = smoothstep(0.985, 1.0, noise(p * 6.0 + vec2(0.0, u_time * 0.05)));
+    col += u_accent * motes * 0.12;
+  } else if (u_story == 1) {     // MOMENTS: warm paper grain + breathing vignette
+    col -= (fbm(p * 5.0 + u_time * 0.02) - 0.5) * 0.035;
+    col -= smoothstep(0.45, 1.1, length(p)) * 0.06 * (0.8 + 0.2 * sin(u_time * 0.4));
+  } else if (u_story == 2) {     // BUILT: blueprint grid, parallax toward pointer
+    vec2 g = p * 14.0 + (u_pointer - 0.5) * 1.6;
+    float grid = max(smoothstep(0.97, 1.0, abs(fract(g.x) - 0.5) * 2.0),
+                     smoothstep(0.97, 1.0, abs(fract(g.y) - 0.5) * 2.0));
+    col += u_accent * grid * 0.10;
+  } else if (u_story == 3) {     // PEOPLE: slow spotlight sweep across the credits
+    vec2 c = vec2(0.5 + 0.4 * sin(u_time * 0.15), 0.5 + 0.4 * cos(u_time * 0.11));
+    col += u_accent * exp(-6.0 * distance(uv, c)) * 0.07;
+  } else if (u_story == 4) {     // YOUR EVENTS: constellation — twinkling attendance stars
+    vec2 cell = floor(p * 10.0); vec2 fp = fract(p * 10.0);
+    float star = smoothstep(0.06, 0.0, length(fp - 0.5 - 0.3 * (vec2(hash(cell), hash(cell + 7.0)) - 0.5)));
+    float tw = 0.5 + 0.5 * sin(u_time * (1.0 + hash(cell) * 2.0) + hash(cell) * 6.28);
+    col += u_accent * star * tw * 0.35;
+  } else if (u_story == 5) {     // STANDING: stamp shockwave rings on reveal
+    float ring = abs(length(p) - u_progress * 1.2);
+    col -= smoothstep(0.06, 0.0, ring) * 0.10 * (1.0 - u_progress);
+    col -= (fbm(p * 4.0) - 0.5) * 0.03;
+  } else if (u_story == 6) {     // YOUR CHAPTER: green aurora flow, left to right
+    float a = fbm(vec2(p.x * 2.0 - u_time * 0.06, p.y * 3.0));
+    col += u_accent * smoothstep(0.55, 0.9, a) * 0.16;
+  } else if (u_story == 7) {     // YOUR CLUB: full-bleed accent + pattern + iridescent foil
+    col = u_accent * mix(0.72, 1.0, uv.y);
+    float pat = 0.0;
+    vec2 q = p * 16.0;
+    if (u_pattern == 0)      pat = max(smoothstep(0.9, 1.0, abs(fract(q.x) - 0.5) * 2.0),
+                                       smoothstep(0.9, 1.0, abs(fract(q.y) - 0.5) * 2.0));
+    else if (u_pattern == 1) pat = smoothstep(0.85, 1.0, sin(length(p - vec2(0.0, -1.2)) * 40.0) * 0.5 + 0.5);
+    else if (u_pattern == 2) pat = smoothstep(0.35, 0.25, length(fract(q * 0.75) - 0.5));
+    else                     pat = smoothstep(0.85, 1.0, sin((p.x + p.y) * 45.0) * 0.5 + 0.5);
+    col = mix(col, INK, pat * 0.13);
+    vec3 iri = 0.5 + 0.5 * cos(6.2832 * (d * 2.2 - u_time * 0.08 + vec3(0.0, 0.33, 0.67)));
+    col += iri * exp(-3.5 * d) * 0.18;                 // thin-film foil chasing the pointer
+  } else if (u_story == 8) {     // WHAT'S NEXT: cream field, rising ember motes in green
+    vec2 e = fract(p * 4.0 - vec2(0.0, u_time * 0.05));
+    float m = smoothstep(0.05, 0.0, length(e - 0.5)) * step(0.72, hash(floor(p * 4.0 - vec2(0.0, u_time * 0.05))));
+    col -= vec3(0.02) * fbm(p * 5.0);
+    col = mix(col, u_accent, m * 0.5);
+  } else {                       // SUMMARY: near-still vignette + four faint orbiting dots
+    col -= smoothstep(0.5, 1.15, length(p)) * 0.08;
+    for (int i = 0; i < 4; i++) {
+      float ang = u_time * 0.1 + float(i) * 1.5708;
+      vec3 dotc = i == 0 ? vec3(0.26, 0.52, 0.96) : i == 1 ? vec3(0.92, 0.26, 0.21)
+                : i == 2 ? vec3(0.98, 0.67, 0.00) : vec3(0.20, 0.66, 0.33);
+      col += dotc * exp(-9.0 * distance(p, 0.42 * vec2(cos(ang), sin(ang)))) * 0.08;
+    }
+  }
+
+  col = mix(base, col, u_fade);
+  frag = vec4(col, 1.0);
+}
+```
+
+Hex→vec3 for `u_accent` (linear pass-through of sRGB/255 is fine at these subtle intensities):
+blue `(0.259, 0.522, 0.957)`, red `(0.918, 0.263, 0.208)`, yellow `(0.980, 0.671, 0.000)`,
+green `(0.204, 0.659, 0.325)`.
+
+**Do not add post-processing, bloom, three.js, or more octaves.** The restraint IS the premium
+feel; the shader must stay invisible-until-you-notice-it on every story except `your-club`, where
+it becomes the field.
+
+### 3.8 Kinetic type, view transitions, haptics (the 2026 CSS layer)
+
+All progressive enhancement — feature-queried, zero-cost where unsupported.
+
+1. **Kinetic variable weight.** Register the axis and animate real weight, not scale:
+   ```css
+   @property --wght { syntax: "<number>"; inherits: false; initial-value: 700; }
+   .kinetic { font-variation-settings: "wght" var(--wght); }
+   .kinetic-breathe { animation: breathe 6s ease-in-out infinite; }
+   @keyframes breathe { 0%,100% { --wght: 550; } 50% { --wght: 800; } }
+   ```
+   Used on: the landing "WRAPPED" title (breathe); setup lines enter as a **weight cascade** —
+   each word wrapped in a span animating `--wght` 300→700 over 500 ms, staggered `TIMING.staggerMs`
+   (drive with `motion` animating the CSS variable). Never combine `.kinetic` with outlined type
+   (the filter needs the pinned 700).
+2. **Optical text trimming.** On `.t-monument` and `.t-display`:
+   `text-box: trim-both cap alphabetic;` — kills the phantom leading above cap-height so monuments
+   center optically. Progressive (Chrome/Safari ship it; Firefox ignores harmlessly).
+3. **CSS spring easing** for non-`motion` transitions (progress-bar fill, chip pulses) — define
+   once on `:root` and use verbatim:
+   ```css
+   --ease-spring: linear(0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%,
+     0.849 31.5%, 0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%,
+     1.017 63.9%, 1.001 85.4%, 1);
+   ```
+4. **Cross-document View Transition** landing → player: in globals
+   `@view-transition { navigation: auto; }`; give the landing "WRAPPED" title and the player's
+   story-1 setup line `view-transition-name: wrapped-title;` — the title morphs from the landing
+   into the first story. Feature-queried by nature (no-op in unsupporting browsers). Keep default
+   240 ms; do not customize further.
+5. **`@starting-style` entrances** for pure-CSS mounted elements (paused chip, toasts):
+   `.toast { transition: opacity .24s, translate .24s; @starting-style { opacity: 0; translate: 0 8px; } }`
+6. **Haptics** (Android; iOS ignores `navigator.vibrate` silently): tap-advance `vibrate(8)`;
+   stamp landing and club flip `vibrate([12, 40, 12])`; guard behind
+   `!prefers-reduced-motion && document.hasFocus()`. Wire in `tap-zones.tsx` (advance) and the two
+   story components (impact moments). Never vibrate on auto-advance.
+7. **No audio.** Immersion here is visual + haptic. Do not add sound.
+
 ---
 
 ## 4. Architecture & performance requirements
@@ -567,8 +771,10 @@ auth-hub database (new additive tables, §11). The app then has exactly two data
 
 | Surface | Budget | Mechanism |
 |---|---|---|
-| Landing / player first paint | LCP < 1.8s on mid-range Android | static prerender, zero blocking fetch, system-ui fallback during font swap |
-| Client JS | < 170 KB gzipped app JS | no UI libraries; single player bundle; `next/dynamic` ONLY for `chapter-grid` + `debug/cards` |
+| Landing / player first paint | LCP < 1.8s on mid-range Android | static prerender, zero blocking fetch, self-hosted variable font with swap |
+| Client JS | < 190 KB gzipped app JS | no UI libraries; single player bundle; `next/dynamic` ONLY for `chapter-grid`, `live-card`, `debug/cards` |
+| Shader layer | steady 60 fps; init < 80 ms; ≤ 8 KB GLSL | raw WebGL2 fullscreen triangle (no three.js), DPR capped 1.5, auto-degrade then auto-off per §3.7 gates |
+| Live-card export | ≤ 3.5 s total on a 2023 mid-range phone | half-res GL upscaled, 30 fps fixed-step, lazy-loaded module |
 | Story advance | 0 added latency | all 10 stories mount in one client tree; images preloaded one story ahead (§6.6) |
 | `/api/me` | < 120 ms p95 | Neon serverless HTTP driver (no TCP handshake per invocation), single indexed query, session verified locally via `jose` (no DB hit for auth) |
 | Auth verify redirect | < 200 ms | JWT verify + one SELECT + Set-Cookie + 302 |
@@ -816,6 +1022,10 @@ Plus in globals.css: `.stage { container-type: size; }` — this is what the `cq
 breaks under iOS Safari's collapsing chrome). On desktop it letterboxes to a 9:16 card, max
 900 px tall, rounded, floating on ink — outside the stage stays pure `--color-ink`.
 
+The stage's first child is `<ShaderField />` (§3.7) at `absolute inset-0 z-[1]`; the CSS field
+color painted by each story (§9) sits beneath it at z-0 and doubles as the no-WebGL fallback.
+Story content renders at z-10, engine UI (progress, tap zones, grid) above that.
+
 ### 6.5 `progress-bar.tsx`
 
 Top of stage, `pt-[max(12px,env(safe-area-inset-top))] px-3`, 10 segments, 3 px tall,
@@ -850,6 +1060,10 @@ without starting over" control.
 - Renders: `<StoryFrame>` → progress bar, tap zones, `AnimatePresence mode="wait"` around the
   active story component (fade+slide per §3.6), chapter grid when open.
 - Story components receive `{ phase, active, snapshot | null, guest: boolean }`.
+- The player owns the `ShaderField` uniform feed: on story change push
+  `{ story: index, field, accentHex, patternId }` (club story resolves accent/pattern from the
+  snapshot); per frame, forward the same progress value the progress bar uses to `u_progress`
+  (imperative ref, same no-React-state rule as §6.2).
 - While `/api/me` is in flight and the user reaches story 5 (index 4), show the story's setup beat
   anyway (it never depends on data); if still unresolved when reveal should start, hold setup until
   resolution (in practice /api/me returns in ms).
@@ -1285,11 +1499,18 @@ ghost `copy.summary.replay` → `GOTO(0)`. Guest variant: card shows `guestTitle
 
 ### 10.1 Principles
 
-Server-rendered with `next/og` (`ImageResponse`) — **never** client-side html-to-image (fragile
-with SVG filters and iOS canvas limits). Cards are 1080×1920 PNG, bolder and simpler than the
-screens: satori cannot run the SVG-filter outline, so outlined type on cards uses satori's
-supported `WebkitTextStroke: "6px <color>"` with `color: "transparent"` — if a card looks muddy,
-prefer solid type; cards must be legible as a thumbnail.
+Two tiers:
+
+1. **Baseline (every story): server-rendered PNG** with `next/og` (`ImageResponse`) — never
+   client html-to-image (fragile with SVG filters and iOS canvas limits). Cards are 1080×1920,
+   bolder and simpler than the screens: satori cannot run the SVG-filter outline, so outlined type
+   on cards uses satori's supported `WebkitTextStroke: "6px <color>"` with
+   `color: "transparent"` — if a card looks muddy, prefer solid type; cards must be legible as a
+   thumbnail.
+2. **Flagship (your-club + summary): client-rendered LIVE CARDS** — 3-second animated video
+   exports of the actual shader-driven card (§10.6). This is the share that beats a static
+   Wrapped screenshot: the foil moves in people's feeds. The PNG tier remains the automatic
+   fallback whenever recording or file-sharing is unsupported.
 
 ### 10.2 Fonts for satori
 
@@ -1366,6 +1587,40 @@ personal card × fixture variants — implement fixtures by accepting `?fixture=
 route **in non-production only**: `top1`, `member`, `zero`, `newmember`, `unmatched`, and one per
 club. Fixture snapshots live in `lib/fixtures.ts` (write realistic values; e.g. top1 fixture:
 34 checkins, 2100 messages, sprinter, joined 2023-09).
+
+### 10.6 Live cards — `components/share/live-card.ts` (flagship shares as video)
+
+A 3-second seamless-loop video of the animated card, generated entirely on-device with zero
+dependencies: an offscreen 1080×1920 composition canvas → `canvas.captureStream(30)` →
+`MediaRecorder`.
+
+Pipeline (implement exactly):
+
+1. **Compose**: a hidden `<canvas width=1080 height=1920>` (2D context). Each frame:
+   - Draw the background: a second, offscreen WebGL2 canvas (540×960 — half res, upscaled; the
+     shader is soft, nobody can tell) running the SAME fragment shader from §3.7 with
+     `u_story = 7` (club) or `9` (summary), `u_pointer` on a scripted orbit
+     (`0.5 + 0.35*cos(t*2.1), 0.5 + 0.35*sin(t*1.7)` — this animates the foil with no user input),
+     `u_fade = 1`. `ctx.drawImage(glCanvas, 0, 0, 1080, 1920)`.
+   - Draw the card content with 2D canvas text on top — same composition, coordinates, and copy as
+     the corresponding satori layout (§10.3 table), using `FontFace` instances loaded from the
+     same font files served from `public/fonts/` (copy the three TTFs there too; wait for
+     `document.fonts.load("700 90px 'Google Sans'")` etc. before the first frame).
+   - Draw the watermark row.
+2. **Record**: `captureStream(30)` + `new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 6_000_000 })`
+   where `mimeType` = first of `["video/mp4;codecs=avc1.42E01E", "video/mp4",
+   "video/webm;codecs=vp9", "video/webm"]` passing `MediaRecorder.isTypeSupported` (Safari records
+   mp4 natively; Chrome mp4 or vp9 webm — mp4 strongly preferred because WhatsApp/IG accept it
+   directly). Drive frames with a fixed-step RAF loop for exactly 3.0 s (t goes 0→3, the scripted
+   orbit makes t=0 and t=3 identical → seamless loop), then `recorder.stop()`.
+3. **Share**: wrap the blob in `File("gdg-wrapped-club.mp4" | ".webm")`; if
+   `navigator.canShare({ files: [file] })` → `navigator.share`; else download the file; and if
+   `MediaRecorder` itself is unavailable → fall back to the §10.4 PNG path transparently.
+4. **UX**: the club and summary ShareButtons render a two-option sheet (own component, not the OS
+   sheet): "Share live card" (video, shows a 1-line "rendering… ~3s" progress state while
+   recording) and "Share image" (instant PNG). Everything else uses PNG only.
+5. **Budget**: the recorder module is lazy-loaded (`next/dynamic`/dynamic `import()`) only when a
+   flagship share sheet opens; it must add 0 bytes to the initial player bundle.
 
 ---
 
@@ -1678,13 +1933,17 @@ depend on real photo dimensions.
 
 | File | Source |
 |---|---|
-| `GoogleSans-Bold.ttf` | download from the CDN css used in §3.2: open `https://fonts.cdnfonts.com/css/google-sans`, take the weight-700 TTF URL and `curl -o` it |
+| `GoogleSans-Bold.ttf` | static-instance the app font: open `https://fonts.cdnfonts.com/css/google-sans`, take the weight-700 TTF URL and `curl -o` it (or instantiate Google Sans Flex at wght 700 with `fonttools varLib.instancer`) |
 | `GoogleSans-Medium.ttf` | same, weight 500 |
 | `BricolageGrotesque-Italic.ttf` | Google Fonts download (`https://fonts.google.com/specimen/Bricolage+Grotesque`) — any optical size, weight 500, italic; a static instance is required (satori cannot use variable fonts reliably) |
 
 If a Google Sans TTF cannot be obtained, fall back to `GoogleSansFlex` static instances, and only
 as a last resort Inter Bold/Medium — but then note it in the PR/commit body. **The share route must
 fail at build (module scope) if fonts are missing, not at request time.**
+
+Copy the same three TTFs to `public/fonts/` — the live-card recorder (§10.6) loads them client-side
+via `FontFace`. They are the only font binaries in `public/`; the app UI itself uses the
+next/font-hosted variable font (§3.2) and never touches these.
 
 ### 14.3 The People roster → fill `PEOPLE` in `lib/content/chapter.ts`
 
@@ -1767,6 +2026,18 @@ the "500+" marketing number — the receipt row renders `500+` style with a `+`)
 9. **Share**: desktop → downloads PNG; mobile emulation → `navigator.share` path (falls back
    cleanly when `canShare` is false).
 10. **Lighthouse (mobile, /wrapped)**: Performance ≥ 90, CLS < 0.05, JS under budget (§4.2).
+11. **Immersive layer**: with WebGL forcibly disabled (Chrome devtools → Rendering →
+    "Disable WebGL", or `--disable-webgl`), every story still renders complete on its CSS field —
+    no blank frames, no errors. With GL on: shader crossfades on story change, foil chases the
+    pointer on the club story, constellation twinkles on story 5.
+12. **Kinetic type + VT**: landing title breathes weight (inspect computed
+    `font-variation-settings`); navigating landing → player morphs the title in Chrome/Safari and
+    hard-cuts harmlessly in Firefox. `text-box` trim visibly centers the monument numeral.
+13. **Live cards**: on Chrome + Safari, "Share live card" produces a 3 s seamless-loop video file
+    (mp4 preferred) with moving foil; canceling mid-render aborts cleanly; a browser without
+    MediaRecorder silently offers only "Share image". Recorded file plays in WhatsApp.
+14. **Haptics** (physical Android): tap-advance ticks; stamp and club flip double-pulse; nothing
+    vibrates with reduced-motion on.
 
 ---
 
@@ -1784,10 +2055,16 @@ the "500+" marketing number — the receipt row renders `500+` style with a `+`)
 | 8 | §12 pipeline + tests + §11 migration (auth repo gets its own commit: `feat(db): wrapped snapshot tables` on auth main) | §16.2–3 | `feat(pipeline): whatsapp parsing, standing and club assignment` |
 | 9 | §14.1/14.3 assets: ORBIT copies, placeholders, PEOPLE from CSV | §16.5 with images | `feat(content): moments photography and people roster` |
 | 10 | polish pass: reduced-motion, offline blocks, analytics events, Lighthouse | §16.10 | `style(app): motion, a11y and performance polish` |
+| 11 | §3.7 shader fields (GL loader, quality gates, per-story uniforms) + §3.8 kinetic type, view transition, `text-box`, haptics | §16.11–12 | `feat(gl): webgl shader fields and kinetic type layer` |
+| 12 | §10.6 live cards (composer, recorder, share sheet) + `public/fonts` | §16.13 | `feat(share): animated live card video export` |
+
+Phases 11–12 depend only on phases 3 and 7 respectively — if the schedule compresses, they are
+the LAST things cut, not the first: they are the difference between "nice recap" and "the most
+impressive thing the chapter has shipped." Cut §17 phase-10 polish scope before cutting these.
 
 After each phase: commit on `main`, push (`git push -u origin main`, backoff per §1.1).
 
-**Launch runbook (for the humans, after phase 10):** apply migration → set Vercel envs → deploy →
+**Launch runbook (for the humans, after phase 12):** apply migration → set Vercel envs → deploy →
 run pipeline `--seed` against a Neon branch → leads workshop `mapping.json` → real run `--dry-run`,
 review report → `--write` → paste report numbers into `chapter.ts`, copy-freeze commit
 (`docs(content): freeze chapter numbers`) → soft-launch to core team 48 h → launch during grad week.
