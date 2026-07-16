@@ -81,6 +81,7 @@ export function Player() {
             active={true}
             snapshot={me.snapshot ?? null}
             guest={!me.member}
+            paused={state.paused || state.gridOpen}
           />
         </motion.div>
       </AnimatePresence>

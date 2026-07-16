@@ -86,18 +86,22 @@ function reducer(state: EngineState, action: Action): EngineState {
   }
 }
 
-function storyIndexFromUrl(): number {
-  if (typeof window === "undefined") return 0;
+function storyIndexFromUrl(): number | null {
+  if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
   const storyParam = params.get("story");
-  if (!storyParam) return 0;
+  if (!storyParam) return null;
   const found = STORIES.find((s) => s.id === (storyParam as StoryId));
-  return found ? found.index : 0;
+  return found ? found.index : null;
 }
 
 function init(): EngineState {
+  // Always starts at story 0 — the URL's ?story= deep link is applied in a
+  // post-hydration effect (below), never in this initializer, because this
+  // runs during SSR too and reading window.location here would make the
+  // server-rendered HTML disagree with the client's first render.
   return {
-    storyIndex: storyIndexFromUrl(),
+    storyIndex: 0,
     phase: "setup",
     paused: false,
     gridOpen: false,
@@ -158,6 +162,14 @@ function useStoryTimer(state: EngineState, dispatch: React.Dispatch<Action>) {
 export function useStoryEngine() {
   const [state, dispatch] = useReducer(reducer, undefined, init);
   const progressRef = useStoryTimer(state, dispatch);
+
+  // Resolve a ?story= deep link after hydration (see the note in init()).
+  useEffect(() => {
+    const index = storyIndexFromUrl();
+    if (index !== null && index !== 0) {
+      dispatch({ type: "GOTO", index });
+    }
+  }, []);
 
   // URL sync — shareable deep links like /wrapped?story=your-club, no page reload.
   useEffect(() => {

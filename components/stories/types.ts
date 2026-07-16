@@ -6,4 +6,5 @@ export interface StoryProps {
   active: boolean;
   snapshot: Snapshot | null;
   guest: boolean;
+  paused: boolean;
 }
