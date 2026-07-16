@@ -12,6 +12,7 @@ export interface EngineState {
   gridOpen: boolean;
   seen: boolean[];
   isMember: boolean;
+  memberResolved: boolean;
 }
 
 export type Action =
@@ -76,6 +77,7 @@ function reducer(state: EngineState, action: Action): EngineState {
       return {
         ...state,
         isMember: action.isMember,
+        memberResolved: true,
         storyIndex: clampToActive(state.storyIndex, nextActive),
       };
     }
@@ -107,6 +109,7 @@ function init(): EngineState {
     gridOpen: false,
     seen: new Array(STORIES.length).fill(false),
     isMember: false,
+    memberResolved: false,
   };
 }
 
@@ -163,13 +166,25 @@ export function useStoryEngine() {
   const [state, dispatch] = useReducer(reducer, undefined, init);
   const progressRef = useStoryTimer(state, dispatch);
 
-  // Resolve a ?story= deep link after hydration (see the note in init()).
+  // Resolve a ?story= deep link only once membership is known — applying it
+  // earlier would clamp a personal-story link (e.g. ?story=standing) back to
+  // index 0, because the guest-active-list excludes that index and we don't
+  // yet know the visitor isn't a guest.
+  const pendingUrlStory = useRef<number | null>(null);
+  const urlStoryApplied = useRef(false);
+
   useEffect(() => {
-    const index = storyIndexFromUrl();
-    if (index !== null && index !== 0) {
+    pendingUrlStory.current = storyIndexFromUrl();
+  }, []);
+
+  useEffect(() => {
+    if (!state.memberResolved || urlStoryApplied.current) return;
+    urlStoryApplied.current = true;
+    const index = pendingUrlStory.current;
+    if (index !== null) {
       dispatch({ type: "GOTO", index });
     }
-  }, []);
+  }, [state.memberResolved]);
 
   // URL sync — shareable deep links like /wrapped?story=your-club, no page reload.
   useEffect(() => {

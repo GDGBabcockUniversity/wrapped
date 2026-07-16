@@ -7,4 +7,5 @@ export interface StoryProps {
   snapshot: Snapshot | null;
   guest: boolean;
   paused: boolean;
+  onReplay: () => void;
 }

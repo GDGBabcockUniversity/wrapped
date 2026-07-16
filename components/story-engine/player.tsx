@@ -91,6 +91,7 @@ export function Player() {
             snapshot={me.snapshot ?? null}
             guest={!me.member}
             paused={state.paused || state.gridOpen}
+            onReplay={() => dispatch({ type: "GOTO", index: 0 })}
           />
         </motion.div>
       </AnimatePresence>
