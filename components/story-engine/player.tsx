@@ -12,6 +12,7 @@ import { preloadStoryAssets } from "./preloader";
 import { useStoryEngine } from "./use-story-state";
 import type { Snapshot } from "@/lib/snapshot";
 import { copy } from "@/lib/copy";
+import { ShareButton } from "@/components/share/share-button";
 
 const ChapterGrid = dynamic(
   () => import("./chapter-grid").then((m) => m.ChapterGrid),
@@ -73,6 +74,10 @@ export function Player() {
   const def = STORIES[state.storyIndex]!;
   const StoryComponent = STORY_COMPONENTS[def.id];
   const currentPos = activeIndexes.indexOf(state.storyIndex);
+  // Summary carries its own primary share CTA already — the header chip is
+  // only for the other personal reveal screens.
+  const showShareChip =
+    def.personal && def.id !== "summary" && me.member && state.phase === "reveal";
 
   return (
     <StoryFrame>
@@ -111,6 +116,7 @@ export function Player() {
         field={def.field}
         label={def.label}
         onOpenGrid={() => dispatch({ type: "OPEN_GRID" })}
+        shareSlot={showShareChip ? <ShareButton storyId={def.id} variant="chip" /> : undefined}
       />
 
       {state.paused && !state.gridOpen && (

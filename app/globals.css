@@ -194,6 +194,19 @@ body {
   animation: marquee 40s linear infinite;
   will-change: transform;
 }
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
 @keyframes marquee {
   from {
     transform: translateX(0);

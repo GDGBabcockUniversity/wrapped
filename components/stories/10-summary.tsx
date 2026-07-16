@@ -5,6 +5,7 @@ import { CLUBS } from "@/lib/clubs";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
+import { ShareButton } from "@/components/share/share-button";
 import type { StoryProps } from "./types";
 
 function nameFontSize(name: string): string {
@@ -29,21 +30,6 @@ function Barcode({ seed }: { seed: string }) {
       ))}
     </div>
   );
-}
-
-async function shareSummary() {
-  const shareData = {
-    title: "GDG Wrapped 25/26",
-    text: "My GDG Babcock year, wrapped.",
-    url: typeof window !== "undefined" ? window.location.origin : undefined,
-  };
-  try {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      await navigator.share(shareData);
-    }
-  } catch {
-    // user canceled the share sheet — not an error
-  }
 }
 
 export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
@@ -178,12 +164,7 @@ export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
       </motion.div>
 
       <div className="flex flex-col gap-2 w-full max-w-xs">
-        <button
-          onClick={shareSummary}
-          className="rounded-full bg-cream text-ink px-6 py-3 t-label"
-        >
-          {copy.summary.share}
-        </button>
+        <ShareButton storyId="summary" label={copy.summary.share} variant="primary" />
         <button
           onClick={onReplay}
           className="rounded-full border border-cream/40 text-cream px-6 py-3 t-label"
