@@ -2,8 +2,19 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { motion } from "motion/react";
 import { track } from "@vercel/analytics";
 import { copy } from "@/lib/copy";
+
+// Staggered entrance for the landing column — the first thing anyone sees
+// must already be moving.
+const RISE = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+};
+function rise(delay: number) {
+  return { ...RISE, transition: { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] as const } };
+}
 
 const MARQUEE_TEXT =
   "ORBIT · DEVFEST · RADAR · BABCOCK 100 · GAME NIGHTS · 500+ MEMBERS · ";
@@ -86,22 +97,33 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-dvh bg-ink text-cream relative overflow-hidden flex flex-col items-center justify-center px-6 py-16">
+      {/* Backdrop wordmark strip — parked in the empty top band so it never
+          collides with the copy column (it used to sit mid-screen, straight
+          through the subtitle). */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-1/2 -translate-y-1/2 whitespace-nowrap opacity-[0.06] t-label text-[8rem] tracking-widest select-none pointer-events-none"
+        className="absolute inset-x-0 top-[8%] whitespace-nowrap opacity-[0.05] t-label text-[6rem] tracking-widest select-none pointer-events-none"
       >
         <div className="animate-marquee inline-block">
           {MARQUEE_TEXT.repeat(2)}
         </div>
       </div>
 
-      <div className="relative max-w-sm mx-auto flex flex-col items-center text-center gap-6">
-        <p className="t-label text-cream/55">{copy.landing.eyebrow}</p>
+      <div className="relative w-full max-w-sm mx-auto flex flex-col items-center text-center gap-6">
+        <motion.p {...rise(0)} className="t-label text-cream/55">
+          {copy.landing.eyebrow}
+        </motion.p>
 
-        <div style={{ viewTransitionName: "wrapped-title" } as React.CSSProperties}>
+        <motion.div
+          {...rise(0.08)}
+          className="w-full"
+          style={{ viewTransitionName: "wrapped-title" } as React.CSSProperties}
+        >
+          {/* 17vw: 7 outline-tracked glyphs ≈ 4.9em — the widest that still
+              fits a 390px phone inside the px-6 gutters. 22vw clipped. */}
           <h1
             className="text-outline-base text-outline-cream leading-none"
-            style={{ fontSize: "clamp(4rem, 22vw, 9rem)" }}
+            style={{ fontSize: "clamp(3.25rem, 17vw, 8rem)" }}
           >
             {copy.landing.title}
           </h1>
@@ -111,15 +133,17 @@ export default function LandingPage() {
           >
             {copy.landing.year}
           </p>
-        </div>
+        </motion.div>
 
-        <p className="t-body text-cream/75">{copy.landing.sub}</p>
+        <motion.p {...rise(0.16)} className="t-body text-cream/75">
+          {copy.landing.sub}
+        </motion.p>
 
         <Suspense fallback={null}>
           <ErrorBanner />
         </Suspense>
 
-        <div className="flex flex-col items-center gap-3 w-full mt-2">
+        <motion.div {...rise(0.24)} className="flex flex-col items-center gap-3 w-full mt-2">
           <a
             href="/wrapped"
             className="rounded-full bg-cream text-ink px-8 py-4 t-label w-full text-center"
@@ -137,11 +161,11 @@ export default function LandingPage() {
               {copy.landing.ctaPersonal}
             </button>
           )}
-        </div>
+        </motion.div>
 
-        <p className="t-label text-cream/35 mt-8">
+        <motion.p {...rise(0.32)} className="t-label text-cream/35 mt-8">
           BUILT BY GDG ON CAMPUS BABCOCK · 2026
-        </p>
+        </motion.p>
       </div>
     </main>
   );

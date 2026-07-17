@@ -189,6 +189,157 @@ rate ≥ 80%; every club ≥ 8%.
 |---|---|
 | auth | `fix(db): key wrapped snapshots by email for cross-platform members` |
 | wrapped | `feat(pipeline): community.dev, luma and orbit ingestion with email-keyed universe` |
+| wrapped | `feat(engine): vertical deck push, progress repaint, landing fit and perf` (§8) |
 
 Same git rules as `build.md` §1.1: author `nekumartins <akpotohwoo@gmail.com>`,
 unsigned, `type(scope): subject`, wrapped → `main` directly.
+
+---
+
+## 8. The critique pass — real-device findings and their exact fixes
+
+Owner review on a real iPhone (deployed build) found four failures. Each fix
+below is fully specified; implement them exactly. The unifying lesson is
+§8.5 — read it before touching any animation code.
+
+### 8.1 Story transitions: the vertical deck push
+
+**Finding:** stories crossfaded in place (opacity + 12px drift). Spotify
+Wrapped 2025 *pushes whole screens vertically* — the outgoing and incoming
+screens travel together like cards in a deck. The crossfade reads static.
+
+**Spec:**
+
+1. The engine tracks navigation direction. Add to `EngineState`:
+   `direction: 1 | -1` (1 = forward → screens push UP; -1 = backward →
+   screens push DOWN). Set it in the reducer: `NEXT` (story change) → 1,
+   `PREV` (story change) → -1, `GOTO` → `target >= current ? 1 : -1`,
+   initial state → 1. Phase changes never touch it.
+2. In `player.tsx`, define verbatim:
+   ```ts
+   const PUSH_SPRING = { type: "spring" as const, stiffness: 300, damping: 34 };
+   const PUSH_VARIANTS = {
+     enter: (direction: 1 | -1) => ({ y: direction > 0 ? "100%" : "-100%" }),
+     center: { y: "0%", transition: { y: PUSH_SPRING } },
+     exit: (direction: 1 | -1) => ({
+       y: direction > 0 ? "-100%" : "100%",
+       transition: { y: PUSH_SPRING },
+     }),
+   };
+   const BACKDROP_VARIANTS = {
+     enter: { opacity: 1 },
+     center: { opacity: 0, transition: { delay: 0.15, duration: 0.3 } },
+     exit: { opacity: 1, transition: { duration: 0 } },
+   };
+   ```
+3. Structure (two nesting levels, exactly this):
+   - OUTER `<AnimatePresence initial={false} custom={state.direction}>` —
+     **never `mode="wait"`**: both screens must travel simultaneously.
+     `custom` on AnimatePresence is what feeds the *fresh* direction to the
+     exiting screen (its own render-time custom would be stale after a
+     direction change).
+   - Inside: `<motion.div key={def.id} custom={state.direction}
+     variants={PUSH_VARIANTS} initial="enter" animate="center" exit="exit"
+     className="absolute inset-0 z-10 will-change-transform">` — keyed by
+     STORY ID ONLY (never phase; a story must not slide for its own
+     second beat).
+   - First child: the backdrop `<motion.div aria-hidden
+     variants={BACKDROP_VARIANTS} className={absolute inset-0 +
+     story field bg (bg-ink | bg-cream)} />`. **Why:** story screens are
+     transparent (the §3.7 shader shows through them), so two overlapping
+     transparent screens would double-expose mid-push. The backdrop is
+     solid while traveling, fades out once settled (live shader shows
+     through again), and snaps back solid instantly on exit. It reaches
+     these states via variant-label propagation from the parent — it must
+     NOT set its own `animate` prop, or propagation breaks.
+   - Second child: the phase crossfade —
+     `<AnimatePresence mode="wait" initial={false}>` around
+     `<motion.div key={state.phase} initial={{opacity:0}}
+     animate={{opacity:1}} exit={{opacity:0}}
+     transition={{duration: TIMING.storyFadeMs / 1000}}>` wrapping the
+     story component. `initial={false}` so a freshly pushed screen arrives
+     FULLY DRAWN; only in-story setup→reveal changes crossfade.
+4. The stage's `overflow-hidden` (§6.4) clips the traveling screens; the
+   §3.7 shader keeps crossfading `u_fade` beneath — no shader changes.
+
+### 8.2 Progress bar: stale fills on back-navigation
+
+**Finding (screenshot-confirmed):** after navigating forward then back,
+future bars kept ghost partial fills.
+
+**Root cause — memorize this pattern:** the current bar's fill was written
+imperatively (`node.style.transform` in rAF), but non-current bars were
+reset declaratively (React inline style). React diffs against its own
+previous VDOM, not the real DOM — it cannot see, and therefore never
+clears, a mutation it didn't make. Never mix the two write paths on the
+same property of the same element.
+
+**Spec:** rewrite `progress-bar.tsx` so React NEVER writes the fill
+transforms. Collect all fill nodes in a `useRef<(HTMLDivElement|null)[]>`
+array via ref callbacks; one rAF loop paints every segment every frame:
+`i < currentPos → scaleX(1)`, `i === currentPos → scaleX(beat)`,
+`i > currentPos → scaleX(0)`. `currentPos`/`phase` are mirrored into refs
+by a dependency-less effect so the loop never restarts. And implement the
+§6.5 sub-beats that were previously skipped:
+`beat = phase === "setup" ? p * 0.3 : 0.3 + p * 0.7` — one bar per story,
+setup fills the first 30%, reveal the rest, no mid-story restart. The
+component gains a `phase: Phase` prop (player passes `state.phase`).
+
+### 8.3 Landing fit + first impression
+
+**Findings (screenshot-confirmed):** the WRAPPED title clipped off BOTH
+edges on a 390px phone; the backdrop marquee strip sat mid-screen colliding
+with the subtitle; the page arrived static.
+
+**Spec:**
+1. Title size: `clamp(3.25rem, 17vw, 8rem)` — the math: 7 outline-tracked
+   glyphs ≈ 4.9em wide; the column is 390 − 2×24px gutters = 342px;
+   342/4.9 ≈ 70px ≈ 17vw. 22vw (the old value) needs ~600px. Title wrapper
+   gets `w-full`; keep `viewTransitionName: "wrapped-title"`.
+2. Marquee: `top-[8%]` (the empty band above the eyebrow), `text-[6rem]`,
+   `opacity-[0.05]` — never mid-screen, never touching the copy column.
+3. Entrance: stagger the column with
+   `initial={{opacity:0, y:16}} animate={{opacity:1, y:0}}`,
+   `transition={{duration:0.5, delay, ease:[0.22,1,0.36,1]}}`, delays
+   0 / 0.08 / 0.16 / 0.24 / 0.32 for eyebrow / title block / subtitle /
+   CTA block / footer.
+
+### 8.4 The two remaining setState-per-frame leaks
+
+**Finding:** "animations feel laggy" on device. Cause: React re-renders
+inside per-frame/per-event hot paths.
+
+1. `counter.tsx` called `setState` from `animate()`'s `onUpdate` — five
+   receipt counters = ~300 React re-renders/second. Rewrite: hold a
+   `useRef<HTMLSpanElement>`; `onUpdate` writes
+   `node.textContent = Math.round(v).toLocaleString("en-US") + suffix`.
+   Zero re-renders while rolling. SSR fallback text: final value when
+   reduced-motion, else 0.
+2. `08-your-club.tsx` FoilCard stored the sheen position in state, so every
+   pointermove re-rendered the card. Rewrite: `sheenRef` +
+   `sheenRef.current.style.backgroundPosition = \`${px*100}% ${py*100}%\``
+   in the handler; the sheen div keeps a static initial
+   `backgroundPosition: "50% 50%"`.
+
+### 8.5 The rule behind all of §8 (add to your review checklist)
+
+**Anything that changes every frame (or every pointer event) is written to
+the DOM through a ref; React state is only for things that change per
+BEAT** (story, phase, member, pause). One property, one writer: if a value
+is ever written imperatively, React must never write that same property
+declaratively. Existing compliant examples: the engine's `progressRef`, the
+shader's uniform feed.
+
+### 8.6 Verification (device-shaped, not just green checks)
+
+1. `npx tsc --noEmit && npx eslint . && npx vitest run && npm run build`.
+2. Playwright at 390×844:
+   - landing `h1.getBoundingClientRect()` → `left >= 0 && right <= 390`;
+   - navigate forward 4, back 6, then read every fill's computed transform:
+     expect `[<current beat>, 0, 0, ...]` — any nonzero on a future bar is
+     the §8.2 bug back;
+   - screenshot mid-push (~180ms after a story tap): BOTH screens visible,
+     opaque, traveling.
+3. On a real phone after deploy: forward pushes up, back pushes down, grid
+   jumps push in the right direction, no double-exposure, receipt count-up
+   smooth, reduced-motion still instant.

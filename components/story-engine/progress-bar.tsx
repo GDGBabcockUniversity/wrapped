@@ -2,11 +2,22 @@
 
 import { useEffect, useRef } from "react";
 import type { RefObject, ReactNode } from "react";
+import type { Phase } from "./use-story-state";
 
+/**
+ * One bar per story; setup fills 0→30%, reveal 30→100% (§6.5 sub-beats).
+ *
+ * EVERY segment's fill is painted imperatively on every frame — past bars 1,
+ * future bars 0, current bar from the engine's progress ref. React never
+ * writes these transforms: mixing declarative resets with imperative writes
+ * leaves stale fills behind on back-navigation (React can't diff a DOM
+ * mutation it didn't make).
+ */
 export function ProgressBar({
   progressRef,
   total,
   currentPos,
+  phase,
   field,
   label,
   onOpenGrid,
@@ -15,24 +26,38 @@ export function ProgressBar({
   progressRef: RefObject<number>;
   total: number;
   currentPos: number;
+  phase: Phase;
   field: "ink" | "cream";
   label: string;
   onOpenGrid: () => void;
   shareSlot?: ReactNode;
 }) {
-  const fillRef = useRef<HTMLDivElement | null>(null);
+  const fillRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const currentPosRef = useRef(currentPos);
+  const phaseRef = useRef(phase);
+
+  useEffect(() => {
+    currentPosRef.current = currentPos;
+    phaseRef.current = phase;
+  });
 
   useEffect(() => {
     let raf = 0;
     function paint() {
-      if (fillRef.current) {
-        fillRef.current.style.transform = `scaleX(${progressRef.current})`;
+      const pos = currentPosRef.current;
+      const p = progressRef.current;
+      const beat = phaseRef.current === "setup" ? p * 0.3 : 0.3 + p * 0.7;
+      for (let i = 0; i < fillRefs.current.length; i++) {
+        const node = fillRefs.current[i];
+        if (!node) continue;
+        const scale = i < pos ? 1 : i === pos ? beat : 0;
+        node.style.transform = `scaleX(${scale})`;
       }
       raf = requestAnimationFrame(paint);
     }
     raf = requestAnimationFrame(paint);
     return () => cancelAnimationFrame(raf);
-  }, [progressRef, currentPos]);
+  }, [progressRef]);
 
   const track = field === "ink" ? "bg-cream/25" : "bg-ink/20";
   const fill = field === "ink" ? "bg-cream" : "bg-ink";
@@ -50,11 +75,11 @@ export function ProgressBar({
             className={`h-[3px] flex-1 rounded-full overflow-hidden ${track}`}
           >
             <div
-              ref={i === currentPos ? fillRef : undefined}
-              className={`h-full w-full origin-left ${fill}`}
-              style={{
-                transform: i < currentPos ? "scaleX(1)" : "scaleX(0)",
+              ref={(node) => {
+                fillRefs.current[i] = node;
               }}
+              className={`h-full w-full origin-left ${fill}`}
+              style={{ transform: "scaleX(0)" }}
             />
           </div>
         ))}

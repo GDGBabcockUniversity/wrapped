@@ -24,6 +24,28 @@ const ChapterGrid = dynamic(
 
 const CLUB_PATTERN_INDEX = { grid: 0, waves: 1, halftone: 2, diagonals: 3 } as const;
 
+// The vertical deck push (Spotify 2025 model). Screens overlap-travel —
+// never mode="wait", both must move together — direction-aware via custom.
+const PUSH_SPRING = { type: "spring" as const, stiffness: 300, damping: 34 };
+const PUSH_VARIANTS = {
+  enter: (direction: 1 | -1) => ({ y: direction > 0 ? "100%" : "-100%" }),
+  center: { y: "0%", transition: { y: PUSH_SPRING } },
+  exit: (direction: 1 | -1) => ({
+    y: direction > 0 ? "-100%" : "100%",
+    transition: { y: PUSH_SPRING },
+  }),
+};
+// Story screens are transparent (the shader field lives beneath them), so
+// each traveling screen carries an opaque field-colored backdrop: solid
+// while moving — no double-exposure — fading out once settled so the live
+// shader shows through. Exit snaps it back solid instantly (duration 0).
+// Reaches the child via variant-label propagation; it must NOT set animate.
+const BACKDROP_VARIANTS = {
+  enter: { opacity: 1 },
+  center: { opacity: 0, transition: { delay: 0.15, duration: 0.3 } },
+  exit: { opacity: 1, transition: { duration: 0 } },
+};
+
 interface MeResponse {
   member: boolean;
   snapshot?: Snapshot;
@@ -106,23 +128,47 @@ export function Player() {
       pattern={shaderPattern}
       progressRef={progressRef}
     >
-      <AnimatePresence mode="wait">
+      {/* Story-level: full-screen vertical PUSH — outgoing and incoming
+          screens travel together like a deck of cards. Forward pushes up,
+          backward pushes down. Phase-level (setup→reveal) stays an in-place
+          crossfade INSIDE the pushed screen, so a story never slides for
+          its own second beat. */}
+      <AnimatePresence initial={false} custom={state.direction}>
         <motion.div
-          key={`${def.id}-${state.phase}`}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -12 }}
-          transition={{ duration: TIMING.storyFadeMs / 1000 }}
-          className="absolute inset-0 z-10"
+          key={def.id}
+          custom={state.direction}
+          variants={PUSH_VARIANTS}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          className="absolute inset-0 z-10 will-change-transform"
         >
-          <StoryComponent
-            phase={state.phase}
-            active={true}
-            snapshot={me.snapshot ?? null}
-            guest={!me.member}
-            paused={state.paused || state.gridOpen}
-            onReplay={() => dispatch({ type: "GOTO", index: 0 })}
+          <motion.div
+            aria-hidden
+            variants={BACKDROP_VARIANTS}
+            className={`absolute inset-0 ${def.field === "ink" ? "bg-ink" : "bg-cream"}`}
           />
+          {/* initial={false}: a freshly pushed screen arrives fully drawn —
+              only in-story phase changes crossfade. */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={state.phase}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: TIMING.storyFadeMs / 1000 }}
+              className="absolute inset-0"
+            >
+              <StoryComponent
+                phase={state.phase}
+                active={true}
+                snapshot={me.snapshot ?? null}
+                guest={!me.member}
+                paused={state.paused || state.gridOpen}
+                onReplay={() => dispatch({ type: "GOTO", index: 0 })}
+              />
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
       </AnimatePresence>
 
@@ -138,6 +184,7 @@ export function Player() {
         progressRef={progressRef}
         total={activeIndexes.length}
         currentPos={currentPos}
+        phase={state.phase}
         field={def.field}
         label={def.label}
         onOpenGrid={() => dispatch({ type: "OPEN_GRID" })}

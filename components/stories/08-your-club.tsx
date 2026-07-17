@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { motion, useMotionValue, useSpring, useReducedMotion } from "motion/react";
 import { CLUBS } from "@/lib/clubs";
 import { KineticWords } from "@/components/kinetic-words";
@@ -62,8 +62,8 @@ function FoilCard({ clubId, rarityPct }: { clubId: ClubId; rarityPct: number }) 
   const rotateY = useMotionValue(0);
   const springX = useSpring(rotateX, { stiffness: 200, damping: 20 });
   const springY = useSpring(rotateY, { stiffness: 200, damping: 20 });
-  const [sheenPos, setSheenPos] = useState({ x: 50, y: 50 });
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const sheenRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     vibrate([12, 40, 12]); // the flip lands like a physical card
@@ -77,7 +77,10 @@ function FoilCard({ clubId, rarityPct }: { clubId: ClubId; rarityPct: number }) 
     const py = (e.clientY - rect.top) / rect.height;
     rotateY.set((px - 0.5) * 14);
     rotateX.set((0.5 - py) * 14);
-    setSheenPos({ x: px * 100, y: py * 100 });
+    // Direct style write — a React re-render per pointermove is jank fuel.
+    if (sheenRef.current) {
+      sheenRef.current.style.backgroundPosition = `${px * 100}% ${py * 100}%`;
+    }
   }
 
   function onPointerLeave() {
@@ -107,12 +110,13 @@ function FoilCard({ clubId, rarityPct }: { clubId: ClubId; rarityPct: number }) 
       >
         {!reduceMotion && (
           <div
+            ref={sheenRef}
             aria-hidden
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
                 "linear-gradient(115deg, transparent 40%, rgba(255,246,224,0.18) 50%, transparent 60%)",
-              backgroundPosition: `${sheenPos.x}% ${sheenPos.y}%`,
+              backgroundPosition: "50% 50%",
               backgroundSize: "200% 200%",
               mixBlendMode: "overlay",
             }}
