@@ -5,11 +5,38 @@ import { STORIES, getGuestStoryIndexes, type StoryId } from "@/lib/stories";
 
 export type Phase = "setup" | "reveal";
 
+/**
+ * The canvas camera path (§11.3 build2.md) — where the NEXT screen enters
+ * from, per boundary between consecutive story indices. Index i = the
+ * transition from STORIES[i] to STORIES[i+1]. Not every consecutive pair of
+ * ACTIVE (guest-filtered) stories is adjacent in this array — a jump uses
+ * the boundary at min(from, to), so a skip (e.g. guest your-events→your-club)
+ * still resolves to one real vector, never a sum of several.
+ */
+const CANVAS_PATH: [number, number][] = [
+  [0, 1], // the-year -> moments        down
+  [1, 0], // moments -> built           across
+  [1, 1], // built -> people            diagonal ↘
+  [0, 1], // people -> your-events      down
+  [1, 0], // your-events -> standing    across
+  [-1, 1], // standing -> your-chapter  diagonal ↙
+  [0, 1], // your-chapter -> your-club  down
+  [1, 1], // your-club -> whats-next    diagonal ↘ (out of the club high)
+  [0, 1], // whats-next -> summary      down (the exhale)
+];
+
+/** Forward transitions read the path as-is; backward is the exact reverse. */
+function vectorForTransition(fromIndex: number, toIndex: number): [number, number] {
+  const boundary = Math.min(fromIndex, toIndex);
+  const [vx, vy] = CANVAS_PATH[boundary] ?? [0, 1];
+  return toIndex >= fromIndex ? [vx, vy] : [-vx, -vy];
+}
+
 export interface EngineState {
   storyIndex: number;
   phase: Phase;
-  /** 1 = moving forward (screens push UP), -1 = backward (screens push DOWN). */
-  direction: 1 | -1;
+  /** Camera travel vector for the CURRENT (just-dispatched) transition. */
+  vector: [number, number];
   paused: boolean;
   gridOpen: boolean;
   seen: boolean[];
@@ -46,13 +73,26 @@ function reducer(state: EngineState, action: Action): EngineState {
       if (state.storyIndex === last) return state; // end state (summary), do nothing
       const seen = [...state.seen];
       seen[state.storyIndex] = true;
-      return { ...state, storyIndex: active[pos + 1]!, phase: "setup", direction: 1, seen };
+      const next = active[pos + 1]!;
+      return {
+        ...state,
+        storyIndex: next,
+        phase: "setup",
+        vector: vectorForTransition(state.storyIndex, next),
+        seen,
+      };
     }
     case "PREV": {
       if (state.phase === "reveal") return { ...state, phase: "setup" };
       const pos = active.indexOf(state.storyIndex);
       if (pos <= 0) return { ...state }; // restart setup timer via consumer key remount
-      return { ...state, storyIndex: active[pos - 1]!, phase: "setup", direction: -1 };
+      const prev = active[pos - 1]!;
+      return {
+        ...state,
+        storyIndex: prev,
+        phase: "setup",
+        vector: vectorForTransition(state.storyIndex, prev),
+      };
     }
     case "GOTO": {
       const seen = [...state.seen];
@@ -62,7 +102,7 @@ function reducer(state: EngineState, action: Action): EngineState {
         ...state,
         storyIndex: target,
         phase: "setup",
-        direction: target >= state.storyIndex ? 1 : -1,
+        vector: vectorForTransition(state.storyIndex, target),
         gridOpen: false,
         paused: false,
         seen,
@@ -109,7 +149,7 @@ function init(): EngineState {
   return {
     storyIndex: 0,
     phase: "setup",
-    direction: 1,
+    vector: CANVAS_PATH[0]!,
     paused: false,
     gridOpen: false,
     seen: new Array(STORIES.length).fill(false),

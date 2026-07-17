@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "motion/react";
 import type { RefObject, ReactNode } from "react";
 import type { Phase } from "./use-story-state";
+
+const IDLE_MS = 1800;
+const HIDE_MS = 400;
+const SHOW_MS = 150;
 
 /**
  * One bar per story; setup fills 0→30%, reveal 30→100% (§6.5 sub-beats).
@@ -12,6 +17,13 @@ import type { Phase } from "./use-story-state";
  * writes these transforms: mixing declarative resets with imperative writes
  * leaves stale fills behind on back-navigation (React can't diff a DOM
  * mutation it didn't make).
+ *
+ * Chrome (bars + label + share chip) auto-hides after IDLE_MS of no touch,
+ * reappearing instantly on the next pointerdown anywhere on the stage —
+ * §11.2, the stage is the whole screen. The ⊞ grid button never fully
+ * disappears (it's the one affordance a first-time viewer needs) — it dims
+ * to 40% instead of vanishing. The rAF fill-paint loop never stops, so bars
+ * are correct the instant chrome reappears.
  */
 export function ProgressBar({
   progressRef,
@@ -20,6 +32,7 @@ export function ProgressBar({
   phase,
   field,
   label,
+  forceVisible,
   onOpenGrid,
   shareSlot,
 }: {
@@ -29,12 +42,16 @@ export function ProgressBar({
   phase: Phase;
   field: "ink" | "cream";
   label: string;
+  /** Paused / grid-open / reduced-motion — chrome must stay up. */
+  forceVisible?: boolean;
   onOpenGrid: () => void;
   shareSlot?: ReactNode;
 }) {
+  const reduceMotion = useReducedMotion();
   const fillRefs = useRef<(HTMLDivElement | null)[]>([]);
   const currentPosRef = useRef(currentPos);
   const phaseRef = useRef(phase);
+  const [idleHidden, setIdleHidden] = useState(false);
 
   useEffect(() => {
     currentPosRef.current = currentPos;
@@ -59,6 +76,32 @@ export function ProgressBar({
     return () => cancelAnimationFrame(raf);
   }, [progressRef]);
 
+  useEffect(() => {
+    if (reduceMotion) return; // always visible — discoverability over purity
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    function wake() {
+      setIdleHidden(false);
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => setIdleHidden(true), IDLE_MS);
+    }
+    wake();
+    window.addEventListener("pointerdown", wake, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", wake, { capture: true });
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [reduceMotion]);
+
+  const chromeVisible = !idleHidden || !!forceVisible || !!reduceMotion;
+  const fadeStyle = {
+    opacity: chromeVisible ? 1 : 0,
+    transition: `opacity ${chromeVisible ? SHOW_MS : HIDE_MS}ms ease`,
+  };
+  const buttonFadeStyle = {
+    opacity: chromeVisible ? 1 : 0.4,
+    transition: `opacity ${chromeVisible ? SHOW_MS : HIDE_MS}ms ease`,
+  };
+
   const track = field === "ink" ? "bg-cream/25" : "bg-ink/20";
   const fill = field === "ink" ? "bg-cream" : "bg-ink";
   const text = field === "ink" ? "text-cream" : "text-ink";
@@ -68,7 +111,7 @@ export function ProgressBar({
       className="absolute inset-x-0 top-0 z-20 px-3"
       style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
     >
-      <div className="flex gap-1">
+      <div className="flex gap-1" style={fadeStyle}>
         {Array.from({ length: total }).map((_, i) => (
           <div
             key={i}
@@ -85,13 +128,16 @@ export function ProgressBar({
         ))}
       </div>
       <div className={`flex items-center justify-between mt-2 ${text}`}>
-        <span className="t-label opacity-90">{label}</span>
+        <span className="t-label opacity-90" style={fadeStyle}>
+          {label}
+        </span>
         <div className="flex items-center gap-3">
-          {shareSlot}
+          <div style={fadeStyle}>{shareSlot}</div>
           <button
             onClick={onOpenGrid}
             aria-label="Story grid"
             className="text-lg leading-none opacity-90"
+            style={buttonFadeStyle}
           >
             &#8862;
           </button>
