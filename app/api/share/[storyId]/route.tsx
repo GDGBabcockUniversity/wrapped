@@ -28,8 +28,10 @@ const PUBLIC_CARDS = new Set<StoryId>(["the-year", "moments", "built", "people",
 const SIZE = { width: 1080, height: 1920 };
 
 async function resolveSnapshot(req: NextRequest): Promise<{ snapshot: Snapshot | null; guest: boolean } | null> {
-  // Fixture override — non-production only, for /debug/cards.
-  if (process.env.NODE_ENV !== "production") {
+  // Fixture override for /debug/cards — same gate as that page, so a Vercel
+  // preview with ALLOW_DEBUG=1 renders the full card grid. Never set
+  // ALLOW_DEBUG on the production project.
+  if (process.env.NODE_ENV !== "production" || process.env.ALLOW_DEBUG) {
     const fixture = req.nextUrl.searchParams.get("fixture") as FixtureName | null;
     if (fixture && FIXTURES[fixture]) {
       return { snapshot: FIXTURES[fixture], guest: false };
