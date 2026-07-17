@@ -555,3 +555,214 @@ motion.spans; keep `aria-hidden`.)
    touching anything else.
 
 Commit: `feat(stories): cinematic motion pass — club ritual, stamp slam, receipt print, parallax`.
+
+---
+
+## 11. The glory pass — full design escalation (SPEC ONLY)
+
+Owner review of the deployed build, round two. Verdict: mechanically sound,
+emotionally sparse. This section escalates the experience to "memorable" —
+it supersedes §8.1/§10.1 transition specs where they conflict. Everything
+remains progressive-enhancement over the same engine; the §9 journey rule
+and §8.5 ref-writing rule stay law.
+
+(Ops note, not spec: the production 500 on `POST /api/auth/request` is the
+Vercel project missing env vars — set all five from `.env.example`,
+especially `WRAPPED_SESSION_SECRET`. Hardening: that route wraps its body
+in try/catch and returns `{ error: "server_config" }` 500 with a
+`console.error` naming the missing var — never a raw exception.)
+
+### 11.1 Landing: the email capsule
+
+The input + "SEND MY LINK" pill reads oversized (three-line text in a
+blob). Replace the two-element row with ONE capsule:
+
+- Input: `flex-1 rounded-full border border-cream/30 bg-transparent
+  pl-5 pr-14 py-3` (pr-14 reserves the button well), same placeholder.
+- Submit: a `40px × 40px` circular button ABSOLUTE inside the capsule's
+  right edge (`right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-cream
+  text-ink`), containing only `↑` (a 16px arrow glyph, `aria-label` =
+  `copy.landing.emailSubmit`). Loading state: the arrow swaps for `…` and
+  the button gets `opacity-60`. The helper line ("we'll email you a magic
+  link…") stays below, unchanged.
+
+### 11.2 Invisible chrome — the stage is the whole screen
+
+Spotify shows no persistent UI. Ours shouldn't either:
+
+- The progress segments + story label AUTO-HIDE: fade to `opacity: 0`
+  (0.4s ease) after **1.8s** without a pointerdown; any pointerdown shows
+  them again instantly (0.15s). While `paused` or `gridOpen`, chrome stays
+  visible. Reduced motion: always visible (discoverability beats purity).
+- Implement in `progress-bar.tsx`: a `chromeVisible` state + one idle
+  timeout reset on `window` pointerdown (capture phase, passive). The rAF
+  paint keeps running while hidden — bars must be CORRECT the instant they
+  reappear.
+- The ⊞ grid button stays at `opacity-40` permanently (the one affordance
+  a first-time viewer needs), rising to full inside visible chrome.
+
+### 11.3 The canvas camera — replaces "just going down"
+
+The deck push becomes a CAMERA over an infinite canvas: stories live at
+positions on a plane; advancing whips the camera to the next position —
+sometimes down, sometimes across, sometimes diagonal. The persistent
+shader field beneath (never unmounts, keeps breathing through every
+transition) is what sells one continuous world.
+
+1. **The path** (forward vectors between consecutive ACTIVE positions;
+   backward = exact reverse; grid jumps use the vector of the boundary
+   being crossed toward the target):
+   ```ts
+   // [x, y] in screen-fractions: where the NEXT screen enters from.
+   const CANVAS_PATH: [number, number][] = [
+     [0, 1],   // 1→2   down
+     [1, 0],   // 2→3   across
+     [1, 1],   // 3→4   diagonal ↘
+     [0, 1],   // 4→5   down
+     [1, 0],   // 5→6   across
+     [-1, 1],  // 6→7   diagonal ↙
+     [0, 1],   // 7→8   down
+     [1, 1],   // 8→9   diagonal ↘ (into the club high)
+     [0, 1],   // 9→10  down (the exhale)
+   ];
+   ```
+   Boundary index = `min(prevPos, nextPos)` in the ACTIVE list (guest and
+   member runs both just consume consecutive boundaries — no special
+   cases). Engine change: `direction` becomes `vector: [number, number]`
+   (keep a derived `direction = vector[1] >= 0 ? 1 : -1` for anything that
+   still wants it).
+2. **The whip** (replaces PUSH_SPRING for screen travel):
+   - *Anticipation:* 90ms, camera nudges 1.5% OPPOSITE the travel vector
+     (`ease: "easeOut"`) — the coil before the sprint.
+   - *Whip:* 380ms `cubic-bezier(0.83, 0, 0.17, 1)` — slow-fast-slow with
+     a violent middle; screens travel `±100%` on each nonzero axis.
+   - *Smear:* during the whip the traveling screens scale 1.045 along the
+     dominant axis (`scaleY` for vertical/diagonal, `scaleX` for pure
+     horizontal), returning to 1 in the last 120ms — motion blur without
+     `filter`.
+   - Express all three as keyframes in the variants (`times: [0, 0.19,
+     1]`-style), NOT as chained animations.
+3. Content parallax (§10.1) and seam flash (§10.2) follow the vector:
+   parallax offsets 12% along both nonzero axes; the seam pins to the
+   leading edge (top/bottom for vertical, left/right for horizontal, the
+   corner-adjacent edge pair may simply use the vertical edge on
+   diagonals).
+4. The §8.1 backdrop rules are unchanged. `will-change-transform` stays.
+
+### 11.4 Story 1: the cold open (fixes "just 'what a year?'")
+
+The setup beat becomes a three-cut title sequence — hard cuts, field
+inversions, no fades. Add to `lib/copy.ts` (`theYear.coldOpen`):
+
+```ts
+coldOpen: [
+  { line: "One chapter.",        field: "ink"   },
+  { line: "One unhinged year.",  field: "cream" },
+  { line: "We kept the receipts.", field: "ink", accentWord: "receipts" },
+],
+```
+
+Each cut: full-bleed field color (backdrop div per cut — hard cut, zero
+crossfade), line set in `t-display` at `clamp(2.6rem, 13cqw, 5rem)`,
+entering as a §11.7 PopLetters burst (fast profile), holding, cut at
+1.05s / 2.1s (three cuts fill the 3.5s setup, last ~1.3s). `accentWord`
+renders in `--color-gdg-blue`. `vibrate(8)` on each cut. The old
+setup line + sub are deleted from the screen (keep the copy keys; the
+receipt reveal is unchanged and §10.5 printing still applies).
+
+### 11.5 Story 2: the scrapbook becomes three scenes
+
+Replace the single cycling stack with a directed collage, 12s reveal =
+intro + three ~3.4s scenes (ORBIT → DEVFEST → GAMES+SPACES), hard-cut
+seamed by a masking-tape wipe (a full-width `bg-gdg-red` bar sweeps
+`x: -110% → 110%`, 0.28s, between scenes):
+
+Per scene: 2–3 prints COMPOSE into a layout, not a pile — print A flies
+from off-left (`x: -120%, rotate: -18°` → resting pose), B from off-right
+120ms later, C (if present) drops from top with a bounce
+(`SPRING.photo`); each landing slaps a tape strip on 60ms later
+(`scale: 1.3 → 1, opacity: 0 → 0.9`); caption typewriters beneath
+(chars appear at 24ms intervals — a state-free CSS `steps()` width reveal
+on a monospace-tracked line). The whole scene container Ken-Burns drifts
+(`scale: 1 → 1.06` + `x: 0 → -2%` over the scene, linear) — the camera
+never stops. Resting poses per scene (A/B/C):
+`{x: -18%, y: -6%, r: -5°}`, `{x: 16%, y: 4%, r: 3°}`, `{x: 0, y: -14%,
+r: 1.5°}`. Photos come from the existing MOMENTS manifest grouped by
+moment id; scenes with fewer photos use A/B only.
+
+### 11.6 Story 4: chaptered credits (fixes "one long roll")
+
+`revealMs: 14000 → 18000` in the registry. The roll becomes a SEQUENCE of
+title-carded chapters, each: title card (0.8s) → cast moment (1.6s) →
+whip-cut. Chapter list and order:
+
+1. `CORE TEAM` — headshot circles pop into an arc (§11.7 PopLetters
+   title + photos spring-pop, stagger 70ms, sized 64px)
+2. `THE TRACKS` — same pattern, TRACKS section people
+3. `DEV CREW` — DEV section
+4. `MEDIA & STORY` — MEDIA section
+5. `EVENTS & OPS` — EVENTS section
+6. `THE BUILDERS` — product crew board: four mini-cards (RADAR, ORBIT
+   SYSTEMS, BABCOCK VOTES, BABCOCK 100) sliding in as a 2×2 grid with
+   the crew names beneath each, from a NEW `CREWS` map in
+   `lib/content/chapter.ts` (`Record<productId, string[]>` — leads fill
+   the names; ship with the known leads pre-filled, empty arrays render
+   the card without names, never blank text)
+7. `SPECIAL MENTION — THE DESIGNERS` — full card, names large, gdg-yellow
+   field flash
+8. Closer: "…and everyone who showed up." in `t-editorial` (kept).
+
+Title cards: chapter name in PopLetters on an accent-tinted panel
+(rotating through blue/red/yellow/green per chapter), panel skews in
+(`skewY: 3° → 0`). Cast moments show REAL photos — every person with a
+headshot appears somewhere in the sequence; InitialsAvatar fills gaps.
+Pausable: hold still freezes the engine clock; chapter scheduling must
+key off elapsed reveal progress (`progressRef`), not wall-clock — this is
+the ONE §10.0 exception, because 18s of pausable content drifts too far
+on wall-clock delays. Drive scene index from `Math.floor(progress * 8)`
+painted imperatively (§8.5: a single rAF reading `progressRef`, calling
+`setScene(i)` ONLY when the integer changes — a per-scene state change is
+per-beat, allowed).
+
+### 11.7 `components/pop-letters.tsx` — bubbly display type
+
+The "site feels alive" primitive (filled type ONLY — never combine with
+`.text-outline-*` filters):
+
+- Splits text into per-letter `motion.span`s (`inline-block`,
+  `whitespace-pre` for spaces).
+- Each letter: `initial {opacity: 0, scale: 0, rotate: r, y: 14}` →
+  `{opacity: 1, scale: 1, rotate: 0, y: 0}` with
+  `spring stiffness 500 damping 18` (visible overshoot — the "bubble").
+  `r` = deterministic pseudo-random in ±8° from char index
+  (`((i * 37) % 17 - 8)`), NO Math.random (SSR-safe).
+- Stagger profiles: `default` 45ms, `fast` 24ms (the §11.4 cold open).
+- Optional `wave` prop: after landing, letters loop `y: [0, -3, 0]`
+  offset by `i * 90ms`, 2.4s period — for the What's Next title and
+  chapter cards only. Reduced motion: plain text.
+
+Uses: §11.4 cold open, §11.6 chapter titles, story 9 title (replaces the
+§10.7 span-rise spec for it), landing "2025–26" line keeps kinetic-breathe.
+
+### 11.8 Asset escalation (owner action, blocking §11.5–11.6 quality)
+
+More photography, or the collage stays sparse: target **4+ photos per
+moment** in `public/moments/{orbit,devfest,games,spaces}/` (same naming)
+and headshots for anyone missing in `public/people/`. The spec renders
+gracefully with fewer — but "memorable" is bought with pictures.
+
+### 11.9 Verification & sequencing
+
+Implementation order (each its own commit):
+1. `fix(landing): email capsule and auth request hardening` (§11.1 + ops)
+2. `feat(engine): canvas camera whip transitions and invisible chrome` (§11.2–11.3)
+3. `feat(type): pop-letters primitive and story-one cold open` (§11.4, §11.7)
+4. `feat(stories): scrapbook scenes and chaptered credits` (§11.5–11.6, §10 items may ride along)
+
+Device checks: whip feels like acceleration (the anticipation nudge must
+be *felt*, not seen); diagonals read as moving across a canvas — if they
+read as "broken vertical", drop diagonal vectors to `[±1, 1]` with the
+x-component halved in the variants, not the path. Chrome reappears
+instantly on touch. Cold open cuts land with the haptic. Credits: every
+face appears; nobody's chapter is skipped when photos are missing. The
+80% rule (§10.0) holds for every new sequence at its story's revealMs.
