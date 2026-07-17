@@ -1,23 +1,42 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { track } from "@vercel/analytics";
 import type { StoryId } from "@/lib/stories";
+import type { Snapshot } from "@/lib/snapshot";
+import { supportsLiveCard, type LiveCardKind } from "./live-card-support";
 
 type ShareState = "idle" | "loading" | "error";
+
+const LIVE_CARD_STORIES = new Set<StoryId>(["your-club", "summary"]);
+
+const ShareSheet = dynamic(() => import("./share-sheet").then((m) => m.ShareSheet), {
+  ssr: false,
+});
 
 export function ShareButton({
   storyId,
   label = "Share",
   variant = "chip",
+  snapshot,
 }: {
   storyId: StoryId;
   label?: string;
   variant?: "chip" | "primary";
+  snapshot?: Snapshot | null;
 }) {
   const [state, setState] = useState<ShareState>("idle");
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const offersLiveCard =
+    LIVE_CARD_STORIES.has(storyId) && !!snapshot && supportsLiveCard();
 
   async function onClick() {
+    if (offersLiveCard) {
+      setSheetOpen(true);
+      return;
+    }
     setState("loading");
     try {
       const res = await fetch(`/api/share/${storyId}`);
@@ -59,18 +78,27 @@ export function ShareButton({
       : "rounded-full bg-ink/40 text-cream px-3 py-1.5 t-label text-[0.6rem] flex items-center gap-1.5";
 
   return (
-    <button
-      onClick={onClick}
-      disabled={state === "loading"}
-      className={`${base} ${state === "error" ? "animate-[shake_0.3s_ease-in-out]" : ""} disabled:opacity-60`}
-    >
-      {state === "loading" ? (
-        <span aria-hidden>&#8230;</span>
-      ) : (
-        <>
-          <span aria-hidden>&#8593;</span> {label}
-        </>
+    <>
+      <button
+        onClick={onClick}
+        disabled={state === "loading"}
+        className={`${base} ${state === "error" ? "animate-[shake_0.3s_ease-in-out]" : ""} disabled:opacity-60`}
+      >
+        {state === "loading" ? (
+          <span aria-hidden>&#8230;</span>
+        ) : (
+          <>
+            <span aria-hidden>&#8593;</span> {label}
+          </>
+        )}
+      </button>
+      {sheetOpen && snapshot && (
+        <ShareSheet
+          storyId={storyId as LiveCardKind}
+          snapshot={snapshot}
+          onClose={() => setSheetOpen(false)}
+        />
       )}
-    </button>
+    </>
   );
 }

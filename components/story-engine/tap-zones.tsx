@@ -2,6 +2,16 @@
 
 import { useRef } from "react";
 
+function interactiveBelow(current: Element, x: number, y: number): HTMLElement | null {
+  const stack = document.elementsFromPoint(x, y);
+  for (const el of stack) {
+    if (el === current) continue;
+    const target = el.closest("button, a, [role='button']");
+    if (target) return target as HTMLElement;
+  }
+  return null;
+}
+
 export function TapZones({
   onNext,
   onPrev,
@@ -18,6 +28,7 @@ export function TapZones({
   const holdTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isHolding = useRef(false);
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const overInteractive = useRef(false);
 
   function vibrate(pattern: number | number[]) {
     if (
@@ -30,7 +41,18 @@ export function TapZones({
     }
   }
 
+  // This layer sits above every story's DOM so it can catch tap/hold/swipe
+  // gestures anywhere on the stage — but that also puts it above every
+  // story's own buttons and links. Real interactive elements are found via
+  // elementsFromPoint and clicked programmatically instead of being silently
+  // swallowed.
   function onPointerDown(e: React.PointerEvent) {
+    if (interactiveBelow(e.currentTarget, e.clientX, e.clientY)) {
+      overInteractive.current = true;
+      pointerStart.current = null;
+      return;
+    }
+    overInteractive.current = false;
     pointerStart.current = { x: e.clientX, y: e.clientY };
     isHolding.current = false;
     holdTimeout.current = setTimeout(() => {
@@ -50,6 +72,13 @@ export function TapZones({
     clearHold();
     const start = pointerStart.current;
     pointerStart.current = null;
+
+    if (overInteractive.current) {
+      overInteractive.current = false;
+      const target = interactiveBelow(e.currentTarget, e.clientX, e.clientY);
+      target?.click();
+      return;
+    }
 
     if (isHolding.current) {
       isHolding.current = false;
@@ -78,6 +107,7 @@ export function TapZones({
 
   function onPointerCancel() {
     clearHold();
+    overInteractive.current = false;
     if (isHolding.current) {
       isHolding.current = false;
       onResume();

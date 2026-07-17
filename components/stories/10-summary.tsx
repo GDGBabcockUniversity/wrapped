@@ -165,7 +165,12 @@ export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
       </motion.div>
 
       <div className="flex flex-col gap-2 w-full max-w-xs">
-        <ShareButton storyId="summary" label={copy.summary.share} variant="primary" />
+        <ShareButton
+          storyId="summary"
+          label={copy.summary.share}
+          variant="primary"
+          snapshot={snapshot}
+        />
         <button
           onClick={onReplay}
           className="rounded-full border border-cream/40 text-cream px-6 py-3 t-label"

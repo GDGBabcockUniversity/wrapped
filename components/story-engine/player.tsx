@@ -141,7 +141,11 @@ export function Player() {
         field={def.field}
         label={def.label}
         onOpenGrid={() => dispatch({ type: "OPEN_GRID" })}
-        shareSlot={showShareChip ? <ShareButton storyId={def.id} variant="chip" /> : undefined}
+        shareSlot={
+          showShareChip ? (
+            <ShareButton storyId={def.id} variant="chip" snapshot={me.snapshot} />
+          ) : undefined
+        }
       />
 
       {state.paused && !state.gridOpen && (
