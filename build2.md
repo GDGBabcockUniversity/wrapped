@@ -412,3 +412,146 @@ full 8s — at no point should the frame be static; setup→reveal should feel
 like moving forward, not like a slide swap.
 
 Commit: `feat(app): journey layer — passage transitions, deck depth, idle choreography`.
+
+---
+
+## 10. The cinematic motion pass — directed sequences (SPEC ONLY, not yet built)
+
+§9 made sure nothing sits still. This section is the next tier: **directed
+sequences** — the stories' biggest beats become multi-step rituals with
+anticipation, impact, and aftermath, the way a motion team would board them.
+Implement exactly; the values are the design.
+
+### 10.0 Sequencing architecture (read first)
+
+1. **No new engine phases.** All sequences live INSIDE the reveal beat,
+   expressed as absolute `delay` values on motion animations ("the film
+   script model"). Never build a setTimeout state machine — declare every
+   animation upfront with its delay; unmount cleanup is then automatic.
+2. **The 80% rule:** every sequence must fully land by `0.8 × revealMs` of
+   its story, so auto-advance can never cut a payoff. Budgets: club 10s
+   reveal → sequence ≤ 3.5s. Standing 8s → ≤ 1.8s. The Year 7s → ≤ 1.6s.
+3. Transform/opacity/clip-path only. Springs from `SPRING`, stagger from
+   `TIMING.staggerMs`. Haptics only at named impact moments.
+4. Known accepted limitation: hold-to-pause freezes the engine clock but
+   not in-flight delays; sequences are ≤ 3.5s so this is imperceptible.
+
+### 10.1 Content parallax inside the push
+
+Between the screen div (§8.1) and the phase AnimatePresence, insert ONE
+wrapper: `<motion.div variants={PARALLAX_VARIANTS} className="absolute
+inset-0">` — variants only, NO `animate` prop (label propagation, same
+mechanism as the backdrop):
+
+```ts
+const PARALLAX_SPRING = { type: "spring" as const, stiffness: 260, damping: 32 };
+const PARALLAX_VARIANTS = {
+  enter: (d: 1 | -1) => ({ y: d > 0 ? "12%" : "-12%" }),
+  center: { y: "0%", transition: { y: PARALLAX_SPRING } },
+  exit: (d: 1 | -1) => ({ y: d > 0 ? "-12%" : "12%", transition: { y: PARALLAX_SPRING } }),
+};
+```
+
+The screen travels 100% on the stiffer spring; the content inside travels
+an extra 12% on a softer one and settles ~60ms later — two layers at
+different speeds is what makes the push read as *space*, not a slide
+change. The backdrop stays on the screen div (it must always cover it).
+The wrapper needs `custom={state.direction}` — variant propagation passes
+labels, not custom.
+
+### 10.2 The seam flash — chapters announce their color
+
+First child of each pushed screen (above the backdrop): a 2px-tall,
+full-width div in the incoming story's accent hex, pinned to the screen's
+LEADING edge (top when direction=1, bottom when direction=-1), animating
+`opacity: 0.9 → 0` over 300ms with delay 0.1s via variants
+(`enter: {opacity: 0.9}`, `center: {opacity: 0, transition: {delay: 0.1,
+duration: 0.3}}`, `exit: {opacity: 0}`). A blink of the next chapter's
+color at the moment of crossing — connective tissue between stories.
+Resolve the hex exactly like the player resolves `shaderAccentHex`.
+
+### 10.3 Story 8, the club ritual — three beats (THE showpiece)
+
+Replace the current instant flip with this board. All delays are from
+reveal start; `S = TIMING.staggerMs / 1000`.
+
+**Beat 1 — the draw (0 → 1.6s).** The four card backs from setup reappear
+center-stage in a fan: card i (0-3) at `x: [-54, -18, 18, 54][i]px`,
+`rotate: [-12, -4, 4, 12][i]deg`, entering with `SPRING.default`, delays
+`i × S`. At 0.9s the three non-chosen cards fly out downward: `y: "130%"`,
+`rotate: (i - 1.5) × 16deg`, `opacity: 0`, `duration: 0.45`,
+`ease: "easeIn"`, stagger `0.08` — while the chosen card back moves to
+`x: 0, rotate: 0, scale: 1.12` on `SPRING.default`. (Which card is
+"chosen": index = `["builder","connector","observer","sprinter"]
+.indexOf(club.id)`.)
+
+**Beat 2 — the charge (1.6 → 2.4s).** The chosen card back trembles:
+`rotate: [0, -1.5, 1.5, -1.5, 1.5, 0]` over 0.6s starting at 1.7s.
+`vibrate(8)` at 2.2s (a `useEffect` + one timeout is permitted for haptics
+only). The shader's `u_progress` is already live behind it.
+
+**Beat 3 — the flip (2.4 → 3.4s).** The card back rotateY 0→90
+(`duration: 0.18, ease: "easeIn"`, delay 2.4) then the REAL FoilCard
+enters at rotateY -90→0 with `SPRING.flip` and `scale: 1.12 → 1`;
+`vibrate([12, 40, 12])` fires on flip completion (keep the existing
+mount-effect on FoilCard). Rarity badge stamps at 3.2s
+(`scale: 1.4 → 1, opacity: 0 → 1`, `SPRING.stamp`); the vibe line's
+existing kinetic cascade gets `delay: 3.4`. Then §9's idle float and the
+pointer tilt own the remaining ~6s.
+
+Implementation shape: a `ClubRitual` component in `08-your-club.tsx`
+rendering fan cards + (delayed) FoilCard, all with absolute delays.
+Guests keep the current simpler screen.
+
+### 10.4 Story 6, the stamp slam — anticipation then impact
+
+**Beat 1 (0 → 0.9s):** the seal ring draws in — `scale: 0.85 → 1,
+opacity: 0 → 1, duration: 0.5` — and keeps its slow rotation.
+**Beat 2 (0.9s):** "TOP X%" slams from `scale: 2.2, rotate: -14deg,
+opacity: 0` to `scale: 1, rotate: -2deg, opacity: 1` — opacity snaps in
+the first 60ms (`opacity: {duration: 0.06, delay: 0.9}`), transform rides
+`SPRING.stamp` (delay 0.9). On landing (~1.15s): `vibrate([12, 40, 12])`
+(move the existing haptic here) and an impact ripple — an absolutely
+centered `border-2 border-ink/40 rounded-full` div, w/h 220px, animating
+`scale: 1 → 1.6, opacity: 0.5 → 0, duration: 0.4, delay: 1.15`.
+The stats (non-tier) variant is untouched.
+
+### 10.5 Story 1, the receipt PRINTS
+
+Keep the paper's spring entrance. The rows container gains
+`clipPath: "inset(0 0 100% 0)"` → `"inset(0 0 0% 0)"`,
+`duration: 1.2, ease: "linear"`, delay 0.3 — the receipt prints top-to-
+bottom like it's coming off the till roll, count-ups rolling as each row
+emerges (keep existing per-row delays; they now compound with the wipe).
+The bottom perforation settles with `rotate: 0 → 1.2deg → 0` over 0.3s at
+1.5s — the tear-off.
+
+### 10.6 Story 10, the barcode draws the journey closed
+
+Each barcode bar animates `scaleY: 0 → 1` (`transformOrigin: "bottom"`,
+`duration: 0.2`), staggered `0.024s` left-to-right, starting at delay 0.8s
+after the card's entrance — the year being printed onto your card,
+a callback to story 1's receipt. (Requires the Barcode spans to become
+motion.spans; keep `aria-hidden`.)
+
+### 10.7 Micro-choreography table (small, do all of them)
+
+| Story | Moment | Spec |
+|---|---|---|
+| 2 Moments | each photo flick | incoming top print overshoots: `rotate` keyframes `[-8, ROTATIONS[i]]` on cycle (existing `SPRING.photo`) |
+| 3 Built | active row swell | add `x: [0, 4, 0]` over 0.3s alongside the existing scale pulse |
+| 4 People | section headers | underline already draws; add header `x: -12 → 0` with it |
+| 9 What's Next | title | letters rise individually: wrap in spans, `y: 14 → 0, opacity 0 → 1`, stagger `0.04s` — outline filter stays on the PARENT (never on the spans, §3.8 rule) |
+
+### 10.8 Verification
+
+1. Standard four checks green.
+2. Playwright frame captures: club story at t = 1.0s (fan visible),
+   2.0s (lone trembling card back), 3.0s (mid-flip), 4.0s (settled card);
+   standing at 0.5s (ring only) and 1.3s (stamp landed, ripple mid-fade);
+   the-year at 0.8s (receipt half-printed, clip edge visible).
+3. Device: the club ritual must feel like a *ritual* — if the three beats
+   read as lag rather than anticipation, tighten Beat 1 to 1.2s before
+   touching anything else.
+
+Commit: `feat(stories): cinematic motion pass — club ritual, stamp slam, receipt print, parallax`.
