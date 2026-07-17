@@ -415,7 +415,7 @@ Commit: `feat(app): journey layer — passage transitions, deck depth, idle chor
 
 ---
 
-## 10. The cinematic motion pass — directed sequences (SPEC ONLY, not yet built)
+## 10. The cinematic motion pass — directed sequences (BUILT)
 
 §9 made sure nothing sits still. This section is the next tier: **directed
 sequences** — the stories' biggest beats become multi-step rituals with
@@ -766,3 +766,46 @@ x-component halved in the variants, not the path. Chrome reappears
 instantly on touch. Cold open cuts land with the haptic. Credits: every
 face appears; nobody's chapter is skipped when photos are missing. The
 80% rule (§10.0) holds for every new sequence at its story's revealMs.
+
+---
+
+## 12. Cadence amendments + the soundtrack (BUILT)
+
+Owner playtest findings after §11 shipped, plus the audio decision.
+
+### 12.1 Cadence rules (override earlier values; these are law now)
+
+> Things must sit long enough to be taken in. Short lines can cut fast —
+> that reads as acceleration — but anything with faces, numbers, or more
+> than four words earns time proportional to its content.
+
+- **Cold open** (§11.4 amended): FOUR cuts, restoring the brand line —
+  "One chapter." / "One unhinged year." / **"What a year."** /
+  "We kept the receipts." Delays `[0, 1150, 2300, 3500]` over a **5000ms**
+  setup beat (registry: the-year `setupMs 3500 → 5000`, `revealMs
+  7000 → 8000` so the printing receipt also sits).
+- **Chaptered credits** (§11.6 amended): title cards hold **900ms**; a cast
+  moment earns `min(1600 + people × 110, 3400)` ms — MEDIA's sixteen faces
+  get ~3.4s, CORE's six ~2.3s; boards hold 2600ms. Avatar stagger 90ms.
+  Registry: people `revealMs 18000 → 28000` (`TIMING.peopleMs` matches).
+- The §10.0 80% rule still applies to every payoff sequence.
+
+### 12.2 The soundtrack — `lib/audio.ts` + `mute-button.tsx`
+
+Music was excluded by `build.md` §3.8.7; the owner overrode it. The
+contract:
+
+1. ONE looping ambient track for the whole experience, at `volume 0.35`:
+   **`public/audio/wrapped-loop.mp3`** — owner-supplied (licensed or
+   royalty-free, ~1–2 MB, seamless loop; the media team's aftermovie bed is
+   the obvious candidate). THE FILE IS NOT IN GIT — deploy adds it.
+2. Browsers block autoplay before a gesture, so playback starts on the
+   visitor's FIRST pointerdown/keydown inside the player (one-shot capture
+   listeners in `player.tsx` → `startAudio()`).
+3. A speaker toggle lives in the chrome fade group (next to the share
+   chip); mute preference persists in `localStorage["wrapped-muted"]`.
+4. Missing file → the `<audio>` errors → `available=false` → the button
+   hides and everything degrades to silence with zero UI residue. Tab
+   hidden → pause; visible again → resume iff started and unmuted.
+5. Nothing else ever plays sound (per-story stingers are OUT — one bed,
+   or silence).
