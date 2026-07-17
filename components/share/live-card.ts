@@ -395,17 +395,4 @@ export function fileExtensionFor(mimeType: string): string {
   return mimeType.includes("mp4") ? "mp4" : "webm";
 }
 
-export async function shareOrDownloadFile(file: File): Promise<void> {
-  if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ files: [file], title: "GDG Wrapped 25/26" });
-    return;
-  }
-  const url = URL.createObjectURL(file);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = file.name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+export { shareOrDownloadFile } from "./share-utils";

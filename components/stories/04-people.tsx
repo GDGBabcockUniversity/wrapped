@@ -82,16 +82,16 @@ const CHAPTERS: Chapter[] = [
 ];
 
 // Cadence (§11.6 amended): things must sit long enough to take in. Title
-// cards hold 900ms; a cast moment earns 110ms per face on top of a 1.6s
-// floor, capped at 3.4s, so MEDIA's sixteen people get twice the screen
+// cards hold 1200ms; a cast moment earns 130ms per face on top of a 2.2s
+// floor, capped at 4.6s, so MEDIA's sixteen people get twice the screen
 // time of CORE's six instead of the same flat beat.
-const TITLE_CARD_MS = 900;
-const BOARD_MS = 2600;
+const TITLE_CARD_MS = 1200;
+const BOARD_MS = 3600;
 
 function contentMsFor(chapter: Chapter): number {
   if (chapter.kind !== "cast") return BOARD_MS;
   const count = chapter.people?.length ?? 0;
-  return Math.min(1600 + count * 110, 3400);
+  return Math.min(2200 + count * 130, 4600);
 }
 
 function Avatar({ person, size, index }: { person: Person; size: number; index: number }) {
@@ -138,7 +138,7 @@ function CastMoment({ chapter }: { chapter: Chapter }) {
           <motion.div
             key={p.name}
             className="flex flex-col items-center gap-1"
-            style={{ width: 68 }}
+            style={{ width: 80 }}
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1, y: [0, Math.sin(((i % 6) / 6) * Math.PI) * -6, 0] }}
             transition={{
@@ -148,7 +148,7 @@ function CastMoment({ chapter }: { chapter: Chapter }) {
             }}
           >
             <Avatar person={p} size={60} index={i} />
-            <p className="t-label text-ink/70 text-[0.5rem] text-center leading-tight line-clamp-2">
+            <p className="t-label text-ink/70 text-[0.5rem] text-center leading-tight line-clamp-2 w-full break-words">
               {p.name}
             </p>
           </motion.div>
@@ -269,6 +269,19 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
   if (phase === "setup") {
     return (
       <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16">
+        {/* Preload people photos offscreen/hidden */}
+        <div className="hidden" aria-hidden="true">
+          {PEOPLE.filter((p) => p.photo).map((p) => (
+            <Image
+              key={p.photo}
+              src={p.photo!}
+              alt={p.name}
+              width={60}
+              height={60}
+              priority
+            />
+          ))}
+        </div>
         <p className="t-editorial text-center">
           <PopLetters text={copy.people.setup} />
         </p>

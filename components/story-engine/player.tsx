@@ -124,7 +124,10 @@ export function Player() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/me", { signal: controller.signal })
+    const params = new URLSearchParams(window.location.search);
+    const fixture = params.get("fixture");
+    const url = fixture ? `/api/me?fixture=${fixture}` : "/api/me";
+    fetch(url, { signal: controller.signal })
       .then((r) => r.json())
       .then((data: MeResponse) => {
         setMe(data);

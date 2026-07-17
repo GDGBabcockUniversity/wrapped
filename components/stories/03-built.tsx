@@ -21,7 +21,7 @@ const CHIP_TEXT: Record<string, string> = {
   green: "text-ink",
 };
 
-const ACTIVE_CYCLE_MS = 1400;
+const ACTIVE_CYCLE_MS = 1800;
 
 export function BuiltStory({ phase, active, paused }: StoryProps) {
   const reduceMotion = useReducedMotion();

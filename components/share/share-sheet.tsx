@@ -5,6 +5,8 @@ import { track } from "@vercel/analytics";
 import type { Snapshot } from "@/lib/snapshot";
 import type { LiveCardKind } from "./live-card-support";
 
+import { shareOrDownloadFile } from "./share-utils";
+
 type Stage = "idle" | "recording" | "error";
 
 export function ShareSheet({
@@ -23,13 +25,13 @@ export function ShareSheet({
     setStage("recording");
     setProgress(0);
     try {
-      const { renderLiveCardBlob, fileExtensionFor, shareOrDownloadFile } = await import(
+      const { renderLiveCardBlob, fileExtensionFor } = await import(
         "./live-card"
       );
       const blob = await renderLiveCardBlob(storyId, snapshot, setProgress);
       const ext = fileExtensionFor(blob.type);
       const file = new File([blob], `gdg-wrapped-${storyId}.${ext}`, { type: blob.type });
-      await shareOrDownloadFile(file);
+      await shareOrDownloadFile(file, "GDG Wrapped 25/26");
       track("share", { id: storyId, kind: "video" });
       setStage("idle");
       onClose();
@@ -45,22 +47,12 @@ export function ShareSheet({
 
   async function shareImage() {
     try {
-      const res = await fetch(`/api/share/${storyId}`);
+      const search = typeof window !== "undefined" ? window.location.search : "";
+      const res = await fetch(`/api/share/${storyId}${search}`);
       if (!res.ok) throw new Error("share fetch failed");
       const blob = await res.blob();
       const file = new File([blob], `gdg-wrapped-${storyId}.png`, { type: "image/png" });
-      if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "GDG Wrapped 25/26" });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `gdg-wrapped-${storyId}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      }
+      await shareOrDownloadFile(file, "GDG Wrapped 25/26");
       track("share", { id: storyId, kind: "image" });
       onClose();
     } catch (err) {

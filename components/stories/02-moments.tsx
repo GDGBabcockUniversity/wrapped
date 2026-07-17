@@ -32,7 +32,7 @@ const SCENES: Scene[] = [
   },
 ];
 
-const SCENE_MS = 3400;
+const SCENE_MS = 4300;
 const WIPE_MS = 280;
 
 // Resting poses per slot (A/B/C) — §11.5.
@@ -192,6 +192,19 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
   if (phase === "setup") {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-3">
+        {/* Preload moments images offscreen/hidden */}
+        <div className="hidden" aria-hidden="true">
+          {SCENES.flatMap((s) => s.photos).map((src) => (
+            <Image
+              key={src}
+              src={src}
+              alt="preload"
+              width={210}
+              height={210}
+              priority
+            />
+          ))}
+        </div>
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 0.9, y: 0, rotate: -4 }}
