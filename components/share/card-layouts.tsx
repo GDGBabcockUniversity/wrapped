@@ -608,7 +608,7 @@ export function SummaryCard({
         </div>
 
         {guest || !snapshot ? (
-          <>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
             <div style={{ display: "flex", fontSize: 64, fontWeight: 700, marginTop: 40 }}>
               {copy.summary.guestTitle}
             </div>
@@ -622,9 +622,9 @@ export function SummaryCard({
                 <div style={{ display: "flex", fontSize: 20, opacity: 0.5 }}>MEMBERS</div>
               </div>
             </div>
-          </>
+          </div>
         ) : (
-          <>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
             <div style={{ display: "flex", fontSize: 68, fontWeight: 700, marginTop: 40 }}>{snapshot.name}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 40 }}>
               <div style={{ display: "flex", flexDirection: "column" }}>
@@ -654,7 +654,7 @@ export function SummaryCard({
                 <div style={{ display: "flex", fontSize: 20, opacity: 0.5 }}>{copy.summary.statMonths}</div>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
       <Watermark dark />
