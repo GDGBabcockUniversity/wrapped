@@ -13,6 +13,7 @@ import { ProgressBar } from "./progress-bar";
 import { TapZones } from "./tap-zones";
 import { preloadStoryAssets } from "./preloader";
 import { useStoryEngine } from "./use-story-state";
+import { startAudio } from "@/lib/audio";
 import type { Snapshot } from "@/lib/snapshot";
 import { copy } from "@/lib/copy";
 import { ShareButton } from "@/components/share/share-button";
@@ -155,6 +156,17 @@ export function Player() {
   useEffect(() => {
     preloadStoryAssets(state.storyIndex);
   }, [state.storyIndex]);
+
+  // The ambient loop can only start from a user gesture (autoplay policy) —
+  // arm one-shot listeners for the first tap or keypress inside the player.
+  useEffect(() => {
+    window.addEventListener("pointerdown", startAudio, { once: true, capture: true });
+    window.addEventListener("keydown", startAudio, { once: true, capture: true });
+    return () => {
+      window.removeEventListener("pointerdown", startAudio, { capture: true });
+      window.removeEventListener("keydown", startAudio, { capture: true });
+    };
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

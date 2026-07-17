@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import type { RefObject, ReactNode } from "react";
+import { MuteButton } from "./mute-button";
 import type { Phase } from "./use-story-state";
 
 const IDLE_MS = 1800;
@@ -132,7 +133,10 @@ export function ProgressBar({
           {label}
         </span>
         <div className="flex items-center gap-3">
-          <div style={fadeStyle}>{shareSlot}</div>
+          <div className="flex items-center gap-3" style={fadeStyle}>
+            {shareSlot}
+            <MuteButton />
+          </div>
           <button
             onClick={onOpenGrid}
             aria-label="Story grid"
