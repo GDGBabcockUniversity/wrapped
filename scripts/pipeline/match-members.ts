@@ -1,8 +1,8 @@
 import type { SenderStats } from "./parse-whatsapp";
-import type { DbUser } from "./fetch-db";
+import type { UniverseMember } from "./universe";
 
 export interface MatchedMember {
-  userId: string;
+  email: string; // universe member key
   messageCount: number;
   dailyCounts: Record<string, number>;
   monthlyCounts: Record<string, number>;
@@ -43,36 +43,41 @@ export interface UnmatchedSender {
 }
 
 export interface MatchResult {
-  matched: Map<string, MatchedMember>; // userId -> aggregated
+  matched: Map<string, MatchedMember>; // email -> aggregated
   matchedMessageVolume: number;
   totalMessageVolume: number;
   unmatchedSenders: UnmatchedSender[];
 }
 
 /**
- * @param mapping senderKey -> user UUID or email, from data/mapping.json.
+ * @param members the full cross-platform universe. Phone auto-match only
+ *   works for auth-platform members (the only source of WhatsApp numbers);
+ *   everyone else is reachable via mapping.json.
+ * @param mapping senderKey -> auth UUID or email, from data/mapping.json.
  *   Always takes precedence over automatic phone matching, so a lead's
  *   manual resolution can correct a bad auto-match on a re-run.
  */
 export function matchMembers(
   senderStats: Map<string, SenderStats>,
-  users: DbUser[],
+  members: UniverseMember[],
   mapping: Record<string, string>
 ): MatchResult {
-  const byPhone = new Map<string, DbUser>();
-  for (const u of users) {
-    if (u.whatsapp_number) byPhone.set(last10(u.whatsapp_number), u);
+  const byPhone = new Map<string, UniverseMember>();
+  for (const m of members) {
+    if (m.whatsappNumber) byPhone.set(last10(m.whatsappNumber), m);
   }
-  const byEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]));
-  const byId = new Map(users.map((u) => [u.id, u]));
+  const byEmail = new Map(members.map((m) => [m.email, m]));
+  const byId = new Map(
+    members.filter((m) => m.userId !== null).map((m) => [m.userId!, m])
+  );
 
   const matched = new Map<string, MatchedMember>();
   const unmatchedSenders: UnmatchedSender[] = [];
   let matchedMessageVolume = 0;
   let totalMessageVolume = 0;
 
-  function addToMatched(userId: string, s: SenderStats) {
-    const existing = matched.get(userId);
+  function addToMatched(email: string, s: SenderStats) {
+    const existing = matched.get(email);
     if (existing) {
       existing.messageCount += s.messageCount;
       for (const [d, c] of Object.entries(s.dailyCounts)) {
@@ -82,8 +87,8 @@ export function matchMembers(
         existing.monthlyCounts[m] = (existing.monthlyCounts[m] ?? 0) + c;
       }
     } else {
-      matched.set(userId, {
-        userId,
+      matched.set(email, {
+        email,
         messageCount: s.messageCount,
         dailyCounts: { ...s.dailyCounts },
         monthlyCounts: { ...s.monthlyCounts },
@@ -96,18 +101,18 @@ export function matchMembers(
 
     const mappedTo = mapping[s.senderKey];
     if (mappedTo) {
-      const user = byId.get(mappedTo) ?? byEmail.get(mappedTo.toLowerCase());
-      if (user) {
-        addToMatched(user.id, s);
+      const member = byId.get(mappedTo) ?? byEmail.get(mappedTo.toLowerCase());
+      if (member) {
+        addToMatched(member.email, s);
         matchedMessageVolume += s.messageCount;
         continue;
       }
     }
 
     if (s.isPhone) {
-      const user = byPhone.get(last10(s.senderKey));
-      if (user) {
-        addToMatched(user.id, s);
+      const member = byPhone.get(last10(s.senderKey));
+      if (member) {
+        addToMatched(member.email, s);
         matchedMessageVolume += s.messageCount;
         continue;
       }
@@ -115,11 +120,11 @@ export function matchMembers(
 
     let bestSuggestion = "";
     let bestScore = 0;
-    for (const u of users) {
-      const score = nameSimilarity(s.senderKey, u.full_name);
+    for (const m of members) {
+      const score = nameSimilarity(s.senderKey, m.fullName);
       if (score > bestScore) {
         bestScore = score;
-        bestSuggestion = u.full_name;
+        bestSuggestion = m.fullName;
       }
     }
     unmatchedSenders.push({

@@ -151,22 +151,22 @@ describe("assignClubs — archetypes", () => {
 
   it("assigns the high-attendance, high-radar member to Builder", () => {
     const assignments = assignClubs(population, YEAR_START, YEAR_END);
-    expect(assignments.get("builder-archetype")?.club).toBe("builder");
+    expect(assignments.get("builder-archetype@example.com")?.club).toBe("builder");
   });
 
   it("assigns the high-message-volume, high-consistency member to Connector", () => {
     const assignments = assignClubs(population, YEAR_START, YEAR_END);
-    expect(assignments.get("connector-archetype")?.club).toBe("connector");
+    expect(assignments.get("connector-archetype@example.com")?.club).toBe("connector");
   });
 
   it("assigns the concentrated-burst member to Sprinter", () => {
     const assignments = assignClubs(population, YEAR_START, YEAR_END);
-    expect(assignments.get("sprinter-archetype")?.club).toBe("sprinter");
+    expect(assignments.get("sprinter-archetype@example.com")?.club).toBe("sprinter");
   });
 
   it("assigns a zero-activity member to Observer (never shamed into an empty club)", () => {
     const assignments = assignClubs(population, YEAR_START, YEAR_END);
-    expect(assignments.get("zero-archetype")?.club).toBe("observer");
+    expect(assignments.get("zero-archetype@example.com")?.club).toBe("observer");
   });
 
   it("keeps every club at or above the 8% rebalance floor", () => {

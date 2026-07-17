@@ -54,7 +54,7 @@ function burstFor(m: PipelineMember, yearStart: Date, yearEnd: Date): number {
 }
 
 export interface ClubAssignment {
-  userId: string;
+  email: string; // the universe member key
   club: ClubId;
   scores: Record<ClubId, number>;
   /** True iff the member has zero raw checkins and zero raw messages. Pinned
@@ -93,13 +93,13 @@ export function assignClubs(
       observer: 0.4 * (1 - (Pm ?? 0.5)) + 0.35 * Pr + 0.25 * (1 - burst),
     };
 
-    return { userId: m.userId, scores, isZeroActivity: m.checkins === 0 && m.messageCount === 0 };
+    return { email: m.email, scores, isZeroActivity: m.checkins === 0 && m.messageCount === 0 };
   });
 
   const assignments = new Map<string, ClubAssignment>();
   for (const d of derived) {
-    assignments.set(d.userId, {
-      userId: d.userId,
+    assignments.set(d.email, {
+      email: d.email,
       club: pickClub(d.scores),
       scores: d.scores,
       isZeroActivity: d.isZeroActivity,

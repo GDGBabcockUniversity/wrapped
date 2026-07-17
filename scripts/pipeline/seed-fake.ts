@@ -48,6 +48,8 @@ export interface SeedUser extends DbUser {
 export interface SeedResult {
   db: FetchedDb;
   exportFiles: { path: string; content: string }[];
+  /** Synthetic community.dev/Luma/ORBIT CSVs — parsed via the REAL sources.ts path. */
+  sourceFiles: { path: string; content: string }[];
 }
 
 function randomDateBetween(rand: () => number, start: Date, end: Date): Date {
@@ -140,19 +142,21 @@ export function generateSeedData(): SeedResult {
       registrationCount = checkinCount + Math.floor(rand() * 5);
     }
 
-    for (let c = 0; c < checkinCount; c++) {
+    // Distinct titles per member — the universe layer dedupes per (email,
+    // title), so drawing without replacement keeps the intended counts.
+    const titlePool = [...EVENT_TITLES].sort(() => rand() - 0.5);
+    const checkinTitles = titlePool.slice(0, Math.min(checkinCount, titlePool.length));
+    const registeredTitles = titlePool.slice(0, Math.min(registrationCount, titlePool.length));
+
+    for (const title of checkinTitles) {
       const date = randomDateBetween(rand, u.created_at > YEAR_START ? u.created_at : YEAR_START, YEAR_END);
-      checkins.push({
-        user_id: u.id,
-        checked_in_at: date,
-        title: EVENT_TITLES[Math.floor(rand() * EVENT_TITLES.length)]!,
-        starts_at: date,
-      });
+      checkins.push({ user_id: u.id, checked_in_at: date, title, starts_at: date });
     }
-    for (let r = 0; r < registrationCount; r++) {
+    for (const title of registeredTitles) {
       registrations.push({
         user_id: u.id,
         registered_at: randomDateBetween(rand, u.created_at > YEAR_START ? u.created_at : YEAR_START, YEAR_END),
+        title,
       });
     }
 
@@ -195,7 +199,63 @@ export function generateSeedData(): SeedResult {
     { path: "ios.txt", content: shuffledJoin(dialectFiles[2]!, rand) },
   ];
 
-  const eventsRun = EVENT_TITLES.length;
+  // ---- External source CSVs (community.dev / Luma / ORBIT) ----
+  // Cohorts: community-only members (no auth account), a Bevy-style roster
+  // that ALSO lists some auth users (roster overlap), a Luma export for an
+  // event some auth users already checked into via the platform (dedupe
+  // proof), and an ORBIT sheet with a Yes/No checked-in column.
+
+  const communityOnly: { email: string; name: string; joined: Date }[] = [];
+  for (let i = 0; i < 60; i++) {
+    const first = FIRST_NAMES[Math.floor(rand() * FIRST_NAMES.length)]!;
+    const last = LAST_NAMES[Math.floor(rand() * LAST_NAMES.length)]!;
+    communityOnly.push({
+      email: `${first.toLowerCase()}.${last.toLowerCase()}.cd${i}@example.com`,
+      name: `${first} ${last}`,
+      joined: randomDateBetween(rand, HISTORY_START, NOW),
+    });
+  }
+
+  const rosterRows = ["First Name,Last Name,Email,Join Date"];
+  for (const m of communityOnly) {
+    const [first, ...rest] = m.name.split(" ");
+    rosterRows.push(`${first},${rest.join(" ")},${m.email},${m.joined.toISOString().slice(0, 10)}`);
+  }
+  // Roster overlap: the first 80 auth users are also on community.dev.
+  for (const u of users.slice(0, 80)) {
+    const [first, ...rest] = u.full_name.split(" ");
+    rosterRows.push(`${first},${rest.join(" ")},${u.email},${u.created_at.toISOString().slice(0, 10)}`);
+  }
+
+  // Luma export for "DevFest Babcock": auth users 0..39 (some of whom already
+  // have a platform check-in for the same title -> must dedupe to ONE event),
+  // plus 30 community-only members.
+  const lumaRows = ["name,email,approval_status,registered_at,checked_in_at"];
+  const devfestDate = "2025-11-08";
+  for (const u of users.slice(0, 40)) {
+    const checked = rand() < 0.7 ? `${devfestDate}T09:${pad(Math.floor(rand() * 60))}:00Z` : "";
+    lumaRows.push(`${u.full_name},${u.email},approved,${devfestDate}T08:00:00Z,${checked}`);
+  }
+  for (const m of communityOnly.slice(0, 30)) {
+    const checked = rand() < 0.6 ? `${devfestDate}T09:${pad(Math.floor(rand() * 60))}:00Z` : "";
+    lumaRows.push(`${m.name},${m.email},approved,${devfestDate}T08:00:00Z,${checked}`);
+  }
+  // A declined RSVP must be ignored entirely.
+  lumaRows.push(`Ghost Guest,ghost.guest@example.com,declined,${devfestDate}T08:00:00Z,`);
+
+  // ORBIT sheet: Yes/No check-in column, community-only members 30..59 plus
+  // an attendance-only person who appears on NO roster at all.
+  const orbitRows = ["Name,Email,Checked In"];
+  for (const m of communityOnly.slice(30)) {
+    orbitRows.push(`${m.name},${m.email},${rand() < 0.5 ? "Yes" : "No"}`);
+  }
+  orbitRows.push("Walk In,walk.in@example.com,Yes");
+
+  const sourceFiles = [
+    { path: "community/members.csv", content: rosterRows.join("\n") },
+    { path: "luma/2025-11-08-devfest-babcock.csv", content: lumaRows.join("\n") },
+    { path: "orbit/2025-09-12-orbit-kickoff.csv", content: orbitRows.join("\n") },
+  ];
 
   return {
     db: {
@@ -204,9 +264,10 @@ export function generateSeedData(): SeedResult {
       registrations,
       radarReads,
       radarPlays,
-      eventsRun,
+      eventTitlesRun: EVENT_TITLES,
     },
     exportFiles,
+    sourceFiles,
   };
 }
 
@@ -222,5 +283,14 @@ export function writeSeedExports(exportFiles: { path: string; content: string }[
   fs.mkdirSync(exportsDir, { recursive: true });
   for (const f of exportFiles) {
     fs.writeFileSync(path.join(exportsDir, f.path), f.content, "utf-8");
+  }
+}
+
+export function writeSeedSources(sourceFiles: { path: string; content: string }[], dataDir: string): void {
+  const sourcesDir = path.join(dataDir, "sources");
+  for (const f of sourceFiles) {
+    const target = path.join(sourcesDir, f.path);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, f.content, "utf-8");
   }
 }

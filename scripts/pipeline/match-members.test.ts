@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { matchMembers, nameSimilarity } from "./match-members";
 import type { SenderStats } from "./parse-whatsapp";
-import type { DbUser } from "./fetch-db";
+import type { UniverseMember } from "./universe";
 
 function sender(overrides: Partial<SenderStats>): SenderStats {
   return {
@@ -16,13 +16,14 @@ function sender(overrides: Partial<SenderStats>): SenderStats {
   };
 }
 
-function user(overrides: Partial<DbUser>): DbUser {
+function user(overrides: Partial<UniverseMember>): UniverseMember {
   return {
-    id: "user-1",
+    userId: "user-1",
     email: "ada@example.com",
-    full_name: "Ada Lovelace",
-    whatsapp_number: "+2348031234567",
-    created_at: new Date("2024-09-01"),
+    fullName: "Ada Lovelace",
+    whatsappNumber: "+2348031234567",
+    joinDate: new Date("2024-09-01"),
+    sources: ["auth"],
     ...overrides,
   };
 }
@@ -32,9 +33,9 @@ describe("matchMembers", () => {
     const senders = new Map<string, SenderStats>([
       ["2348031234567", sender({ senderKey: "2348031234567", isPhone: true, messageCount: 5 })],
     ]);
-    const users = [user({ whatsapp_number: "08031234567" })];
+    const users = [user({ whatsappNumber: "08031234567" })];
     const result = matchMembers(senders, users, {});
-    expect(result.matched.get("user-1")?.messageCount).toBe(5);
+    expect(result.matched.get("ada@example.com")?.messageCount).toBe(5);
     expect(result.matchedMessageVolume).toBe(5);
     expect(result.unmatchedSenders).toHaveLength(0);
   });
@@ -45,7 +46,7 @@ describe("matchMembers", () => {
     ]);
     const users = [user({})];
     const result = matchMembers(senders, users, { "Ada L.": "user-1" });
-    expect(result.matched.get("user-1")?.messageCount).toBe(3);
+    expect(result.matched.get("ada@example.com")?.messageCount).toBe(3);
   });
 
   it("merges multiple senders mapped to the same member (device change)", () => {
@@ -58,14 +59,14 @@ describe("matchMembers", () => {
       "old-number": "user-1",
       "new-number": "user-1",
     });
-    expect(result.matched.get("user-1")?.messageCount).toBe(6);
+    expect(result.matched.get("ada@example.com")?.messageCount).toBe(6);
   });
 
   it("reports unmatched senders with a name-similarity suggestion", () => {
     const senders = new Map<string, SenderStats>([
       ["Ada Lovelac", sender({ senderKey: "Ada Lovelac", messageCount: 2 })],
     ]);
-    const users = [user({ whatsapp_number: null })];
+    const users = [user({ whatsappNumber: null })];
     const result = matchMembers(senders, users, {});
     expect(result.unmatchedSenders).toHaveLength(1);
     expect(result.unmatchedSenders[0]!.suggestion).toBe("Ada Lovelace");

@@ -18,6 +18,7 @@ export interface DbCheckin {
 export interface DbRegistration {
   user_id: string;
   registered_at: Date;
+  title: string; // event title — needed to dedupe against external sources
 }
 
 export interface DbCountRow {
@@ -31,7 +32,8 @@ export interface FetchedDb {
   registrations: DbRegistration[];
   radarReads: DbCountRow[];
   radarPlays: DbCountRow[];
-  eventsRun: number;
+  /** Titles of events run in the window — unioned with external sources for the chapter number. */
+  eventTitlesRun: string[];
 }
 
 export async function fetchDbData(
@@ -55,7 +57,8 @@ export async function fetchDbData(
     );
 
     const registrations = await pool.query<DbRegistration>(
-      `SELECT r.user_id, r.registered_at FROM event_registrations r
+      `SELECT r.user_id, r.registered_at, e.title
+       FROM event_registrations r JOIN events e ON e.id = r.event_id
        WHERE r.status = 'registered' AND r.registered_at >= $1 AND r.registered_at < $2`,
       [yearStart, yearEnd]
     );
@@ -68,8 +71,8 @@ export async function fetchDbData(
       `SELECT user_id, COUNT(*) AS plays FROM radar_game_scores GROUP BY user_id`
     );
 
-    const eventsRunResult = await pool.query<{ count: string }>(
-      `SELECT COUNT(*) FROM events WHERE status IN ('published','ended')
+    const eventsRunResult = await pool.query<{ title: string }>(
+      `SELECT title FROM events WHERE status IN ('published','ended')
        AND starts_at >= $1 AND starts_at < $2`,
       [yearStart, yearEnd]
     );
@@ -80,7 +83,7 @@ export async function fetchDbData(
       registrations: registrations.rows,
       radarReads: radarReads.rows.map((r) => ({ user_id: r.user_id, count: parseInt(r.reads, 10) })),
       radarPlays: radarPlays.rows.map((r) => ({ user_id: r.user_id, count: parseInt(r.plays, 10) })),
-      eventsRun: parseInt(eventsRunResult.rows[0]?.count ?? "0", 10),
+      eventTitlesRun: eventsRunResult.rows.map((r) => r.title),
     };
   } finally {
     await pool.end();

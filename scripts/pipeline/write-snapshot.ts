@@ -8,7 +8,7 @@ export interface WriteSummary {
 
 export async function writeSnapshots(
   connectionString: string,
-  snapshots: Map<string, { email: string; data: Snapshot }>,
+  snapshots: Map<string, { userId: string | null; data: Snapshot }>, // keyed by lowercased email
   chapterMeta: ChapterMeta,
   clubDistribution: Record<string, number>,
   matchRatePct: number
@@ -18,13 +18,13 @@ export async function writeSnapshots(
   try {
     await client.query("BEGIN");
 
-    for (const [userId, { email, data }] of snapshots) {
+    for (const [email, { userId, data }] of snapshots) {
       await client.query(
-        `INSERT INTO wrapped_snapshots (user_id, email, year, data, computed_at)
+        `INSERT INTO wrapped_snapshots (email, user_id, year, data, computed_at)
          VALUES ($1, $2, '2025-2026', $3, now())
-         ON CONFLICT (user_id) DO UPDATE
-           SET email = EXCLUDED.email, data = EXCLUDED.data, computed_at = now()`,
-        [userId, email.toLowerCase(), JSON.stringify(data)]
+         ON CONFLICT (email) DO UPDATE
+           SET user_id = EXCLUDED.user_id, data = EXCLUDED.data, computed_at = now()`,
+        [email.toLowerCase(), userId, JSON.stringify(data)]
       );
     }
 

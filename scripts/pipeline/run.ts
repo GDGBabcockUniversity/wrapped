@@ -3,12 +3,14 @@ import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline/promises";
 import { fetchDbData, type FetchedDb } from "./fetch-db";
+import { parseSourceCsv, combineExternal, type ExternalData } from "./sources";
+import { buildUniverse } from "./universe";
 import { parseWhatsAppExports } from "./parse-whatsapp";
 import { matchMembers } from "./match-members";
 import { buildPipelineMembers, computeSnapshots } from "./compute-stats";
 import { writeSnapshots, deleteOptedOutSnapshots } from "./write-snapshot";
 import { printReport } from "./report";
-import { generateSeedData, writeSeedExports } from "./seed-fake";
+import { generateSeedData, writeSeedExports, writeSeedSources } from "./seed-fake";
 import type { Snapshot } from "@/lib/snapshot";
 
 const YEAR_START = new Date(process.env.WRAPPED_YEAR_START ?? "2025-09-01T00:00:00Z");
@@ -32,6 +34,24 @@ function readExportFiles(): string[] {
     .map((f) => fs.readFileSync(path.join(exportsDir, f), "utf-8"));
 }
 
+/** Every CSV under data/sources/, any nesting — community.dev, Luma, ORBIT. */
+function readSourceFiles(): ExternalData {
+  const sourcesDir = path.join(DATA_DIR, "sources");
+  if (!fs.existsSync(sourcesDir)) return { roster: [], attendance: [] };
+  const parts: ExternalData[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith(".csv")) {
+        parts.push(parseSourceCsv(path.relative(sourcesDir, full), fs.readFileSync(full, "utf-8")));
+      }
+    }
+  };
+  walk(sourcesDir);
+  return combineExternal(parts);
+}
+
 async function confirmWrite(host: string): Promise<boolean> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const answer = await rl.question(
@@ -51,13 +71,19 @@ async function main() {
 
   let db: FetchedDb;
   let whatsAppTexts: string[];
+  let external: ExternalData;
 
   if (isSeed) {
     const seed = generateSeedData();
     db = seed.db;
     writeSeedExports(seed.exportFiles, DATA_DIR);
+    writeSeedSources(seed.sourceFiles, DATA_DIR);
     whatsAppTexts = seed.exportFiles.map((f) => f.content);
-    console.log(`Generated ${db.users.length} synthetic members and ${seed.exportFiles.length} export files.`);
+    // Route the synthetic CSVs through the real parser, same as production.
+    external = combineExternal(seed.sourceFiles.map((f) => parseSourceCsv(f.path, f.content)));
+    console.log(
+      `Generated ${db.users.length} synthetic auth members, ${seed.exportFiles.length} chat exports, ${seed.sourceFiles.length} source CSVs.`
+    );
   } else {
     const connectionString = process.env.PIPELINE_DATABASE_URL;
     if (!connectionString) {
@@ -69,14 +95,27 @@ async function main() {
     if (whatsAppTexts.length === 0) {
       console.warn("No .txt files found in data/exports/ — proceeding with zero WhatsApp data.");
     }
+    external = readSourceFiles();
+    if (external.roster.length === 0 && external.attendance.length === 0) {
+      console.warn(
+        "No CSVs found in data/sources/ — universe will be auth-platform members only. " +
+          "Export community.dev/Luma/ORBIT data there for the full 1500+ universe."
+      );
+    }
   }
 
   const mapping = readJsonIfExists<Record<string, string>>(path.join(DATA_DIR, "mapping.json"), {});
   const optedOutList = readJsonIfExists<string[]>(path.join(DATA_DIR, "opt-out.json"), []);
   const optedOutEmails = new Set(optedOutList.map((e) => e.toLowerCase()));
 
+  const universe = buildUniverse(db, external, YEAR_START, YEAR_END);
+  const communityOnly = universe.members.filter((m) => m.userId === null).length;
+  console.log(
+    `Universe: ${universe.members.length} members (${db.users.length} auth-platform, ${communityOnly} community/Luma/ORBIT-only), ${universe.eventsRun} distinct events.`
+  );
+
   const senderStats = parseWhatsAppExports(whatsAppTexts, YEAR_START, YEAR_END);
-  const matchResult = matchMembers(senderStats, db.users, mapping);
+  const matchResult = matchMembers(senderStats, universe.members, mapping);
 
   if (matchResult.unmatchedSenders.length > 0) {
     const unmatchedCsvPath = path.join(DATA_DIR, "unmatched.csv");
@@ -91,8 +130,14 @@ async function main() {
     console.log(`\nWrote ${matchResult.unmatchedSenders.length} unmatched senders to ${unmatchedCsvPath}`);
   }
 
-  const members = buildPipelineMembers(db, matchResult);
-  const { snapshots, chapterMeta } = computeSnapshots(members, db, YEAR_START, YEAR_END, optedOutEmails);
+  const members = buildPipelineMembers(universe, matchResult);
+  const { snapshots, chapterMeta } = computeSnapshots(
+    members,
+    universe.eventsRun,
+    YEAR_START,
+    YEAR_END,
+    optedOutEmails
+  );
 
   const { matchRatePct, clubFloorOk } = printReport(
     members,
@@ -132,10 +177,10 @@ async function main() {
     await deleteOptedOutSnapshots(connectionString, optedOutList);
   }
 
-  const emailByUserId = new Map(db.users.map((u) => [u.id, u.email]));
-  const writePayload = new Map<string, { email: string; data: Snapshot }>();
-  for (const [userId, data] of snapshots) {
-    writePayload.set(userId, { email: emailByUserId.get(userId)!, data });
+  const userIdByEmail = new Map(universe.members.map((m) => [m.email, m.userId]));
+  const writePayload = new Map<string, { userId: string | null; data: Snapshot }>();
+  for (const [email, data] of snapshots) {
+    writePayload.set(email, { userId: userIdByEmail.get(email) ?? null, data });
   }
 
   const summary = await writeSnapshots(

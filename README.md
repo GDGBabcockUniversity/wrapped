@@ -41,18 +41,27 @@ environment variables. For the personal flow locally:
 5. **Confirm chapter numbers** — `lib/content/chapter.ts` has four values
    marked `TBD-confirm` (members, eventsRun, totalCheckins, messagesParsed).
    The pipeline report supplies the last two.
-6. **Run the pipeline** (a lead, locally — never deployed):
+6. **Export the platform data** (the member universe spans four systems —
+   see `build2.md` for exact formats and conventions):
+   - community.dev (Bevy): member roster CSV → `data/sources/community/members.csv`,
+     plus per-event attendance CSVs named `YYYY-MM-DD-event-name.csv`
+   - Luma: per-event guest CSVs → `data/sources/luma/YYYY-MM-DD-event-name.csv`
+   - ORBIT sheets: CSVs with Email + Checked In columns → `data/sources/orbit/`
+   - WhatsApp: chat exports (without media) → `data/exports/*.txt`
+7. **Run the pipeline** (a lead, locally — never deployed):
    ```bash
-   # rehearsal with synthetic data
+   # rehearsal with synthetic data (includes fake community/Luma/ORBIT CSVs)
    npm run pipeline -- --seed --dry-run
-   # real data: put WhatsApp .txt exports in data/exports/, then
+   # real data:
    npm run pipeline -- --dry-run     # prints the report + unmatched.csv
    # fill data/mapping.json until matched volume ≥ 80%, then
    npm run pipeline -- --write       # asks for confirmation, writes snapshots
    ```
    Set `PIPELINE_DATABASE_URL` (direct, non-pooled string) in your local `.env`.
    Raw exports never leave the machine; message bodies are discarded at parse.
-7. **Soft launch** — core team 48h before public, per `build.md` §16.
+   Anyone appearing in ANY source gets a Wrapped — community.dev-only members
+   included (they land in the snapshot table with a null auth user id).
+8. **Soft launch** — core team 48h before public, per `build.md` §16.
 
 ## Verify
 
@@ -63,6 +72,7 @@ npx tsc --noEmit && npx eslint . && npx vitest run && npm run build
 ## Repo map
 
 - `build.md` — the full spec (§17 has the commit plan this repo was built from)
+- `build2.md` — amendment: the cross-platform member universe (community.dev/Luma/ORBIT ingestion)
 - `components/story-engine/` — state machine, gestures, progress, shader feed
 - `components/stories/` — the ten screens
 - `components/gl/` — WebGL2 shader fields (progressive enhancement)

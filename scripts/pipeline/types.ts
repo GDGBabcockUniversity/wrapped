@@ -1,8 +1,10 @@
 /** The canonical per-member shape assembled by compute-stats.ts, consumed by
- * percentiles.ts, clubs.ts, and write-snapshot.ts. */
+ * percentiles.ts, clubs.ts, and write-snapshot.ts. Keyed by lowercased email
+ * everywhere — the universe spans platforms, and only auth-platform members
+ * have a UUID. */
 export interface PipelineMember {
-  userId: string;
-  email: string;
+  userId: string | null; // auth-platform UUID; null for community.dev/Luma-only members
+  email: string; // lowercased — THE member key
   fullName: string;
   joinDate: Date;
 
