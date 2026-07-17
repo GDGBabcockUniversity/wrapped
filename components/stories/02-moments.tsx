@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { KineticWords } from "@/components/kinetic-words";
 import { MOMENTS } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
@@ -29,21 +30,16 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
 
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-cream text-ink px-6 pt-20 pb-16 gap-3">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-3">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 0.9, y: 0, rotate: -4 }}
           transition={{ duration: 0.24 }}
           className="w-[90px] h-7 rounded-sm bg-gdg-red"
         />
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.1 }}
-          className="t-editorial text-center"
-        >
-          {copy.moments.setup}
-        </motion.p>
+        <p className="t-editorial text-center">
+          <KineticWords text={copy.moments.setup} />
+        </p>
       </div>
     );
   }
@@ -53,7 +49,7 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
   const center = (visibleCount - 1) / 2;
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-cream text-ink px-6 pt-20 pb-16">
+    <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16">
       <div className="relative flex-1 w-full flex items-center justify-center">
         <AnimatePresence>
           {Array.from({ length: visibleCount }).map((_, depth) => {

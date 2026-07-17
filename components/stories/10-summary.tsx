@@ -37,7 +37,7 @@ export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
   const club = snapshot ? CLUBS[snapshot.club.id] : null;
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink px-6 pt-20 pb-16 gap-5">
+    <div className="absolute inset-0 flex flex-col items-center justify-center px-6 pt-20 pb-16 gap-5">
       <motion.div
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

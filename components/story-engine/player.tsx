@@ -6,6 +6,8 @@ import { track } from "@vercel/analytics";
 import { AnimatePresence, motion } from "motion/react";
 import { STORIES, TIMING } from "@/lib/stories";
 import { STORY_COMPONENTS } from "@/components/stories";
+import { CLUBS } from "@/lib/clubs";
+import { ACCENT_HEX } from "@/components/gl/shaders";
 import { StoryFrame } from "./story-frame";
 import { ProgressBar } from "./progress-bar";
 import { TapZones } from "./tap-zones";
@@ -19,6 +21,8 @@ const ChapterGrid = dynamic(
   () => import("./chapter-grid").then((m) => m.ChapterGrid),
   { ssr: false }
 );
+
+const CLUB_PATTERN_INDEX = { grid: 0, waves: 1, halftone: 2, diagonals: 3 } as const;
 
 interface MeResponse {
   member: boolean;
@@ -85,13 +89,23 @@ export function Player() {
   const def = STORIES[state.storyIndex]!;
   const StoryComponent = STORY_COMPONENTS[def.id];
   const currentPos = activeIndexes.indexOf(state.storyIndex);
+  const clubMeta = me.snapshot ? CLUBS[me.snapshot.club.id] : null;
+  const shaderAccentHex =
+    def.accent === "club" ? clubMeta?.hex ?? ACCENT_HEX.green : ACCENT_HEX[def.accent];
+  const shaderPattern = clubMeta ? CLUB_PATTERN_INDEX[clubMeta.pattern] : 0;
   // Summary carries its own primary share CTA already — the header chip is
   // only for the other personal reveal screens.
   const showShareChip =
     def.personal && def.id !== "summary" && me.member && state.phase === "reveal";
 
   return (
-    <StoryFrame>
+    <StoryFrame
+      field={def.field}
+      storyIndex={state.storyIndex}
+      accentHex={shaderAccentHex}
+      pattern={shaderPattern}
+      progressRef={progressRef}
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={`${def.id}-${state.phase}`}

@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useReducedMotion } from "motion/react";
 import { CLUBS } from "@/lib/clubs";
+import { KineticWords } from "@/components/kinetic-words";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
+import { vibrate } from "@/lib/haptics";
 import type { StoryProps } from "./types";
 import type { ClubId } from "@/lib/snapshot";
 
@@ -62,6 +64,10 @@ function FoilCard({ clubId, rarityPct }: { clubId: ClubId; rarityPct: number }) 
   const springY = useSpring(rotateY, { stiffness: 200, damping: 20 });
   const [sheenPos, setSheenPos] = useState({ x: 50, y: 50 });
   const cardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    vibrate([12, 40, 12]); // the flip lands like a physical card
+  }, []);
 
   function onPointerMove(e: React.PointerEvent) {
     if (reduceMotion) return;
@@ -153,9 +159,11 @@ function FoilCard({ clubId, rarityPct }: { clubId: ClubId; rarityPct: number }) 
 export function YourClubStory({ phase, snapshot, guest }: StoryProps) {
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink text-cream px-6 pt-20 pb-16 gap-8">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-8">
         <div className="text-center">
-          <p className="t-display">{copy.yourClub.setup}</p>
+          <p className="t-display">
+            <KineticWords text={copy.yourClub.setup} />
+          </p>
           <p className="t-body text-cream/55 mt-2">{copy.yourClub.setupSub}</p>
         </div>
         <CardBacks />
@@ -165,7 +173,7 @@ export function YourClubStory({ phase, snapshot, guest }: StoryProps) {
 
   if (guest || !snapshot) {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink text-cream px-6 pt-20 pb-16 gap-4 text-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4 text-center">
         <CardBacks />
         <p className="t-label text-cream/60 mt-2">{copy.yourClub.guestNames}</p>
         <p className="t-body text-cream/70 max-w-xs">{copy.yourClub.guestLine}</p>
@@ -182,13 +190,8 @@ export function YourClubStory({ phase, snapshot, guest }: StoryProps) {
   }
 
   return (
-    <motion.div
-      className="absolute inset-0 flex items-center justify-center px-6 pt-20 pb-16"
-      initial={{ backgroundColor: "#0f0f0f" }}
-      animate={{ backgroundColor: CLUBS[snapshot.club.id].hex }}
-      transition={{ duration: 0.4 }}
-    >
+    <div className="absolute inset-0 flex items-center justify-center px-6 pt-20 pb-16">
       <FoilCard clubId={snapshot.club.id} rarityPct={snapshot.club.rarityPct} />
-    </motion.div>
+    </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import { KineticWords } from "@/components/kinetic-words";
 import { PRODUCTS } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING, TIMING } from "@/lib/stories";
@@ -36,15 +37,10 @@ export function BuiltStory({ phase, active, paused }: StoryProps) {
 
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink text-cream px-6 pt-20 pb-16 gap-2">
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24 }}
-          className="t-display text-center"
-        >
-          {copy.built.setup}
-        </motion.p>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-2">
+        <p className="t-display text-center">
+          <KineticWords text={copy.built.setup} />
+        </p>
         <motion.p
           initial={{ opacity: 0, scale: 1.3 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -58,7 +54,7 @@ export function BuiltStory({ phase, active, paused }: StoryProps) {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-ink text-cream px-6 pt-20 pb-16">
+    <div className="absolute inset-0 flex flex-col text-cream px-6 pt-20 pb-16">
       <p className="t-label text-cream/55 text-center mb-6">{copy.built.revealLabel}</p>
       <div className="flex-1 flex flex-col justify-center gap-4">
         {PRODUCTS.map((p, i) => {

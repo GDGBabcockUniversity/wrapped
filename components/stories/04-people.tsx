@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import { PEOPLE } from "@/lib/content/chapter";
 import { InitialsAvatar } from "@/components/initials-avatar";
+import { KineticWords } from "@/components/kinetic-words";
 import { copy } from "@/lib/copy";
 import { TIMING } from "@/lib/stories";
 import type { StoryProps } from "./types";
@@ -66,15 +67,10 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
 
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-cream text-ink px-6 pt-20 pb-16">
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24 }}
-          className="t-editorial text-center"
-        >
-          {copy.people.setup}
-        </motion.p>
+      <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16">
+        <p className="t-editorial text-center">
+          <KineticWords text={copy.people.setup} />
+        </p>
       </div>
     );
   }
@@ -85,7 +81,7 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
   })).filter((g) => g.people.length > 0);
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-cream text-ink px-6 pt-20 pb-16 overflow-hidden">
+    <div className="absolute inset-0 flex flex-col text-ink px-6 pt-20 pb-16 overflow-hidden">
       {showTitle ? (
         <motion.p
           initial={{ opacity: 0 }}

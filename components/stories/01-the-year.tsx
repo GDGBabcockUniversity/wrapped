@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
+import { KineticWords } from "@/components/kinetic-words";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING, TIMING } from "@/lib/stories";
@@ -48,7 +49,7 @@ export function TheYearStory({ phase }: StoryProps) {
 
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-ink text-cream px-6 pt-20 pb-16 overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center text-cream px-6 pt-20 pb-16 overflow-hidden">
         <div
           aria-hidden
           className="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none select-none"
@@ -61,14 +62,12 @@ export function TheYearStory({ phase }: StoryProps) {
           </span>
         </div>
         <div className="relative flex flex-col items-center gap-3 text-center">
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24 }}
+          <p
             className="t-display"
+            style={{ viewTransitionName: "wrapped-title" } as React.CSSProperties}
           >
-            {copy.theYear.setup}
-          </motion.p>
+            <KineticWords text={copy.theYear.setup} />
+          </p>
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 0.55, y: 0 }}
@@ -83,7 +82,7 @@ export function TheYearStory({ phase }: StoryProps) {
   }
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-ink px-4 pt-20 pb-16">
+    <div className="absolute inset-0 flex items-center justify-center px-4 pt-20 pb-16">
       <motion.div
         initial={{ y: 40, rotate: -1.5, opacity: 0 }}
         animate={{ y: 0, rotate: -0.5, opacity: 1 }}

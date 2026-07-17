@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
+import { KineticWords } from "@/components/kinetic-words";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING, TIMING } from "@/lib/stories";
@@ -61,22 +62,17 @@ export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
 
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-ink text-cream px-6 pt-20 pb-16">
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24 }}
-          className="t-display text-center"
-        >
-          {guest ? copy.yourEvents.guestSetup : copy.yourEvents.setup}
-        </motion.p>
+      <div className="absolute inset-0 flex items-center justify-center text-cream px-6 pt-20 pb-16">
+        <p className="t-display text-center">
+          <KineticWords text={guest ? copy.yourEvents.guestSetup : copy.yourEvents.setup} />
+        </p>
       </div>
     );
   }
 
   if (guest) {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink text-cream px-6 pt-20 pb-16 gap-4 text-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4 text-center">
         <p className="t-display">{copy.yourEvents.guestReveal}</p>
         <p className="t-body text-cream/55">{copy.yourEvents.guestSub}</p>
         <a
@@ -97,7 +93,7 @@ export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
   if (isZero) {
     const [zeroPrefix, zeroSuffix] = copy.yourEvents.zeroReveal.split("{eventsRun}");
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink text-cream px-6 pt-20 pb-16 gap-6 text-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-6 text-center">
         <AdmitOneTicket />
         <div>
           <p className="t-display">
@@ -115,7 +111,7 @@ export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
   const isPerfect = events.checkins === events.registrations && events.checkins > 0;
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink text-cream px-6 pt-20 pb-16 gap-4 text-center">
+    <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4 text-center">
       <motion.p
         initial={{ scale: 1.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}

@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
+import { KineticWords } from "@/components/kinetic-words";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
+import { vibrate } from "@/lib/haptics";
 import type { StoryProps } from "./types";
 
 const TIER_LABEL: Record<string, string> = {
@@ -26,22 +29,21 @@ function Seal() {
 
 export function StandingStory({ phase, snapshot, guest }: StoryProps) {
   const reduceMotion = useReducedMotion();
+  const isTier = snapshot ? snapshot.standing.tier !== "member" : false;
+
+  // The stamp lands the instant the reveal beat starts — a physical hit, not a fade.
+  useEffect(() => {
+    if (phase === "reveal" && isTier) vibrate([12, 40, 12]);
+  }, [phase, isTier]);
 
   if (guest) return null; // guests never see this story — engine skips it entirely
 
-  const isTier = snapshot ? snapshot.standing.tier !== "member" : false;
-
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-cream text-ink px-6 pt-20 pb-16">
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24 }}
-          className="t-display text-center"
-        >
-          {isTier ? copy.standing.setup : copy.standing.setupQuiet}
-        </motion.p>
+      <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16">
+        <p className="t-display text-center">
+          <KineticWords text={isTier ? copy.standing.setup : copy.standing.setupQuiet} />
+        </p>
       </div>
     );
   }
@@ -51,7 +53,7 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
   if (isTier) {
     const tierNum = TIER_LABEL[snapshot.standing.tier] ?? String(snapshot.standing.percentile);
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-cream text-ink px-6 pt-20 pb-16 gap-6 text-center overflow-hidden">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-6 text-center overflow-hidden">
         <Seal />
         <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
           <motion.svg
@@ -99,7 +101,7 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
   const showLow = !matched && snapshot.flags.zeroCheckins;
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-cream text-ink px-6 pt-20 pb-16 gap-6 text-center">
+    <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-6 text-center">
       <p className="t-display">{copy.standing.revealStats}</p>
       {!showLow && (
         <div className={`flex ${matched ? "gap-8" : ""} items-center justify-center`}>

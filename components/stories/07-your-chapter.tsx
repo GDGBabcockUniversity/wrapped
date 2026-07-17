@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { KineticWords } from "@/components/kinetic-words";
 import { copy, fmt } from "@/lib/copy";
 import type { StoryProps } from "./types";
 
@@ -40,15 +41,10 @@ export function YourChapterStory({ phase, snapshot, guest }: StoryProps) {
 
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-ink text-cream px-6 pt-20 pb-16">
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24 }}
-          className="t-display text-center"
-        >
-          {snapshot.isNewMember ? copy.yourChapter.setupNew : copy.yourChapter.setup}
-        </motion.p>
+      <div className="absolute inset-0 flex items-center justify-center text-cream px-6 pt-20 pb-16">
+        <p className="t-display text-center">
+          <KineticWords text={snapshot.isNewMember ? copy.yourChapter.setupNew : copy.yourChapter.setup} />
+        </p>
       </div>
     );
   }
@@ -57,7 +53,7 @@ export function YourChapterStory({ phase, snapshot, guest }: StoryProps) {
   const milestone = resolveMilestone(snapshot.joinDate);
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink text-cream px-6 pt-20 pb-16 gap-8">
+    <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-8">
       <p className="t-editorial text-center">
         {fmt(
           snapshot.isNewMember ? copy.yourChapter.revealNew : copy.yourChapter.reveal,

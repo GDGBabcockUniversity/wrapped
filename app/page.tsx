@@ -106,7 +106,7 @@ export default function LandingPage() {
             {copy.landing.title}
           </h1>
           <p
-            className="t-display text-gdg-blue"
+            className="t-display text-gdg-blue kinetic kinetic-breathe"
             style={{ fontSize: "clamp(1.6rem, 8.8vw, 3.6rem)" }}
           >
             {copy.landing.year}
