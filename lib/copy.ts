@@ -15,6 +15,15 @@ export const copy = {
   theYear: {
     setup: "What a year.",
     setupSub: "No, really. Look at the receipts.",
+    // The cold open (§11.4 build2.md): a hard-cut three-line title sequence
+    // in place of the single setup line above (setup/setupSub stay defined
+    // for anywhere else that might reference them, e.g. the chapter grid
+    // teaser copy, but the on-screen setup beat now renders coldOpen).
+    coldOpen: [
+      { line: "One chapter.", field: "ink" as const },
+      { line: "One unhinged year.", field: "cream" as const },
+      { line: "We kept the receipts.", field: "ink" as const, accentWord: "receipts" },
+    ],
     revealLabel: "GDG BABCOCK · 2025/26",
     rows: [
       { label: "EVENTS RUN", key: "eventsRun" },

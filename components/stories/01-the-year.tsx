@@ -1,14 +1,76 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
 import { IdleFloat } from "@/components/idle-float";
-import { KineticWords } from "@/components/kinetic-words";
+import { PopLetters } from "@/components/pop-letters";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING, TIMING } from "@/lib/stories";
+import { vibrate } from "@/lib/haptics";
 import type { StoryProps } from "./types";
+
+const CUT_DELAYS_MS = [0, 1050, 2100];
+
+function ColdOpenLine({ entry }: { entry: (typeof copy.theYear.coldOpen)[number] }) {
+  if (!("accentWord" in entry) || !entry.accentWord) {
+    return <PopLetters text={entry.line} profile="fast" />;
+  }
+  const idx = entry.line.indexOf(entry.accentWord);
+  const before = entry.line.slice(0, idx);
+  const after = entry.line.slice(idx + entry.accentWord.length);
+  return (
+    <>
+      {before && <PopLetters text={before} profile="fast" />}
+      <PopLetters text={entry.accentWord} profile="fast" className="text-gdg-blue" />
+      {after && <PopLetters text={after} profile="fast" />}
+    </>
+  );
+}
+
+/**
+ * The cold open (§11.4 build2.md): a hard-cut three-line title sequence —
+ * full-bleed field inversions, no crossfade between cuts, a haptic on each
+ * cut. Replaces the old single "What a year." setup line.
+ */
+function ColdOpen() {
+  const [cut, setCut] = useState(0);
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    vibrate(8);
+    const timers = CUT_DELAYS_MS.slice(1).map((delay) =>
+      setTimeout(() => {
+        setCut(CUT_DELAYS_MS.indexOf(delay));
+        vibrate(8);
+      }, delay)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const entry = copy.theYear.coldOpen[cut]!;
+  const isInk = entry.field === "ink";
+
+  return (
+    <div
+      key={cut}
+      className={`absolute inset-0 flex items-center justify-center px-6 text-center ${
+        isInk ? "bg-ink text-cream" : "bg-cream text-ink"
+      }`}
+    >
+      <p
+        className="t-display"
+        style={{
+          fontSize: "clamp(2.6rem, 13cqw, 5rem)",
+          ...(cut === 0 ? ({ viewTransitionName: "wrapped-title" } as React.CSSProperties) : {}),
+        }}
+      >
+        {reduceMotion ? entry.line : <ColdOpenLine entry={entry} />}
+      </p>
+    </div>
+  );
+}
 
 const VALUES: Record<string, number> = {
   eventsRun: CHAPTER.eventsRun,
@@ -49,37 +111,7 @@ export function TheYearStory({ phase }: StoryProps) {
   const reduceMotion = useReducedMotion();
 
   if (phase === "setup") {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center text-cream px-6 pt-20 pb-16 overflow-hidden">
-        <div
-          aria-hidden
-          className="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none select-none"
-        >
-          <span
-            className="text-outline-base text-outline-cream whitespace-nowrap"
-            style={{ fontSize: "30cqw" }}
-          >
-            2025/26 2025/26
-          </span>
-        </div>
-        <div className="relative flex flex-col items-center gap-3 text-center">
-          <p
-            className="t-display"
-            style={{ viewTransitionName: "wrapped-title" } as React.CSSProperties}
-          >
-            <KineticWords text={copy.theYear.setup} />
-          </p>
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 0.55, y: 0 }}
-            transition={{ duration: 0.24, delay: 0.24 }}
-            className="t-body"
-          >
-            {copy.theYear.setupSub}
-          </motion.p>
-        </div>
-      </div>
-    );
+    return <ColdOpen />;
   }
 
   return (

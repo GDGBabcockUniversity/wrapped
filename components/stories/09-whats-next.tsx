@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { KineticWords } from "@/components/kinetic-words";
+import { PopLetters } from "@/components/pop-letters";
 import { copy } from "@/lib/copy";
 import type { StoryProps } from "./types";
 
@@ -20,8 +21,11 @@ export function WhatsNextStory({ phase }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-6 text-center">
-      <p className="t-display text-outline-base text-outline-green">
-        {copy.whatsNext.revealTitle}
+      {/* Filled type, not outlined — PopLetters' bubbly per-letter pop needs
+          a stable glyph per letter, which an SVG outline filter can't give
+          (§11.7 build2.md: never combine kinetic/pop type with outlines). */}
+      <p className="t-display text-gdg-green">
+        <PopLetters text={copy.whatsNext.revealTitle} wave />
       </p>
       <motion.svg
         width="48"
