@@ -31,9 +31,13 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
   const reduceMotion = useReducedMotion();
   const isTier = snapshot ? snapshot.standing.tier !== "member" : false;
 
-  // The stamp lands the instant the reveal beat starts — a physical hit, not a fade.
+  // §10.4: anticipation then impact — the seal draws first, the stamp slams
+  // at 0.9s, and the haptic fires at the moment of contact (~1.15s), not at
+  // the start of the beat.
   useEffect(() => {
-    if (phase === "reveal" && isTier) vibrate([12, 40, 12]);
+    if (phase !== "reveal" || !isTier) return;
+    const timer = setTimeout(() => vibrate([12, 40, 12]), 1150);
+    return () => clearTimeout(timer);
   }, [phase, isTier]);
 
   if (guest) return null; // guests never see this story — engine skips it entirely
@@ -56,13 +60,19 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
       <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-6 text-center overflow-hidden">
         <Seal />
         <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
+          {/* Beat 1: the seal ring draws in, then keeps its slow rotation. */}
           <motion.svg
             width="220"
             height="220"
             viewBox="0 0 220 220"
             className="absolute inset-0"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+            initial={{ scale: reduceMotion ? 1 : 0.85, opacity: reduceMotion ? 1 : 0 }}
+            animate={{ scale: 1, opacity: 1, rotate: 360 }}
+            transition={{
+              scale: { duration: 0.5, ease: "easeOut" },
+              opacity: { duration: 0.5 },
+              rotate: { duration: 60, repeat: Infinity, ease: "linear" },
+            }}
           >
             <circle
               cx="110"
@@ -80,15 +90,36 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
               </textPath>
             </text>
           </motion.svg>
+          {/* Beat 2: the slam — opacity snaps in the first 60ms while the
+              transform rides the stamp spring from way out at scale 2.2. */}
           <motion.p
-            initial={{ scale: 1.6, rotate: -8, opacity: 0 }}
+            initial={{ scale: 2.2, rotate: -14, opacity: 0 }}
             animate={{ scale: 1, rotate: -2, opacity: 1 }}
-            transition={reduceMotion ? { duration: 0.01 } : SPRING.stamp}
+            transition={
+              reduceMotion
+                ? { duration: 0.01 }
+                : {
+                    opacity: { duration: 0.06, delay: 0.9 },
+                    scale: { ...SPRING.stamp, delay: 0.9 },
+                    rotate: { ...SPRING.stamp, delay: 0.9 },
+                  }
+            }
             className="t-monument text-gdg-red leading-none relative z-10"
             style={{ fontSize: "clamp(3.5rem, 22cqw, 6rem)" }}
           >
             {fmt(copy.standing.revealTier, { percentile: tierNum })}
           </motion.p>
+          {/* The impact ripple, timed to contact. */}
+          {!reduceMotion && (
+            <motion.div
+              aria-hidden
+              className="absolute rounded-full border-2 border-ink/40"
+              style={{ width: 220, height: 220 }}
+              initial={{ scale: 1, opacity: 0 }}
+              animate={{ scale: 1.6, opacity: [0, 0.5, 0] }}
+              transition={{ duration: 0.4, delay: 1.15, times: [0, 0.2, 1] }}
+            />
+          )}
         </div>
         <p className="t-body text-ink/65">{copy.standing.revealTierSub}</p>
       </div>

@@ -22,7 +22,8 @@ export const copy = {
     coldOpen: [
       { line: "One chapter.", field: "ink" as const },
       { line: "One unhinged year.", field: "cream" as const },
-      { line: "We kept the receipts.", field: "ink" as const, accentWord: "receipts" },
+      { line: "What a year.", field: "ink" as const },
+      { line: "We kept the receipts.", field: "cream" as const, accentWord: "receipts" },
     ],
     revealLabel: "GDG BABCOCK · 2025/26",
     rows: [

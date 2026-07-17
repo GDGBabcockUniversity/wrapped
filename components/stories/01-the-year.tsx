@@ -11,7 +11,10 @@ import { SPRING, TIMING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
 import type { StoryProps } from "./types";
 
-const CUT_DELAYS_MS = [0, 1050, 2100];
+// Four cuts across a 5s setup beat — each line sits ~1.15s, the closer
+// ("We kept the receipts.") holds 1.5s. Cadence rule (§11.4): short lines
+// cut fast enough to feel like acceleration, long enough to be read twice.
+const CUT_DELAYS_MS = [0, 1150, 2300, 3500];
 
 function ColdOpenLine({ entry }: { entry: (typeof copy.theYear.coldOpen)[number] }) {
   if (!("accentWord" in entry) || !entry.accentWord) {
@@ -127,7 +130,14 @@ export function TheYearStory({ phase }: StoryProps) {
         <p className="t-label text-center opacity-70 pb-3 border-b border-dashed border-ink/30">
           {copy.theYear.revealLabel}
         </p>
-        <div className="flex flex-col gap-3 py-4">
+        {/* §10.5: the receipt PRINTS — rows emerge top-to-bottom behind a
+            linear clip wipe, like paper coming off the till roll. */}
+        <motion.div
+          className="flex flex-col gap-3 py-4"
+          initial={{ clipPath: reduceMotion ? "inset(0 0 0% 0)" : "inset(0 0 100% 0)" }}
+          animate={{ clipPath: "inset(0 0 0% 0)" }}
+          transition={{ duration: 1.2, ease: "linear", delay: 0.3 }}
+        >
           {copy.theYear.rows.map((row, i) => (
             <ReceiptRow
               key={row.key}
@@ -137,11 +147,16 @@ export function TheYearStory({ phase }: StoryProps) {
               delayMs={i * TIMING.staggerMs}
             />
           ))}
-        </div>
+        </motion.div>
         <p className="t-label text-center opacity-70 pt-3 border-t border-dashed border-ink/30">
           {copy.theYear.footer}
         </p>
-        <div className="perforation -mx-5 -mb-6 mt-4" />
+        {/* The tear-off: perforation kicks once as printing finishes. */}
+        <motion.div
+          className="perforation -mx-5 -mb-6 mt-4"
+          animate={reduceMotion ? {} : { rotate: [0, 1.2, 0] }}
+          transition={{ duration: 0.3, delay: 1.5 }}
+        />
       </motion.div>
       </IdleFloat>
     </div>

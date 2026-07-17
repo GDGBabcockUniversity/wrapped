@@ -81,8 +81,18 @@ const CHAPTERS: Chapter[] = [
   { id: "designers", title: "SPECIAL MENTION", accent: "yellow", kind: "designers" },
 ];
 
-const TITLE_CARD_MS = 800;
-const CONTENT_MS = 1600;
+// Cadence (§11.6 amended): things must sit long enough to take in. Title
+// cards hold 900ms; a cast moment earns 110ms per face on top of a 1.6s
+// floor, capped at 3.4s, so MEDIA's sixteen people get twice the screen
+// time of CORE's six instead of the same flat beat.
+const TITLE_CARD_MS = 900;
+const BOARD_MS = 2600;
+
+function contentMsFor(chapter: Chapter): number {
+  if (chapter.kind !== "cast") return BOARD_MS;
+  const count = chapter.people?.length ?? 0;
+  return Math.min(1600 + count * 110, 3400);
+}
 
 function Avatar({ person, size, index }: { person: Person; size: number; index: number }) {
   const [failed, setFailed] = useState(false);
@@ -132,13 +142,13 @@ function CastMoment({ chapter }: { chapter: Chapter }) {
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1, y: [0, Math.sin(((i % 6) / 6) * Math.PI) * -6, 0] }}
             transition={{
-              opacity: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.07 },
-              scale: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.07 },
-              y: { duration: 1.6, delay: i * 0.07 },
+              opacity: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.09 },
+              scale: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.09 },
+              y: { duration: 1.8, delay: i * 0.09 },
             }}
           >
             <Avatar person={p} size={60} index={i} />
-            <p className="t-label text-ink/70 text-[0.45rem] text-center leading-tight line-clamp-2">
+            <p className="t-label text-ink/70 text-[0.5rem] text-center leading-tight line-clamp-2">
               {p.name}
             </p>
           </motion.div>
@@ -243,7 +253,7 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
             setTimeout(() => {
               if (cancelled) return;
               runChapter(idx + 1);
-            }, CONTENT_MS)
+            }, contentMsFor(CHAPTERS[idx]!))
           );
         }, TITLE_CARD_MS)
       );

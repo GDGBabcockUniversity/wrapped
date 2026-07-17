@@ -16,17 +16,23 @@ function nameFontSize(name: string): string {
 }
 
 function Barcode({ seed }: { seed: string }) {
+  const reduceMotion = useReducedMotion();
   const bars = Array.from({ length: 18 }, (_, i) => {
     const code = seed.charCodeAt(i % seed.length) || 65;
     return 1 + (code % 4);
   });
+  // §10.6: the year being printed onto your card — bars draw left-to-right,
+  // a closing callback to story 1's receipt.
   return (
     <div className="flex items-end gap-[3px] justify-center h-8" aria-hidden>
       {bars.map((w, i) => (
-        <span
+        <motion.span
           key={i}
           className="bg-ink"
-          style={{ width: `${w}px`, height: `${8 + w * 4}px` }}
+          style={{ width: `${w}px`, height: `${8 + w * 4}px`, transformOrigin: "bottom" }}
+          initial={{ scaleY: reduceMotion ? 1 : 0 }}
+          animate={{ scaleY: 1 }}
+          transition={{ duration: 0.2, delay: 0.8 + i * 0.024 }}
         />
       ))}
     </div>

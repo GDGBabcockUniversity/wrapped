@@ -65,7 +65,10 @@ export function BuiltStory({ phase, active, paused }: StoryProps) {
               initial={{ opacity: 0, x: -16 }}
               animate={{
                 opacity: isActive ? 1 : 0.7,
-                x: 0,
+                // §10.7: the active row swells AND nudges — a physical shove,
+                // not just a zoom. Entrance rides the same x channel; after
+                // mount the nudge keyframes take over per activation.
+                x: isActive ? [0, 4, 0] : 0,
                 scale: isActive ? 1.06 : 1,
               }}
               transition={{
