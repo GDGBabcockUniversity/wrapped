@@ -9,6 +9,13 @@ export const dynamic = "force-dynamic";
 const BodySchema = z.object({ email: z.string().email() });
 
 export async function POST(req: NextRequest) {
+  // A missing secret makes jose throw deep inside signMagicToken — surface
+  // it as a named, loggable config error instead of a raw 500 (§11.1 ops).
+  if (!process.env.WRAPPED_SESSION_SECRET) {
+    console.error("[wrapped] WRAPPED_SESSION_SECRET is not set — cannot sign magic links.");
+    return NextResponse.json({ error: "server_config" }, { status: 500 });
+  }
+
   const json = await req.json().catch(() => null);
   const parsed = BodySchema.safeParse(json);
   if (!parsed.success) {
@@ -25,8 +32,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const token = await signMagicToken(email);
-  await sendMagicLinkEmail(email, token);
+  try {
+    const token = await signMagicToken(email);
+    await sendMagicLinkEmail(email, token);
+  } catch (err) {
+    console.error("[wrapped] magic link request failed:", err);
+    return NextResponse.json({ error: "server_config" }, { status: 500 });
+  }
 
   // Always the same response whether or not the email belongs to a member —
   // no enumeration.

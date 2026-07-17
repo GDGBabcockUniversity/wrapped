@@ -56,7 +56,9 @@ function EmailForm() {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-2 w-full">
-      <div className="flex gap-2">
+      {/* One capsule, not a text field + a full pill button — the button is
+          a 40px circle nested in the field's own right edge (§11.1). */}
+      <div className="relative w-full">
         <input
           type="email"
           required
@@ -64,14 +66,17 @@ function EmailForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder={copy.landing.emailPlaceholder}
           aria-label={copy.landing.emailLabel}
-          className="flex-1 rounded-full border border-cream/30 bg-transparent px-5 py-3 text-cream t-body placeholder:text-cream/40 focus:outline-none focus:border-cream/70"
+          className="w-full rounded-full border border-cream/30 bg-transparent pl-5 pr-14 py-3 text-cream t-body placeholder:text-cream/40 focus:outline-none focus:border-cream/70"
         />
         <button
           type="submit"
           disabled={status === "loading"}
-          className="rounded-full bg-cream text-ink px-5 py-3 t-label disabled:opacity-60"
+          aria-label={copy.landing.emailSubmit}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-cream text-ink flex items-center justify-center disabled:opacity-60"
         >
-          {status === "loading" ? "…" : copy.landing.emailSubmit}
+          <span aria-hidden className="text-lg leading-none">
+            {status === "loading" ? "…" : "↑"}
+          </span>
         </button>
       </div>
       {status === "error" && (
