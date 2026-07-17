@@ -25,13 +25,14 @@ const OUTLINE_CLASS: Record<string, string> = {
 };
 
 function CardBacks() {
+  const reduceMotion = useReducedMotion();
   return (
     <div className="flex gap-3 items-end">
       {CLUB_ORDER.map((id, i) => (
         <motion.div
           key={id}
           className="w-16 aspect-[5/7] rounded-xl bg-ink-2 border border-cream/20 flex items-center justify-center"
-          animate={{ y: [-4, 4] }}
+          animate={reduceMotion ? {} : { y: [-4, 4] }}
           transition={{
             duration: 2,
             repeat: Infinity,

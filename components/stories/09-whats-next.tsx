@@ -1,10 +1,12 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { copy } from "@/lib/copy";
 import type { StoryProps } from "./types";
 
 export function WhatsNextStory({ phase }: StoryProps) {
+  const reduceMotion = useReducedMotion();
+
   if (phase === "setup") {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-cream text-ink px-6 pt-20 pb-16">
@@ -31,7 +33,7 @@ export function WhatsNextStory({ phase }: StoryProps) {
         viewBox="0 0 48 48"
         fill="none"
         aria-hidden
-        animate={{ y: [8, -8] }}
+        animate={reduceMotion ? {} : { y: [8, -8] }}
         transition={{ duration: 3, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
       >
         <path

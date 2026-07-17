@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { copy, fmt } from "@/lib/copy";
 import type { StoryProps } from "./types";
 
@@ -34,6 +34,7 @@ function resolveMilestone(joinDate: string): string {
 }
 
 export function YourChapterStory({ phase, snapshot, guest }: StoryProps) {
+  const reduceMotion = useReducedMotion();
   if (guest) return null; // guests never see this story — engine skips it entirely
   if (!snapshot) return null;
 
@@ -71,7 +72,7 @@ export function YourChapterStory({ phase, snapshot, guest }: StoryProps) {
           style={{ width: "100%" }}
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          transition={{ duration: 0.9, ease: "easeOut" }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.9, ease: "easeOut" }}
         />
         {MILESTONES.map((m, i) => {
           const leftPct = fractionAlong(m.date) * 100;

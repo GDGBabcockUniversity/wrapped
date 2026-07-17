@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { CLUBS } from "@/lib/clubs";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
@@ -33,6 +33,7 @@ function Barcode({ seed }: { seed: string }) {
 }
 
 export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
+  const reduceMotion = useReducedMotion();
   const club = snapshot ? CLUBS[snapshot.club.id] : null;
 
   return (
@@ -40,7 +41,7 @@ export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
       <motion.div
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={SPRING.default}
+        transition={reduceMotion ? { duration: 0.15 } : SPRING.default}
         className="bg-cream text-ink rounded-2xl p-5 w-[82cqw] max-w-[360px] flex flex-col"
         style={{ aspectRatio: "9 / 14" }}
       >

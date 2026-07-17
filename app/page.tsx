@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { track } from "@vercel/analytics";
 import { copy } from "@/lib/copy";
 
 const MARQUEE_TEXT =
@@ -24,6 +25,7 @@ function EmailForm() {
         body: JSON.stringify({ email }),
       });
       if (!res.ok && res.status !== 202) throw new Error("failed");
+      track("magiclink_request"); // never track the email address itself
       setStatus("sent");
     } catch {
       setStatus("error");

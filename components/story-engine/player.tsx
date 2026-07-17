@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { track } from "@vercel/analytics";
 import { AnimatePresence, motion } from "motion/react";
 import { STORIES, TIMING } from "@/lib/stories";
 import { STORY_COMPONENTS } from "@/components/stories";
@@ -29,6 +30,7 @@ export function Player() {
   const { state, dispatch, progressRef, activeIndexes } = useStoryEngine();
   const [me, setMe] = useState<MeResponse>({ member: false });
   const [dbDegraded, setDbDegraded] = useState(false);
+  const verifiedTracked = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -38,6 +40,10 @@ export function Player() {
         setMe(data);
         setDbDegraded(!!data.degraded);
         dispatch({ type: "SET_MEMBER", isMember: !!data.member });
+        if (!verifiedTracked.current) {
+          verifiedTracked.current = true;
+          track("magiclink_verified", { member: !!data.member });
+        }
       })
       .catch(() => {
         setMe({ member: false });
@@ -45,6 +51,11 @@ export function Player() {
       });
     return () => controller.abort();
   }, [dispatch]);
+
+  // One event per story visited (not per setup/reveal phase beat).
+  useEffect(() => {
+    track("story_view", { id: STORIES[state.storyIndex]!.id });
+  }, [state.storyIndex]);
 
   useEffect(() => {
     if (!dbDegraded) return;

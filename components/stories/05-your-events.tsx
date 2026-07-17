@@ -8,13 +8,14 @@ import { SPRING, TIMING } from "@/lib/stories";
 import type { StoryProps } from "./types";
 
 function AdmitOneTicket() {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.svg
       width="200"
       height="100"
       viewBox="0 0 280 140"
       className="text-outline-base text-outline-blue"
-      animate={{ rotate: [-2, 2] }}
+      animate={reduceMotion ? {} : { rotate: [-2, 2] }}
       transition={{ duration: 4, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
     >
       <rect

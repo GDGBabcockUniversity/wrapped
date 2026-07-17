@@ -18,6 +18,7 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
   const pausedRef = useRef(paused);
   const [showTitle, setShowTitle] = useState(true);
   const [finished, setFinished] = useState(false);
+  const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -119,7 +120,7 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
                 <div className="flex flex-col gap-3">
                   {g.people.map((p, i) => (
                     <div key={p.name} className="flex items-center gap-3">
-                      {p.photo ? (
+                      {p.photo && !failedPhotos.has(p.name) ? (
                         <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
                           <Image
                             src={p.photo}
@@ -127,6 +128,9 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
                             fill
                             className="object-cover"
                             sizes="36px"
+                            onError={() =>
+                              setFailedPhotos((prev) => new Set(prev).add(p.name))
+                            }
                           />
                         </div>
                       ) : (

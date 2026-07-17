@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
@@ -44,6 +44,8 @@ function ReceiptRow({ label, value, suffix, delayMs }: { label: string; value: n
 }
 
 export function TheYearStory({ phase }: StoryProps) {
+  const reduceMotion = useReducedMotion();
+
   if (phase === "setup") {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-ink text-cream px-6 pt-20 pb-16 overflow-hidden">
@@ -85,7 +87,7 @@ export function TheYearStory({ phase }: StoryProps) {
       <motion.div
         initial={{ y: 40, rotate: -1.5, opacity: 0 }}
         animate={{ y: 0, rotate: -0.5, opacity: 1 }}
-        transition={SPRING.default}
+        transition={reduceMotion ? { duration: 0.15 } : SPRING.default}
         className="bg-paper text-ink rounded-sm w-full px-5 py-6"
       >
         <div className="perforation -mx-5 -mt-6 mb-4" />

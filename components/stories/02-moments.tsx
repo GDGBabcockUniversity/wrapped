@@ -17,6 +17,7 @@ const CYCLE_MS = 1800;
 export function MomentsStory({ phase, active, paused }: StoryProps) {
   const reduceMotion = useReducedMotion();
   const [topIdx, setTopIdx] = useState(0);
+  const [failedKeys, setFailedKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (phase !== "reveal" || !active || paused || reduceMotion) return;
@@ -72,14 +73,23 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
                 exit={isTop ? { x: "120%", rotate: 12, opacity: 0 } : undefined}
                 transition={reduceMotion ? { duration: 0 } : SPRING.photo}
               >
-                <div className="relative w-full aspect-square bg-ink overflow-hidden">
-                  <Image
-                    src={print.src}
-                    alt={print.moment.title}
-                    fill
-                    sizes="(max-width: 480px) 90vw, 380px"
-                    className="object-cover opacity-90 contrast-[1.05] saturate-[85%]"
-                  />
+                <div className="relative w-full aspect-square bg-cream-deep overflow-hidden flex items-center justify-center">
+                  {failedKeys.has(print.key) ? (
+                    <span className="t-label text-ink/40 px-4 text-center">
+                      {print.moment.title}
+                    </span>
+                  ) : (
+                    <Image
+                      src={print.src}
+                      alt={print.moment.title}
+                      fill
+                      sizes="(max-width: 480px) 90vw, 380px"
+                      className="object-cover opacity-90 contrast-[1.05] saturate-[85%]"
+                      onError={() =>
+                        setFailedKeys((prev) => new Set(prev).add(print.key))
+                      }
+                    />
+                  )}
                 </div>
                 {isTop && (
                   <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-14 h-5 rounded-sm bg-gdg-red/90 rotate-2" />

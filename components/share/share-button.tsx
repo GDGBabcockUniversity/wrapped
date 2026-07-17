@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { track } from "@vercel/analytics";
 import type { StoryId } from "@/lib/stories";
 
 type ShareState = "idle" | "loading" | "error";
@@ -39,6 +40,7 @@ export function ShareButton({
         a.remove();
         URL.revokeObjectURL(url);
       }
+      track("share", { id: storyId });
       setState("idle");
     } catch (err) {
       // A user canceling the native share sheet throws AbortError — silent, not an error.
