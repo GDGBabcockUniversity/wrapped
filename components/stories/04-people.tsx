@@ -1,148 +1,291 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { motion, useReducedMotion } from "motion/react";
-import { PEOPLE } from "@/lib/content/chapter";
+import { motion } from "motion/react";
+import { PEOPLE, PRODUCTS, CREWS, type Person } from "@/lib/content/chapter";
 import { InitialsAvatar } from "@/components/initials-avatar";
-import { KineticWords } from "@/components/kinetic-words";
+import { PopLetters } from "@/components/pop-letters";
 import { copy } from "@/lib/copy";
-import { TIMING } from "@/lib/stories";
 import type { StoryProps } from "./types";
 
+/**
+ * Chaptered credits (§11.6 build2.md) — eight title-carded chapters instead
+ * of one long roll: CORE TEAM, THE TRACKS, DEV CREW, MEDIA & STORY,
+ * EVENTS & OPS, THE BUILDERS (product crew boards), SPECIAL MENTION — THE
+ * DESIGNERS, then the closer. Every person with a headshot appears in their
+ * section's chapter; nobody is skipped.
+ */
+
 const SECTION_ORDER = ["CORE", "TRACKS", "DEV", "MEDIA", "EVENTS"] as const;
+const SECTION_TITLES: Record<(typeof SECTION_ORDER)[number], string> = {
+  CORE: "CORE TEAM",
+  TRACKS: "THE TRACKS",
+  DEV: "DEV CREW",
+  MEDIA: "MEDIA & STORY",
+  EVENTS: "EVENTS & OPS",
+};
+const SECTION_ACCENT: Record<(typeof SECTION_ORDER)[number], Accent> = {
+  CORE: "blue",
+  TRACKS: "red",
+  DEV: "yellow",
+  MEDIA: "green",
+  EVENTS: "blue",
+};
+
+type Accent = "blue" | "red" | "yellow" | "green";
+const PANEL_BG: Record<Accent, string> = {
+  blue: "bg-gdg-blue",
+  red: "bg-gdg-red",
+  yellow: "bg-gdg-yellow",
+  green: "bg-gdg-green",
+};
+const PANEL_TEXT: Record<Accent, string> = {
+  blue: "text-cream",
+  red: "text-cream",
+  yellow: "text-ink",
+  green: "text-ink",
+};
+const BOARD_CHIP_BG: Record<string, string> = {
+  blue: "bg-gdg-blue",
+  red: "bg-gdg-red",
+  yellow: "bg-gdg-yellow",
+  green: "bg-gdg-green",
+};
+const BOARD_CHIP_TEXT: Record<string, string> = {
+  blue: "text-cream",
+  red: "text-cream",
+  yellow: "text-ink",
+  green: "text-ink",
+};
+
+interface Chapter {
+  id: string;
+  title: string;
+  accent: Accent;
+  kind: "cast" | "builders" | "designers";
+  people?: Person[];
+}
+
+const BUILDER_PRODUCT_NAMES = ["RADAR", "ORBIT", "BABCOCKVOTES", "BABCOCK 100"];
+
+const CHAPTERS: Chapter[] = [
+  ...SECTION_ORDER.map((section) => ({
+    id: section.toLowerCase(),
+    title: SECTION_TITLES[section],
+    accent: SECTION_ACCENT[section],
+    kind: "cast" as const,
+    people: PEOPLE.filter((p) => p.section === section),
+  })),
+  { id: "builders", title: "THE BUILDERS", accent: "red", kind: "builders" },
+  { id: "designers", title: "SPECIAL MENTION", accent: "yellow", kind: "designers" },
+];
+
+const TITLE_CARD_MS = 800;
+const CONTENT_MS = 1600;
+
+function Avatar({ person, size, index }: { person: Person; size: number; index: number }) {
+  const [failed, setFailed] = useState(false);
+  if (!person.photo || failed) {
+    return <InitialsAvatar name={person.name} index={index} sizePx={size} />;
+  }
+  return (
+    <div className="relative rounded-full overflow-hidden flex-shrink-0" style={{ width: size, height: size }}>
+      <Image
+        src={person.photo}
+        alt={person.name}
+        fill
+        className="object-cover"
+        sizes={`${size}px`}
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}
+
+function TitleCard({ chapter }: { chapter: Chapter }) {
+  return (
+    <motion.div
+      className={`absolute inset-0 flex items-center justify-center ${PANEL_BG[chapter.accent]} ${PANEL_TEXT[chapter.accent]}`}
+      initial={{ skewY: 3, opacity: 0 }}
+      animate={{ skewY: 0, opacity: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
+      <p className="t-display text-center px-6" style={{ fontSize: "clamp(2rem, 11cqw, 3.5rem)" }}>
+        <PopLetters text={chapter.title} />
+      </p>
+    </motion.div>
+  );
+}
+
+function CastMoment({ chapter }: { chapter: Chapter }) {
+  const people = chapter.people ?? [];
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center px-6 gap-4">
+      <p className="t-label text-ink/50">{chapter.title}</p>
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-4 max-w-sm">
+        {people.map((p, i) => (
+          <motion.div
+            key={p.name}
+            className="flex flex-col items-center gap-1"
+            style={{ width: 68 }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1, y: [0, Math.sin(((i % 6) / 6) * Math.PI) * -6, 0] }}
+            transition={{
+              opacity: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.07 },
+              scale: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.07 },
+              y: { duration: 1.6, delay: i * 0.07 },
+            }}
+          >
+            <Avatar person={p} size={60} index={i} />
+            <p className="t-label text-ink/70 text-[0.45rem] text-center leading-tight line-clamp-2">
+              {p.name}
+            </p>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BuildersBoard() {
+  const boardProducts = PRODUCTS.filter((p) => BUILDER_PRODUCT_NAMES.includes(p.name));
+  return (
+    <div className="absolute inset-0 flex items-center justify-center px-6">
+      <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+        {boardProducts.map((p, i) => {
+          const crew = CREWS[p.name] ?? [];
+          return (
+            <motion.div
+              key={p.num}
+              className="bg-paper rounded-lg p-3 flex flex-col gap-2 min-h-24"
+              initial={{ opacity: 0, x: i % 2 === 0 ? -24 : 24, y: i < 2 ? -16 : 16 }}
+              animate={{ opacity: 1, x: 0, y: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 26, delay: i * 0.1 }}
+            >
+              <span
+                className={`t-label px-2 py-1 rounded-full self-start text-[0.55rem] ${BOARD_CHIP_BG[p.color]} ${BOARD_CHIP_TEXT[p.color]}`}
+              >
+                {p.name}
+              </span>
+              <div className="flex flex-col gap-0.5">
+                {crew.length > 0 ? (
+                  crew.map((name) => (
+                    <span key={name} className="t-body text-ink/70 text-xs">
+                      {name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="t-label text-ink/35 text-[0.5rem]">CREW</span>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DesignersCard() {
+  const designers = PEOPLE.filter((p) => p.role.toLowerCase().includes("design"));
+  return (
+    <motion.div
+      className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-gdg-yellow px-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <p className="t-label text-ink/60">SPECIAL MENTION</p>
+      <div className="flex gap-8">
+        {designers.map((p, i) => (
+          <motion.div
+            key={p.name}
+            className="flex flex-col items-center gap-2"
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20, delay: i * 0.15 }}
+          >
+            <Avatar person={p} size={84} index={i} />
+            <p className="t-display text-ink text-center" style={{ fontSize: "clamp(0.95rem, 5cqw, 1.3rem)" }}>
+              {p.name}
+            </p>
+          </motion.div>
+        ))}
+      </div>
+      <p className="t-editorial text-ink/70 text-center">The designers.</p>
+    </motion.div>
+  );
+}
 
 export function PeopleStory({ phase, active, paused }: StoryProps) {
-  const reduceMotion = useReducedMotion();
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const pausedRef = useRef(paused);
-  const [showTitle, setShowTitle] = useState(true);
+  const [chapterIdx, setChapterIdx] = useState(0);
+  const [showTitleCard, setShowTitleCard] = useState(true);
   const [finished, setFinished] = useState(false);
-  const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    pausedRef.current = paused;
-  });
+    if (phase !== "reveal" || !active || paused) return;
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
-  useEffect(() => {
-    if (phase !== "reveal" || !active) return;
-    const titleTimeout = setTimeout(() => setShowTitle(false), 1000);
-
-    if (reduceMotion) {
-      return () => clearTimeout(titleTimeout);
-    }
-
-    let raf = 0;
-    let elapsed = 0;
-    let lastTs: number | null = null;
-    let done = false;
-
-    function tick(ts: number) {
-      if (lastTs === null) lastTs = ts;
-      const delta = ts - lastTs;
-      lastTs = ts;
-      if (!pausedRef.current && !done) elapsed += delta;
-
-      const container = containerRef.current;
-      const content = contentRef.current;
-      if (container && content) {
-        const maxScroll = Math.max(0, content.scrollHeight - container.clientHeight);
-        const fraction = Math.min(1, elapsed / TIMING.peopleMs);
-        content.style.transform = `translateY(-${fraction * maxScroll}px)`;
-        if (fraction >= 1 && !done) {
-          done = true;
-          setFinished(true);
-          return;
-        }
+    function runChapter(idx: number) {
+      if (idx >= CHAPTERS.length) {
+        if (!cancelled) setFinished(true);
+        return;
       }
-      raf = requestAnimationFrame(tick);
+      setChapterIdx(idx);
+      setShowTitleCard(true);
+      timers.push(
+        setTimeout(() => {
+          if (cancelled) return;
+          setShowTitleCard(false);
+          timers.push(
+            setTimeout(() => {
+              if (cancelled) return;
+              runChapter(idx + 1);
+            }, CONTENT_MS)
+          );
+        }, TITLE_CARD_MS)
+      );
     }
-    raf = requestAnimationFrame(tick);
+    runChapter(chapterIdx);
+
     return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(titleTimeout);
+      cancelled = true;
+      timers.forEach(clearTimeout);
     };
-  }, [phase, active, reduceMotion]);
+  }, [phase, active, paused]);
 
   if (phase === "setup") {
     return (
       <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16">
         <p className="t-editorial text-center">
-          <KineticWords text={copy.people.setup} />
+          <PopLetters text={copy.people.setup} />
         </p>
       </div>
     );
   }
 
-  const grouped = SECTION_ORDER.map((section) => ({
-    section,
-    people: PEOPLE.filter((p) => p.section === section),
-  })).filter((g) => g.people.length > 0);
+  if (finished) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16">
+        <p className="t-editorial text-center">&hellip;and everyone who showed up.</p>
+      </div>
+    );
+  }
+
+  const chapter = CHAPTERS[chapterIdx]!;
 
   return (
-    <div className="absolute inset-0 flex flex-col text-ink px-6 pt-20 pb-16 overflow-hidden">
-      {showTitle ? (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="t-display text-center mt-8"
-        >
-          {copy.people.reveal}
-        </motion.p>
+    <div className="absolute inset-0 text-ink pt-20 pb-16 overflow-hidden">
+      {showTitleCard ? (
+        <TitleCard chapter={chapter} />
+      ) : chapter.kind === "builders" ? (
+        <BuildersBoard />
+      ) : chapter.kind === "designers" ? (
+        <DesignersCard />
       ) : (
-        <p className="t-label text-ink/70 absolute top-20 left-6">{copy.people.reveal}</p>
-      )}
-
-      {finished ? (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="t-editorial text-center">&hellip;and everyone who showed up.</p>
-        </div>
-      ) : (
-        <div ref={containerRef} className="flex-1 overflow-hidden mt-10">
-          <div ref={contentRef} className="flex flex-col gap-8">
-            {grouped.map((g) => (
-              <div key={g.section}>
-                <div className="relative inline-block mb-3">
-                  <p className="t-label text-ink/55">{g.section}</p>
-                  <motion.div
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.4 }}
-                    style={{ transformOrigin: "left" }}
-                    className="h-[2px] bg-gdg-yellow mt-1"
-                  />
-                </div>
-                <div className="flex flex-col gap-3">
-                  {g.people.map((p, i) => (
-                    <div key={p.name} className="flex items-center gap-3">
-                      {p.photo && !failedPhotos.has(p.name) ? (
-                        <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
-                          <Image
-                            src={p.photo}
-                            alt={p.name}
-                            fill
-                            className="object-cover"
-                            sizes="36px"
-                            onError={() =>
-                              setFailedPhotos((prev) => new Set(prev).add(p.name))
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <InitialsAvatar name={p.name} index={i} sizePx={36} />
-                      )}
-                      <div>
-                        <p className="t-body font-bold">{p.name}</p>
-                        <p className="t-label text-ink/45">{p.role}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <CastMoment chapter={chapter} />
       )}
     </div>
   );

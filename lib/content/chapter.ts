@@ -50,6 +50,18 @@ export const PRODUCTS = [
   { num: "05", name: "BABCOCK 100", color: "yellow", url: "babcock100.com" },
 ] as const;
 
+// The Builders board (§11.6 build2.md, Story 4's "THE BUILDERS" chapter) —
+// per-product crew names, keyed by PRODUCTS[].name. TBD-confirm: empty until
+// a lead fills them in; the card renders gracefully with just the product
+// chip when its list is empty (never a blank line where names should be).
+export const CREWS: Record<string, string[]> = {
+  "GDG WEBSITE": [],
+  "BABCOCKVOTES": [],
+  "RADAR": [],
+  "ORBIT": [],
+  "BABCOCK 100": [],
+};
+
 export interface Person {
   name: string;
   role: string;
