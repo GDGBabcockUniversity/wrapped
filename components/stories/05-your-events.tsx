@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
+import { IdleFloat } from "@/components/idle-float";
 import { KineticWords } from "@/components/kinetic-words";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
@@ -112,15 +113,17 @@ export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4 text-center">
-      <motion.p
-        initial={{ scale: 1.4, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={reduceMotion ? { duration: 0.01 } : SPRING.stamp}
-        className="t-monument text-outline-base text-outline-blue leading-none"
-        style={{ fontSize: "clamp(6rem, 45cqw, 16rem)" }}
-      >
-        {events.checkins}
-      </motion.p>
+      <IdleFloat y={-2} scale={1.02} duration={3} delay={1.2}>
+        <motion.p
+          initial={{ scale: 1.4, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={reduceMotion ? { duration: 0.01 } : SPRING.stamp}
+          className="t-monument text-outline-base text-outline-blue leading-none"
+          style={{ fontSize: "clamp(6rem, 45cqw, 16rem)" }}
+        >
+          {events.checkins}
+        </motion.p>
+      </IdleFloat>
 
       <div>
         <p className="t-body">

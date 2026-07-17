@@ -343,3 +343,72 @@ shader's uniform feed.
 3. On a real phone after deploy: forward pushes up, back pushes down, grid
    jumps push in the right direction, no double-exposure, receipt count-up
    smooth, reduced-motion still instant.
+
+---
+
+## 9. The journey layer — continuous choreography
+
+**Finding (owner, after §8 shipped):** even with the push, "it doesn't feel
+like you're going on a journey." Correct diagnosis of the remaining gap:
+Spotify Wrapped never *sits*. Every second of a story's duration is
+choreographed; transitions feel like passage through space, not swaps; the
+payoff elements keep living after they land. Our stories were two tableaus
+with nice entrances and then seconds of stillness.
+
+**The journey rule (non-negotiable, applies to every story you ever add):**
+after the entrance settles, NOTHING on screen is ever perfectly still for
+the rest of the beat. Something must always be breathing, drifting,
+cycling, or flowing — subtle, transform-only, never distracting from the
+payoff.
+
+### 9.1 Phase passage (setup → reveal is a zoom-through, not a fade)
+
+The inner phase `motion.div` in `player.tsx` (§8.1 step 3):
+
+```ts
+initial={{ opacity: 0, scale: 0.97 }}
+animate={{ opacity: 1, scale: 1 }}
+exit={{ opacity: 0, scale: 1.06 }}
+transition={{ duration: TIMING.storyFadeMs / 1000, ease: "easeOut" }}
+```
+
+The setup line scales TOWARD the viewer as it dissolves and the reveal
+rises from slightly beneath — you pass *through* the tease into the payoff.
+
+### 9.2 Deck depth on the story push
+
+`PUSH_VARIANTS` gains scale: `enter`/`center` at `scale: 1`, `exit` adds
+`scale: 0.96` with `transition.scale = { duration: 0.4, ease: "easeIn" }`
+(y keeps `PUSH_SPRING`). The outgoing screen recedes as it leaves — the
+deck has depth; screens are cards, not flat panels.
+
+### 9.3 `components/idle-float.tsx` — the reusable drift
+
+One primitive so idle motion stays consistent (write verbatim): a
+`motion.div` with `animate={{ y: [0, y], ...(scale ? { scale: [1, scale] }
+: {}) }}` and `transition={{ delay, duration, repeat: Infinity,
+repeatType: "mirror", ease: "easeInOut" }}`; renders a plain `div` under
+reduced motion. Props: `y = -4`, `scale?`, `duration = 5`, `delay = 1`,
+`className?`.
+
+### 9.4 Where it is applied (exact values — do not improvise new ones)
+
+| Story | Element | IdleFloat props |
+|---|---|---|
+| 1 The Year | the whole receipt (wraps the entrance motion.div, `className="w-full"`) | `y=-3 duration=6 delay=1.4` |
+| 5 Your Events | the monument numeral | `y=-2 scale=1.02 duration=3 delay=1.2` |
+| 7 Your Chapter | the YOU flag (inside its entrance div, `className="flex flex-col items-center"`) | `y=-5 duration=2.4 delay=1.6` |
+| 8 Your Club | the FoilCard (phones get no pointer tilt — this is their card life) | `y=-5 duration=4 delay=1.5` |
+| 10 Summary | the membership card | `y=-4 duration=5 delay=1.2` |
+
+Already-alive reveals that need nothing: 2 (photo cycle), 3 (row cycle),
+4 (credits roll), 6 (rotating seal), 9 (bouncing arrow) — plus the shader
+field breathing behind everything.
+
+### 9.5 Verification
+
+`tsc`/`eslint`/`build` green; on device: watch any personal story for its
+full 8s — at no point should the frame be static; setup→reveal should feel
+like moving forward, not like a slide swap.
+
+Commit: `feat(app): journey layer — passage transitions, deck depth, idle choreography`.

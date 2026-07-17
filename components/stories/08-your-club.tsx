@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { motion, useMotionValue, useSpring, useReducedMotion } from "motion/react";
 import { CLUBS } from "@/lib/clubs";
+import { IdleFloat } from "@/components/idle-float";
 import { KineticWords } from "@/components/kinetic-words";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
@@ -195,7 +196,9 @@ export function YourClubStory({ phase, snapshot, guest }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center px-6 pt-20 pb-16">
-      <FoilCard clubId={snapshot.club.id} rarityPct={snapshot.club.rarityPct} />
+      <IdleFloat y={-5} duration={4} delay={1.5}>
+        <FoilCard clubId={snapshot.club.id} rarityPct={snapshot.club.rarityPct} />
+      </IdleFloat>
     </div>
   );
 }

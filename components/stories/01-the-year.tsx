@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
+import { IdleFloat } from "@/components/idle-float";
 import { KineticWords } from "@/components/kinetic-words";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
@@ -83,6 +84,7 @@ export function TheYearStory({ phase }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center px-4 pt-20 pb-16">
+      <IdleFloat y={-3} duration={6} delay={1.4} className="w-full">
       <motion.div
         initial={{ y: 40, rotate: -1.5, opacity: 0 }}
         animate={{ y: 0, rotate: -0.5, opacity: 1 }}
@@ -109,6 +111,7 @@ export function TheYearStory({ phase }: StoryProps) {
         </p>
         <div className="perforation -mx-5 -mb-6 mt-4" />
       </motion.div>
+      </IdleFloat>
     </div>
   );
 }

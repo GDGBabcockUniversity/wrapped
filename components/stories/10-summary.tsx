@@ -6,6 +6,7 @@ import { CHAPTER } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { ShareButton } from "@/components/share/share-button";
+import { IdleFloat } from "@/components/idle-float";
 import type { StoryProps } from "./types";
 
 function nameFontSize(name: string): string {
@@ -38,6 +39,7 @@ export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-6 pt-20 pb-16 gap-5">
+      <IdleFloat y={-4} duration={5} delay={1.2}>
       <motion.div
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -163,6 +165,7 @@ export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
           </>
         )}
       </motion.div>
+      </IdleFloat>
 
       <div className="flex flex-col gap-2 w-full max-w-xs">
         <ShareButton

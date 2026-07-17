@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { IdleFloat } from "@/components/idle-float";
 import { KineticWords } from "@/components/kinetic-words";
 import { copy, fmt } from "@/lib/copy";
 import type { StoryProps } from "./types";
@@ -108,11 +109,13 @@ export function YourChapterStory({ phase, snapshot, guest }: StoryProps) {
           animate={{ opacity: 1, y: -8 }}
           transition={{ duration: 0.4, delay: 1 }}
         >
-          <span className="t-label text-cream text-[0.55rem] mb-1">YOU</span>
-          <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden>
-            <path d="M1 0 L11 4 L1 8 Z" fill="#fff6e0" />
-            <line x1="1" y1="0" x2="1" y2="16" stroke="#fff6e0" strokeWidth="1" />
-          </svg>
+          <IdleFloat y={-5} duration={2.4} delay={1.6} className="flex flex-col items-center">
+            <span className="t-label text-cream text-[0.55rem] mb-1">YOU</span>
+            <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden>
+              <path d="M1 0 L11 4 L1 8 Z" fill="#fff6e0" />
+              <line x1="1" y1="0" x2="1" y2="16" stroke="#fff6e0" strokeWidth="1" />
+            </svg>
+          </IdleFloat>
         </motion.div>
       </div>
 

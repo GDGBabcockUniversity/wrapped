@@ -28,11 +28,14 @@ const CLUB_PATTERN_INDEX = { grid: 0, waves: 1, halftone: 2, diagonals: 3 } as c
 // never mode="wait", both must move together — direction-aware via custom.
 const PUSH_SPRING = { type: "spring" as const, stiffness: 300, damping: 34 };
 const PUSH_VARIANTS = {
-  enter: (direction: 1 | -1) => ({ y: direction > 0 ? "100%" : "-100%" }),
-  center: { y: "0%", transition: { y: PUSH_SPRING } },
+  // Incoming screen arrives at full size; outgoing recedes slightly as it
+  // leaves — the deck has depth, screens aren't flat panels.
+  enter: (direction: 1 | -1) => ({ y: direction > 0 ? "100%" : "-100%", scale: 1 }),
+  center: { y: "0%", scale: 1, transition: { y: PUSH_SPRING } },
   exit: (direction: 1 | -1) => ({
     y: direction > 0 ? "-100%" : "100%",
-    transition: { y: PUSH_SPRING },
+    scale: 0.96,
+    transition: { y: PUSH_SPRING, scale: { duration: 0.4, ease: "easeIn" as const } },
   }),
 };
 // Story screens are transparent (the shader field lives beneath them), so
@@ -149,14 +152,17 @@ export function Player() {
             className={`absolute inset-0 ${def.field === "ink" ? "bg-ink" : "bg-cream"}`}
           />
           {/* initial={false}: a freshly pushed screen arrives fully drawn —
-              only in-story phase changes crossfade. */}
+              only in-story phase changes transition. Setup exits by scaling
+              TOWARD the viewer while the reveal rises from slightly beneath:
+              you pass THROUGH the tease into the payoff, not across a flat
+              fade. */}
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={state.phase}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: TIMING.storyFadeMs / 1000 }}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.06 }}
+              transition={{ duration: TIMING.storyFadeMs / 1000, ease: "easeOut" }}
               className="absolute inset-0"
             >
               <StoryComponent
