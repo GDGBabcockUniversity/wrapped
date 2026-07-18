@@ -9,11 +9,13 @@ import { PopLetters } from "@/components/pop-letters";
 import { copy } from "@/lib/copy";
 import type { StoryProps } from "./types";
 
-const SECTION_ORDER = ["CORE", "TRACKS", "DEV", "MEDIA", "EVENTS", "SPONSORS", "SPECIAL_THANKS"] as const;
+const SECTION_ORDER = ["CORE", "SOFTWARE", "DATA", "INFRASTRUCTURE", "DESIGN", "MEDIA", "EVENTS", "SPONSORS", "SPECIAL_THANKS"] as const;
 const SECTION_TITLES: Record<(typeof SECTION_ORDER)[number], string> = {
   CORE: "CORE TEAM",
-  TRACKS: "THE TRACKS",
-  DEV: "DEV CREW",
+  SOFTWARE: "SOFTWARE DEVELOPMENT",
+  DATA: "DATA & AI",
+  INFRASTRUCTURE: "INFRASTRUCTURE & SECURITY",
+  DESIGN: "DESIGN & MANAGEMENT",
   MEDIA: "MEDIA & STORY",
   EVENTS: "EVENTS & OPS",
   SPONSORS: "SPONSORS & PARTNERS",
@@ -21,8 +23,10 @@ const SECTION_TITLES: Record<(typeof SECTION_ORDER)[number], string> = {
 };
 const SECTION_ACCENT: Record<(typeof SECTION_ORDER)[number], Accent> = {
   CORE: "blue",
-  TRACKS: "red",
-  DEV: "yellow",
+  SOFTWARE: "red",
+  DATA: "yellow",
+  INFRASTRUCTURE: "green",
+  DESIGN: "blue",
   MEDIA: "green",
   EVENTS: "blue",
   SPONSORS: "yellow",
@@ -54,8 +58,10 @@ interface Chapter {
 
 const CHAPTERS: Chapter[] = [
   { id: "core", title: SECTION_TITLES.CORE, accent: SECTION_ACCENT.CORE, kind: "cast", people: PEOPLE.filter((p) => p.section === "CORE"), transitionKey: "core" },
-  { id: "tracks", title: SECTION_TITLES.TRACKS, accent: SECTION_ACCENT.TRACKS, kind: "cast", people: PEOPLE.filter((p) => p.section === "TRACKS"), transitionKey: "tracks" },
-  { id: "dev", title: SECTION_TITLES.DEV, accent: SECTION_ACCENT.DEV, kind: "cast", people: PEOPLE.filter((p) => p.section === "DEV"), transitionKey: "dev" },
+  { id: "software", title: SECTION_TITLES.SOFTWARE, accent: SECTION_ACCENT.SOFTWARE, kind: "cast", people: PEOPLE.filter((p) => p.section === "SOFTWARE"), transitionKey: "software" },
+  { id: "data", title: SECTION_TITLES.DATA, accent: SECTION_ACCENT.DATA, kind: "cast", people: PEOPLE.filter((p) => p.section === "DATA"), transitionKey: "data" },
+  { id: "infrastructure", title: SECTION_TITLES.INFRASTRUCTURE, accent: SECTION_ACCENT.INFRASTRUCTURE, kind: "cast", people: PEOPLE.filter((p) => p.section === "INFRASTRUCTURE"), transitionKey: "infrastructure" },
+  { id: "design", title: SECTION_TITLES.DESIGN, accent: SECTION_ACCENT.DESIGN, kind: "cast", people: PEOPLE.filter((p) => p.section === "DESIGN"), transitionKey: "design" },
   { id: "media", title: SECTION_TITLES.MEDIA, accent: SECTION_ACCENT.MEDIA, kind: "cast", people: PEOPLE.filter((p) => p.section === "MEDIA"), transitionKey: "media" },
   { id: "events", title: SECTION_TITLES.EVENTS, accent: SECTION_ACCENT.EVENTS, kind: "cast", people: PEOPLE.filter((p) => p.section === "EVENTS"), transitionKey: "events" },
   { id: "sponsors", title: SECTION_TITLES.SPONSORS, accent: SECTION_ACCENT.SPONSORS, kind: "sponsors", people: PEOPLE.filter((p) => p.section === "SPONSORS"), transitionKey: "sponsors" },
@@ -150,18 +156,6 @@ function DoodleStar({ index }: { index: number }) {
 function CastMoment({ chapter }: { chapter: Chapter }) {
   const people = chapter.people ?? [];
   
-  // Group by subsection if present, otherwise put in "all"
-  const grouped = people.reduce((acc, p) => {
-    const key = p.subsection || "all";
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(p);
-    return acc;
-  }, {} as Record<string, Person[]>);
-
-  const hasSubsections = Object.keys(grouped).length > 1 || (Object.keys(grouped).length === 1 && Object.keys(grouped)[0] !== "all");
-  
-  let globalIndex = 0;
-
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-6 gap-6 pt-12 pb-12 overflow-y-auto overflow-x-hidden no-scrollbar">
       {chapter.id === "core" && (
@@ -174,61 +168,27 @@ function CastMoment({ chapter }: { chapter: Chapter }) {
       
       <p className="t-label text-ink/50 sticky top-0 bg-ink pt-4 z-10 w-full text-center mix-blend-difference text-cream">{chapter.title}</p>
       
-      {hasSubsections ? (
-        <div className="flex flex-col gap-8 w-full max-w-sm">
-          {Object.entries(grouped).map(([subsection, subset], gIdx) => (
-            <div key={subsection} className="flex flex-col gap-3">
-              <span className="t-label text-ink/40 text-[0.6rem] border-b border-ink/10 pb-1">{subsection}</span>
-              <div className="flex flex-wrap gap-x-3 gap-y-4">
-                {subset.map((p) => {
-                  const i = globalIndex++;
-                  return (
-                    <motion.div
-                      key={p.name}
-                      className="flex flex-col items-center gap-1 z-10"
-                      style={{ width: 72 }}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1, y: [0, Math.sin(((i % 6) / 6) * Math.PI) * -4, 0] }}
-                      transition={{
-                        opacity: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.05 },
-                        scale: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.05 },
-                        y: { duration: 1.8, delay: i * 0.05 },
-                      }}
-                    >
-                      <Avatar person={p} size={54} index={i} />
-                      <p className="t-label text-ink/80 text-[0.45rem] text-center leading-tight line-clamp-2 w-full break-words">
-                        {p.name}
-                      </p>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-wrap justify-center gap-x-3 gap-y-4 max-w-sm z-10">
-          {people.map((p, i) => (
-            <motion.div
-              key={p.name}
-              className="flex flex-col items-center gap-1"
-              style={{ width: 72 }}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1, y: [0, Math.sin(((i % 6) / 6) * Math.PI) * -4, 0] }}
-              transition={{
-                opacity: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.05 },
-                scale: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.05 },
-                y: { duration: 1.8, delay: i * 0.05 },
-              }}
-            >
-              <Avatar person={p} size={54} index={i} />
-              <p className="t-label text-ink/80 text-[0.45rem] text-center leading-tight line-clamp-2 w-full break-words">
-                {p.name}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-4 max-w-sm z-10">
+        {people.map((p, i) => (
+          <motion.div
+            key={p.name}
+            className="flex flex-col items-center gap-1"
+            style={{ width: 72 }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1, y: [0, Math.sin(((i % 6) / 6) * Math.PI) * -4, 0] }}
+            transition={{
+              opacity: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.05 },
+              scale: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.05 },
+              y: { duration: 1.8, delay: i * 0.05 },
+            }}
+          >
+            <Avatar person={p} size={54} index={i} />
+            <p className="t-label text-ink/80 text-[0.45rem] text-center leading-tight line-clamp-2 w-full break-words">
+              {p.name}
+            </p>
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }

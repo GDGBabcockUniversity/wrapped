@@ -50,11 +50,13 @@ export const copy = {
     reveal: "Roll credits.",
     transitions: {
       core: "The ones who held it together.",
-      tracks: "They brought the knowledge.",
-      dev: "They wrote the code.",
-      media: "They told the story.",
-      events: "They made the magic happen.",
-      sponsors: "The ones who believed in us.",
+      software: "The ones who built the foundation.",
+      data: "The minds that found the patterns.",
+      infrastructure: "The crew that kept us running.",
+      design: "The ones who made it beautiful.",
+      media: "The voices that told our story.",
+      events: "And the hands that made it happen.",
+      sponsors: "The partners who believed in us.",
       specialThanks: "And two people who made it all possible.",
       closer: "…and everyone who showed up."
     }
