@@ -80,6 +80,18 @@ event's date can't be proven from its own data (e.g. a Luma export with
 zero check-ins), leave the filename date prefix OFF rather than guessing —
 a null event date is handled; a wrong one corrupts consistency months.
 
+The Bevy **members** export (`community/members.csv`, the since-inception
+roster — 1,607 unique emails in the real 2026-07-18 export) stores its join
+date in `created_date`, now mapped as a last-resort join-date pattern.
+Caveats confirmed against the real file: 992 of its rows carry a 2024-09
+`created_date` — the platform-migration batch, so that month means "member
+since AT LEAST then" (earliest-join-wins across auth/form/Bevy already
+handles it); and its `events_registered_count` column is deliberately NOT
+ingested — it counts since inception and cannot be windowed to the chapter
+year. Verified relationship between the two rosters: all 504 form members
+are a strict subset of the Bevy 1,607 — the form marks who is ACTIVE in
+the 25/26 tracks; Bevy holds the full historical universe.
+
 ## 2. Classification rules (`scripts/pipeline/sources.ts`)
 
 A CSV is parsed with a header-sniffing column map. Write these regexes

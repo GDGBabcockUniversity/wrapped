@@ -205,9 +205,11 @@ function mapColumns(headers: string[]): ColumnMap {
     name: findColumn(h, [/^(full )?name$/, /^full name/, /^attendee name$/, /^guest name$/]),
     firstName: findColumn(h, [/^first name$/]),
     lastName: findColumn(h, [/^last name$/]),
-    // "Timestamp" last: a form's submission time IS the join date, but only
-    // as a fallback so a real join-date column always wins.
-    joinDate: findColumn(h, [/join(ed)?( date| at)?/, /member since/, /^date joined$/, /^timestamp$/]),
+    // "created date" (Bevy members export) and "Timestamp" (Google Forms)
+    // come last: both are when-the-row-appeared stand-ins for a join date,
+    // so an explicit join-date column always wins. Only the roster branch
+    // ever reads this, so attendance files with created_at are unaffected.
+    joinDate: findColumn(h, [/join(ed)?( date| at)?/, /member since/, /^date joined$/, /^created (date|at)$/, /^timestamp$/]),
     whatsapp: findColumn(h, [/whats ?app/, /^phone( number)?$/]),
     checkedIn: findColumn(h, [/^checked? in$/, /^attended$/, /check in status/]),
     // "Checkin Date (UTC)" — Bevy writes it without the space.

@@ -172,6 +172,26 @@ describe("parseSourceCsv — roster (real membership-form export)", () => {
   });
 });
 
+describe("parseSourceCsv — roster (real Bevy members export)", () => {
+  // The since-inception community.dev export: join date lives in
+  // "created_date"; events_registered_count is deliberately NOT ingested
+  // (it can't be windowed to the chapter year).
+  const csv = [
+    "first_name,last_name,email,company,title,created_date,events_registered_count",
+    "Ada,Lovelace,ada@example.com,,,2024-09-13T15:04:20Z,12",
+    "Grace,Hopper,grace@example.com,,,2026-05-01T10:00:00Z,0",
+  ].join("\n");
+
+  it("classifies by the members filename and reads created_date as the join date", () => {
+    const { roster, attendance } = parseSourceCsv("community/members.csv", csv);
+    expect(attendance).toHaveLength(0);
+    expect(roster).toHaveLength(2);
+    expect(roster[0]).toMatchObject({ email: "ada@example.com", fullName: "Ada Lovelace" });
+    expect(roster[0]!.joinedAt?.toISOString().slice(0, 10)).toBe("2024-09-13");
+    expect(roster[1]!.joinedAt?.toISOString().slice(0, 10)).toBe("2026-05-01");
+  });
+});
+
 describe("parseSourceCsv — guards", () => {
   it("skips files without an email column", () => {
     const { roster, attendance } = parseSourceCsv("junk.csv", "a,b\n1,2");

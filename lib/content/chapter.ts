@@ -1,7 +1,10 @@
 import type { StoryId } from "@/lib/stories";
 
 export const CHAPTER = {
-  members: 500, // TBD-confirm
+  // CONFIRMED from the real community.dev export (2026-07-18): 1,607 members
+  // since inception, of whom 504 are active 25/26 track members per the
+  // membership form. The receipt renders this with a "+" suffix.
+  members: 1600,
   eventsRun: 23, // TBD-confirm
   productsShipped: 5,
   totalCheckins: 1400, // TBD-confirm (pipeline report will supply the real value)
