@@ -48,12 +48,12 @@ function CardBacks() {
             delay: i * 0.3,
           }}
         >
-          <div className="flex gap-1" aria-hidden>
-            <span className="w-1.5 h-1.5 rounded-full bg-gdg-blue" />
-            <span className="w-1.5 h-1.5 rounded-full bg-gdg-red" />
-            <span className="w-1.5 h-1.5 rounded-full bg-gdg-yellow" />
-            <span className="w-1.5 h-1.5 rounded-full bg-gdg-green" />
-          </div>
+          <img
+            src="/Sticker Logomark.png"
+            alt="GDG Babcock Logomark"
+            className="w-8 h-[21.33px] object-contain opacity-80"
+            aria-hidden
+          />
         </motion.div>
       ))}
     </div>
@@ -128,12 +128,12 @@ function ClubRitual({ clubId, rarityPct }: { clubId: ClubId; rarityPct: number }
               }
               transition={{ delay: 0.8, duration: 0.6, ease: "easeInOut" }}
             >
-              <div className="flex gap-1" aria-hidden>
-                <span className="w-1.5 h-1.5 rounded-full bg-gdg-blue" />
-                <span className="w-1.5 h-1.5 rounded-full bg-gdg-red" />
-                <span className="w-1.5 h-1.5 rounded-full bg-gdg-yellow" />
-                <span className="w-1.5 h-1.5 rounded-full bg-gdg-green" />
-              </div>
+              <img
+                src="/Sticker Logomark.png"
+                alt="GDG Babcock Logomark"
+                className="w-12 h-[32px] object-contain opacity-80"
+                aria-hidden
+              />
             </motion.div>
           </motion.div>
         );

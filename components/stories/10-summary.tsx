@@ -54,12 +54,12 @@ export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
         style={{ aspectRatio: "9 / 14" }}
       >
         <div className="flex items-center justify-between">
-          <div className="flex gap-1.5" aria-hidden>
-            <span className="w-2 h-2 rounded-full bg-gdg-blue" />
-            <span className="w-2 h-2 rounded-full bg-gdg-red" />
-            <span className="w-2 h-2 rounded-full bg-gdg-yellow" />
-            <span className="w-2 h-2 rounded-full bg-gdg-green" />
-          </div>
+          <img
+            src="/Sticker Logomark.png"
+            alt="GDG Babcock Logomark"
+            className="w-[33px] h-[22px] object-contain"
+            aria-hidden
+          />
           <span className="t-label text-ink/60">{copy.summary.title}</span>
         </div>
 

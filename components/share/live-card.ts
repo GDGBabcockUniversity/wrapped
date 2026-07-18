@@ -3,8 +3,24 @@ import { CLUBS } from "@/lib/clubs";
 import { copy, fmt } from "@/lib/copy";
 import type { Snapshot } from "@/lib/snapshot";
 import { supportsLiveCard, type LiveCardKind } from "./live-card-support";
+import { STICKER_LOGOMARK_BASE64 } from "./logo-data";
 
 export type { LiveCardKind };
+
+let cachedLogomarkImage: HTMLImageElement | null = null;
+
+function loadLogomarkImage(): Promise<HTMLImageElement> {
+  if (cachedLogomarkImage) return Promise.resolve(cachedLogomarkImage);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      cachedLogomarkImage = img;
+      resolve(img);
+    };
+    img.onerror = () => reject(new Error("Failed to load logomark image"));
+    img.src = `data:image/png;base64,${STICKER_LOGOMARK_BASE64}`;
+  });
+}
 
 const INK = "#0f0f0f";
 const CREAM = "#fff6e0";
@@ -114,26 +130,41 @@ function wrapText(
 
 function drawWatermark(ctx: CanvasRenderingContext2D, dark: boolean) {
   const cy = HEIGHT - 56 - 11;
-  const dotColors = [BLUE, RED, YELLOW, GREEN];
-  const dotsWidth = dotColors.length * 10 + (dotColors.length - 1) * 6;
   ctx.font = "500 22px 'Google Sans'";
   const label = "wrapped.gdgbabcock.com";
   const labelWidth = ctx.measureText(label).width;
-  const totalWidth = dotsWidth + 16 + labelWidth;
-  let cx = (WIDTH - totalWidth) / 2;
 
-  for (const c of dotColors) {
-    ctx.fillStyle = c;
-    ctx.beginPath();
-    ctx.arc(cx + 5, cy, 5, 0, Math.PI * 2);
-    ctx.fill();
-    cx += 16;
+  if (cachedLogomarkImage) {
+    const imgWidth = 33;
+    const imgHeight = 22;
+    const spacing = 16;
+    const totalWidth = imgWidth + spacing + labelWidth;
+    let cx = (WIDTH - totalWidth) / 2;
+    ctx.drawImage(cachedLogomarkImage, cx, cy - 11, imgWidth, imgHeight);
+    cx += imgWidth + spacing;
+    ctx.fillStyle = dark ? `${CREAM}99` : `${INK}99`;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ctx.fillText(label, cx, cy);
+  } else {
+    const dotColors = [BLUE, RED, YELLOW, GREEN];
+    const dotsWidth = dotColors.length * 10 + (dotColors.length - 1) * 6;
+    const totalWidth = dotsWidth + 16 + labelWidth;
+    let cx = (WIDTH - totalWidth) / 2;
+
+    for (const c of dotColors) {
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.arc(cx + 5, cy, 5, 0, Math.PI * 2);
+      ctx.fill();
+      cx += 16;
+    }
+    cx += 16 - 6;
+    ctx.fillStyle = dark ? `${CREAM}99` : `${INK}99`;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ctx.fillText(label, cx, cy);
   }
-  cx += 16 - 6;
-  ctx.fillStyle = dark ? `${CREAM}99` : `${INK}99`;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "left";
-  ctx.fillText(label, cx, cy);
 }
 
 function drawClubFrame(ctx: CanvasRenderingContext2D, snapshot: Snapshot, t: number) {
@@ -309,7 +340,7 @@ export async function renderLiveCardBlob(
   const picked = pickMimeType();
   if (!picked) throw new Error("no supported video mimeType");
 
-  await loadFonts();
+  await Promise.all([loadFonts(), loadLogomarkImage()]);
 
   const gl = createGlLayer();
   const composition = document.createElement("canvas");

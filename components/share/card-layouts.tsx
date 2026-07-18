@@ -2,6 +2,7 @@ import { CHAPTER, PRODUCTS } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
 import { CLUBS } from "@/lib/clubs";
 import type { Snapshot } from "@/lib/snapshot";
+import { STICKER_LOGOMARK_BASE64 } from "./logo-data";
 
 const INK = "#0f0f0f";
 const CREAM = "#fff6e0";
@@ -16,7 +17,6 @@ const CHIP_TEXT: Record<string, string> = { blue: CREAM, red: CREAM, yellow: INK
 const BG_HEX: Record<string, string> = { blue: BLUE, red: RED, yellow: YELLOW, green: GREEN };
 
 function Watermark({ dark }: { dark: boolean }) {
-  const dotColors = [BLUE, RED, YELLOW, GREEN];
   return (
     <div
       style={{
@@ -30,11 +30,10 @@ function Watermark({ dark }: { dark: boolean }) {
         gap: 16,
       }}
     >
-      <div style={{ display: "flex", gap: 6 }}>
-        {dotColors.map((c) => (
-          <div key={c} style={{ width: 10, height: 10, borderRadius: 999, background: c }} />
-        ))}
-      </div>
+      <img
+        src={`data:image/png;base64,${STICKER_LOGOMARK_BASE64}`}
+        style={{ width: 33, height: 22, display: "flex" }}
+      />
       <div
         style={{
           fontFamily: "Google Sans",
@@ -597,11 +596,10 @@ export function SummaryCard({
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", gap: 10 }}>
-            {[BLUE, RED, YELLOW, GREEN].map((c) => (
-              <div key={c} style={{ width: 16, height: 16, borderRadius: 999, background: c, display: "flex" }} />
-            ))}
-          </div>
+          <img
+            src={`data:image/png;base64,${STICKER_LOGOMARK_BASE64}`}
+            style={{ width: 33, height: 22, display: "flex" }}
+          />
           <div style={{ display: "flex", fontSize: 24, fontWeight: 700, letterSpacing: 2, opacity: 0.6 }}>
             {copy.summary.title}
           </div>

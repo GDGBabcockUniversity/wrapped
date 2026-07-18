@@ -35,7 +35,7 @@ export default function DebugCardsPage() {
           {PUBLIC_IDS.map((id) => (
             <div key={id} className="flex flex-col gap-2">
               <img
-                src={`/api/share/${id}`}
+                src={`/api/share/${id}?nocache=1`}
                 alt={id}
                 className="w-full rounded-lg border border-cream/15"
               />
