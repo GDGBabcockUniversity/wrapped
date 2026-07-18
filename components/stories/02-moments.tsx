@@ -9,16 +9,11 @@ import { copy } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import type { StoryProps } from "./types";
 
-/**
- * The scrapbook, as three directed scenes (§11.5 build2.md) rather than one
- * pile shedding photos. ORBIT, DEVFEST, and GAMES+SPACES combined — each a
- * composed collage, hard-seamed by a masking-tape wipe.
- */
 interface Scene {
   id: string;
   title: string;
   caption: string;
-  photos: string[]; // 2 or 3, slotted A/B/(C)
+  photos: string[];
 }
 
 const SCENES: Scene[] = [
@@ -28,19 +23,105 @@ const SCENES: Scene[] = [
     id: "games-spaces",
     title: "GAMES & SPACES",
     caption: "Loud nights, longer talks.",
-    photos: [...MOMENTS[2]!.images, ...MOMENTS[3]!.images],
+    photos: [...MOMENTS[2]!.images, ...MOMENTS[3]!.images].slice(0, 4),
   },
 ];
 
 const SCENE_MS = 4300;
 const WIPE_MS = 280;
 
-// Resting poses per slot (A/B/C) — §11.5.
-const RESTING = [
-  { x: -18, y: -6, r: -5 },
-  { x: 16, y: 4, r: 3 },
-  { x: 0, y: -14, r: 1.5 },
-];
+// Varied scrapbook positions depending on photo index
+const GET_PHOTO_STYLE = (index: number, total: number) => {
+  const styles = [
+    // Hero photo
+    { x: "0%", y: "-5%", r: -4, w: "65cqw", maxW: 240, frame: "polaroid", enter: { y: "-100%", x: "0%" }, tape: true },
+    // Supporting photo 1
+    { x: "-15%", y: "15%", r: -12, w: "45cqw", maxW: 160, frame: "torn", enter: { x: "-100%", y: "20%" }, tape: false },
+    // Supporting photo 2
+    { x: "20%", y: "25%", r: 15, w: "42cqw", maxW: 150, frame: "polaroid", enter: { x: "100%", y: "20%" }, tape: true },
+    // Supporting photo 3
+    { x: "5%", y: "-35%", r: 8, w: "38cqw", maxW: 140, frame: "torn", enter: { y: "-150%", x: "20%" }, tape: false },
+  ];
+  return styles[index % styles.length]!;
+};
+
+function Doodle({ type, delay }: { type: 'star' | 'arrow' | 'squiggle' | 'circle', delay: number }) {
+  const reduceMotion = useReducedMotion();
+  
+  if (type === 'star') {
+    return (
+      <motion.svg 
+        className="absolute top-[10%] left-[10%] w-12 h-12 text-gdg-red z-20" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+        animate={reduceMotion ? {} : { opacity: 1 }}
+        transition={{ delay, duration: 0.1 }}
+      >
+        <path className={reduceMotion ? "" : "doodle-path doodle-draw"} style={{ animationDelay: `${delay}s` }} d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+      </motion.svg>
+    );
+  }
+  if (type === 'arrow') {
+    return (
+      <motion.svg 
+        className="absolute bottom-[20%] right-[10%] w-16 h-16 text-gdg-blue z-20" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+        animate={reduceMotion ? {} : { opacity: 1 }}
+        transition={{ delay, duration: 0.1 }}
+      >
+        <path className={reduceMotion ? "" : "doodle-path doodle-draw"} style={{ animationDelay: `${delay}s` }} d="M5 12h14M12 5l7 7-7 7" />
+      </motion.svg>
+    );
+  }
+  if (type === 'squiggle') {
+    return (
+      <motion.svg 
+        className="absolute top-[30%] right-[5%] w-12 h-12 text-gdg-green z-20" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+        animate={reduceMotion ? {} : { opacity: 1 }}
+        transition={{ delay, duration: 0.1 }}
+      >
+        <path className={reduceMotion ? "" : "doodle-path doodle-draw"} style={{ animationDelay: `${delay}s` }} d="M2 12c2.21-2.21 5.79-2.21 8 0 2.21 2.21 5.79 2.21 8 0 2.21-2.21 5.79-2.21 8 0" />
+      </motion.svg>
+    );
+  }
+  if (type === 'circle') {
+    return (
+      <motion.svg 
+        className="absolute bottom-[10%] left-[15%] w-16 h-16 text-gdg-yellow z-20" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+        initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+        animate={reduceMotion ? {} : { opacity: 1 }}
+        transition={{ delay, duration: 0.1 }}
+      >
+        <path className={reduceMotion ? "" : "doodle-path doodle-draw"} style={{ animationDelay: `${delay}s` }} d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+      </motion.svg>
+    );
+  }
+  return null;
+}
 
 function TypewriterCaption({ text }: { text: string }) {
   const reduceMotion = useReducedMotion();
@@ -72,39 +153,39 @@ function TypewriterCaption({ text }: { text: string }) {
 
 function ScenePhoto({
   src,
-  slot,
+  index,
+  total,
   title,
   failed,
   onError,
 }: {
   src: string;
-  slot: 0 | 1 | 2;
+  index: number;
+  total: number;
   title: string;
   failed: boolean;
   onError: () => void;
 }) {
   const reduceMotion = useReducedMotion();
   const [landed, setLanded] = useState(false);
-  const pose = RESTING[slot]!;
-  const isDrop = slot === 2;
-  const enterDelay = slot === 0 ? 0 : slot === 1 ? 0.12 : 0.05;
+  
+  const style = GET_PHOTO_STYLE(index, total);
+  const enterDelay = index * 0.15;
 
   return (
     <motion.div
-      className="absolute bg-paper p-2 pb-8 shadow-lg rounded-sm"
-      style={{ width: "58cqw", maxWidth: 210, zIndex: slot + 1 }}
+      className={`absolute bg-paper shadow-lg flex flex-col ${style.frame === 'polaroid' ? 'p-2 pb-6 rounded-sm' : 'p-0 photo-frame-torn'}`}
+      style={{ width: style.w, maxWidth: style.maxW, zIndex: 10 - index }}
       initial={
         reduceMotion
-          ? { x: `${pose.x}%`, y: `${pose.y}%`, rotate: pose.r, opacity: 1 }
-          : isDrop
-            ? { x: `${pose.x}%`, y: "-140%", rotate: pose.r, opacity: 0 }
-            : { x: slot === 0 ? "-140%" : "140%", y: `${pose.y}%`, rotate: slot === 0 ? -18 : 18, opacity: 0 }
+          ? { x: style.x, y: style.y, rotate: style.r, opacity: 1 }
+          : { x: style.enter.x, y: style.enter.y, rotate: style.r * 2, opacity: 0 }
       }
-      animate={{ x: `${pose.x}%`, y: `${pose.y}%`, rotate: pose.r, opacity: 1 }}
+      animate={{ x: style.x, y: style.y, rotate: style.r, opacity: 1 }}
       transition={reduceMotion ? { duration: 0 } : { ...SPRING.photo, delay: enterDelay }}
       onAnimationComplete={() => setLanded(true)}
     >
-      <div className="relative w-full aspect-square bg-cream-deep overflow-hidden flex items-center justify-center">
+      <div className={`relative w-full aspect-square bg-cream-deep overflow-hidden flex items-center justify-center ${style.frame === 'torn' ? 'aspect-[4/5]' : ''}`}>
         {failed ? (
           <span className="t-label text-ink/40 px-4 text-center">{title}</span>
         ) : (
@@ -112,19 +193,22 @@ function ScenePhoto({
             src={src}
             alt={title}
             fill
-            sizes="(max-width: 480px) 60vw, 220px"
+            sizes="(max-width: 480px) 60vw, 240px"
             className="object-cover opacity-90 contrast-[1.05] saturate-[85%]"
             onError={onError}
           />
         )}
       </div>
-      <motion.div
-        aria-hidden
-        className="absolute -top-2 left-1/2 -translate-x-1/2 w-14 h-5 rounded-sm bg-gdg-red/90 rotate-2"
-        initial={{ scale: reduceMotion ? 1 : 1.3, opacity: reduceMotion ? 0.9 : 0 }}
-        animate={landed || reduceMotion ? { scale: 1, opacity: 0.9 } : {}}
-        transition={{ duration: 0.18, delay: 0.06 }}
-      />
+      {style.tape && (
+        <motion.div
+          aria-hidden
+          className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-6 bg-cream shadow-sm opacity-80"
+          style={{ transform: 'translateX(-50%) rotate(-4deg)' }}
+          initial={{ scale: reduceMotion ? 1 : 1.3, opacity: reduceMotion ? 0.8 : 0 }}
+          animate={landed || reduceMotion ? { scale: 1, opacity: 0.8 } : {}}
+          transition={{ duration: 0.18, delay: enterDelay + 0.1 }}
+        />
+      )}
     </motion.div>
   );
 }
@@ -135,21 +219,26 @@ function SceneView({ scene }: { scene: Scene }) {
 
   return (
     <motion.div
-      className="relative flex-1 w-full flex items-center justify-center overflow-hidden"
+      className="relative flex-1 w-full flex items-center justify-center overflow-visible"
       initial={{ scale: 1, x: "0%" }}
-      animate={reduceMotion ? {} : { scale: 1.06, x: "-2%" }}
+      animate={reduceMotion ? {} : { scale: 1.04, x: "-1%" }}
       transition={{ duration: SCENE_MS / 1000, ease: "linear" }}
     >
       {scene.photos.map((src, i) => (
         <ScenePhoto
           key={`${scene.id}-${i}`}
           src={src}
-          slot={i as 0 | 1 | 2}
+          index={i}
+          total={scene.photos.length}
           title={scene.title}
           failed={failedKeys.has(src)}
           onError={() => setFailedKeys((prev) => new Set(prev).add(src))}
         />
       ))}
+      <Doodle type="star" delay={0.4} />
+      <Doodle type="arrow" delay={0.6} />
+      <Doodle type="squiggle" delay={0.8} />
+      <Doodle type="circle" delay={0.5} />
     </motion.div>
   );
 }
@@ -199,8 +288,8 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
               key={src}
               src={src}
               alt="preload"
-              width={210}
-              height={210}
+              width={240}
+              height={240}
               priority
             />
           ))}
@@ -225,7 +314,7 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
       <AnimatePresence mode="wait">
         <SceneView key={scene.id} scene={scene} />
       </AnimatePresence>
-      <div className="text-center mt-4 min-h-24">
+      <div className="text-center mt-4 min-h-24 z-30">
         <AnimatePresence mode="wait">
           <motion.div
             key={scene.id}
@@ -244,7 +333,7 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
       {!reduceMotion && (
         <motion.div
           aria-hidden
-          className="absolute inset-y-0 w-full bg-gdg-red pointer-events-none"
+          className="absolute inset-y-0 w-full bg-gdg-red pointer-events-none z-40"
           style={{ left: 0 }}
           initial={{ x: "-110%" }}
           animate={wiping ? { x: ["-110%", "0%", "110%"] } : { x: "-110%" }}

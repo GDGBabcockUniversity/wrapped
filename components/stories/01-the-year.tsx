@@ -14,7 +14,7 @@ import type { StoryProps } from "./types";
 // Four cuts across a 5s setup beat — each line sits ~1.15s, the closer
 // ("We kept the receipts.") holds 1.5s. Cadence rule (§11.4): short lines
 // cut fast enough to feel like acceleration, long enough to be read twice.
-const CUT_DELAYS_MS = [0, 1150, 2300, 3500];
+const CUT_DELAYS_MS = [0, 850, 1700, 2700];
 
 function ColdOpenLine({ entry }: { entry: (typeof copy.theYear.coldOpen)[number] }) {
   if (!("accentWord" in entry) || !entry.accentWord) {

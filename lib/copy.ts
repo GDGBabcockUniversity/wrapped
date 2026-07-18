@@ -48,6 +48,16 @@ export const copy = {
   people: {
     setup: "None of this happened by itself.",
     reveal: "Roll credits.",
+    transitions: {
+      core: "The ones who held it together.",
+      tracks: "They brought the knowledge.",
+      dev: "They wrote the code.",
+      media: "They told the story.",
+      events: "They made the magic happen.",
+      sponsors: "The ones who believed in us.",
+      specialThanks: "And two people who made it all possible.",
+      closer: "…and everyone who showed up."
+    }
   },
   yourEvents: {
     setup: "You didn't just watch from the sidelines.",

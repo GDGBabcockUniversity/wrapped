@@ -283,3 +283,20 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Scrapbook Doodles ---------- */
+.doodle-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+}
+.doodle-draw {
+  animation: drawDoodle 1.2s cubic-bezier(0.83, 0, 0.17, 1) forwards;
+}
+@keyframes drawDoodle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.photo-frame-torn {
+  clip-path: polygon(1% 0%, 98% 2%, 100% 98%, 2% 100%, 0% 50%);
+}
