@@ -18,7 +18,7 @@ export function StoryFrame({
 }) {
   return (
     <div className="fixed inset-0 grid place-items-center bg-ink">
-      <div className="stage relative overflow-hidden w-full h-[100dvh] md:aspect-[9/16] md:h-[min(100dvh,900px)] md:w-auto md:rounded-2xl">
+      <div className="stage relative overflow-hidden w-full h-[100dvh] md:w-auto md:h-auto md:rounded-2xl">
         <div
           aria-hidden
           className={`absolute inset-0 z-0 ${field === "ink" ? "bg-ink" : "bg-cream"}`}

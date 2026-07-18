@@ -111,6 +111,15 @@ body {
   container-type: size;
 }
 
+@media (min-width: 768px) {
+  .stage {
+    height: min(100dvh, 900px) !important;
+    width: calc(min(100dvh, 900px) * 9 / 16) !important;
+    aspect-ratio: 9 / 16;
+    border: 1px solid rgba(255, 246, 224, 0.15); /* cream with 15% opacity */
+  }
+}
+
 /* ---------- Outlined display type (ported from GDGWebsite; see §3.4) ---------- */
 .text-outline-base {
   color: black !important;
