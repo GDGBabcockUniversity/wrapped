@@ -110,13 +110,17 @@ export function buildUniverse(
     emailByUserId.set(u.id, email);
     const member = ensureMember(email, u.full_name, "auth", u.created_at);
     member.userId = u.id;
-    member.whatsappNumber = u.whatsapp_number;
+    // Never null out a number an earlier source provided.
+    if (u.whatsapp_number) member.whatsappNumber = u.whatsapp_number;
     if (u.created_at < member.joinDate) member.joinDate = u.created_at;
   }
 
-  // 2. External roster (community.dev member export).
+  // 2. External roster (community.dev export / membership form).
+  //    Roster forms carry WhatsApp numbers too — they fill the gap for
+  //    members without an auth account, but an auth number wins.
   for (const r of external.roster) {
-    ensureMember(r.email, r.fullName, r.source, r.joinedAt);
+    const member = ensureMember(r.email, r.fullName, r.source, r.joinedAt);
+    if (r.whatsapp && !member.whatsappNumber) member.whatsappNumber = r.whatsapp;
   }
 
   // 3. Auth-platform event activity.

@@ -56,6 +56,29 @@ committing). Any nesting is allowed; every `*.csv` under it is read.
    under `data/sources/luma/`.
 4. **ORBIT sheets**: export each sheet as CSV with at least an Email column
    and a "Checked In" (Yes/No) column, under `data/sources/orbit/`.
+5. **Membership form** (added after the first real uploads, 2026-07-18): the
+   Google Forms "GDG Babcock Membership Form (25/26 session)" responses CSV,
+   saved under `data/sources/forms/` with "member" in the filename (that's
+   what classifies it as a roster). It is the richest roster we have —
+   the real export carried 504 valid members, 100% with WhatsApp numbers —
+   and the parser now reads: `Timestamp` as the join date (with per-column
+   month-first/day-first detection, since Google Forms exports are
+   month-first while local sheets are day-first — 313 of the real file's
+   timestamps prove month-first), `Full name (First name first)` via a
+   prefix match, and `Whatsapp number` into `ExternalMember.whatsapp`,
+   which `universe.ts` feeds into WhatsApp matching whenever the auth DB
+   has no number for that email (auth wins when both exist).
+
+Real-export facts learned from the first uploads (parser handles all of
+these — listed so nobody "fixes" them back): Bevy per-event exports put
+check-in in `Checkin Date (UTC)` (no space) and registration in
+`Paid date (UTC)`; Luma exports use `created_at` (not `registered_at`) and
+signal check-in solely via a non-empty `checked_in_at`; form emails arrive
+with trailing-dot typos ("x@gmail.com....") and embedded whitespace, which
+`sanitizeEmail` strips before the address becomes an identity key. If an
+event's date can't be proven from its own data (e.g. a Luma export with
+zero check-ins), leave the filename date prefix OFF rather than guessing —
+a null event date is handled; a wrong one corrupts consistency months.
 
 ## 2. Classification rules (`scripts/pipeline/sources.ts`)
 

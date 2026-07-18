@@ -20,6 +20,7 @@ export interface ExternalMember {
   email: string; // lowercased
   fullName: string;
   joinedAt: Date | null;
+  whatsapp: string | null; // roster forms carry numbers — feeds phone matching
   source: string; // filename
 }
 
@@ -88,18 +89,24 @@ function findColumn(headers: string[], patterns: RegExp[]): number {
 }
 
 /**
- * Dates in exports arrive as ISO, "Month D, YYYY", or D/M/YYYY. Slash dates
- * are read DAY-FIRST — this chapter's locale, and consistent with the
- * WhatsApp parser. Returns null rather than an Invalid Date.
+ * Dates in exports arrive as ISO, "Month D, YYYY", or slash dates. Slash
+ * dates default to DAY-FIRST — this chapter's locale, and consistent with
+ * the WhatsApp parser — but Google Forms exports are month-first, so
+ * callers that hold a whole column can pass the order detected from it
+ * (detectSlashOrder). Returns null rather than an Invalid Date.
  */
-export function parseSourceDate(value: string): Date | null {
+export type SlashOrder = "dmy" | "mdy";
+
+export function parseSourceDate(value: string, order: SlashOrder = "dmy"): Date | null {
   const v = value.trim();
   if (!v) return null;
 
   const slash = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:[ ,T]+(\d{1,2}):(\d{2}))?/);
   if (slash) {
-    const day = parseInt(slash[1]!, 10);
-    const month = parseInt(slash[2]!, 10);
+    const a = parseInt(slash[1]!, 10);
+    const b = parseInt(slash[2]!, 10);
+    const day = order === "dmy" ? a : b;
+    const month = order === "dmy" ? b : a;
     let year = parseInt(slash[3]!, 10);
     if (year < 100) year += 2000;
     if (month > 12 || day > 31) return null;
@@ -110,6 +117,22 @@ export function parseSourceDate(value: string): Date | null {
 
   const parsed = new Date(v);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * Given every slash-date in one column, decide its order from the data: a
+ * first component >12 proves day-first, a second component >12 proves
+ * month-first (313 of the real membership form's 507 timestamps do).
+ * Ambiguous columns keep the locale default (day-first).
+ */
+export function detectSlashOrder(values: string[]): SlashOrder {
+  for (const v of values) {
+    const m = v.trim().match(/^(\d{1,2})\/(\d{1,2})\/\d{2,4}/);
+    if (!m) continue;
+    if (parseInt(m[1]!, 10) > 12) return "dmy";
+    if (parseInt(m[2]!, 10) > 12) return "mdy";
+  }
+  return "dmy";
 }
 
 const NEGATIVE_STATUS = new Set([
@@ -165,6 +188,7 @@ interface ColumnMap {
   firstName: number;
   lastName: number;
   joinDate: number;
+  whatsapp: number;
   checkedIn: number;
   checkedInAt: number;
   rsvpStatus: number;
@@ -177,17 +201,34 @@ function mapColumns(headers: string[]): ColumnMap {
   const h = headers.map((x) => x.trim().toLowerCase().replace(/[_-]+/g, " "));
   return {
     email: findColumn(h, [/^e?mail$/, /e-?mail/]),
-    name: findColumn(h, [/^(full )?name$/, /^attendee name$/, /^guest name$/]),
+    // "Full name (First name first)" — membership form; prefix match, not anchored both ends.
+    name: findColumn(h, [/^(full )?name$/, /^full name/, /^attendee name$/, /^guest name$/]),
     firstName: findColumn(h, [/^first name$/]),
     lastName: findColumn(h, [/^last name$/]),
-    joinDate: findColumn(h, [/join(ed)?( date| at)?/, /member since/, /^date joined$/]),
+    // "Timestamp" last: a form's submission time IS the join date, but only
+    // as a fallback so a real join-date column always wins.
+    joinDate: findColumn(h, [/join(ed)?( date| at)?/, /member since/, /^date joined$/, /^timestamp$/]),
+    whatsapp: findColumn(h, [/whats ?app/, /^phone( number)?$/]),
     checkedIn: findColumn(h, [/^checked? in$/, /^attended$/, /check in status/]),
-    checkedInAt: findColumn(h, [/checked? in (at|time|date)/]),
+    // "Checkin Date (UTC)" — Bevy writes it without the space.
+    checkedInAt: findColumn(h, [/check(ed)? ?in (at|time|date)/]),
     rsvpStatus: findColumn(h, [/approval status/, /rsvp status/, /^status$/, /^rsvp$/]),
-    registeredAt: findColumn(h, [/regist(ered|ration)( at| date| time)?/, /rsvp (date|at)/, /created at/, /^added$/]),
+    // "Paid date (UTC)" — Bevy's registration timestamp (all tickets are free).
+    registeredAt: findColumn(h, [/regist(ered|ration)( at| date| time)?/, /rsvp (date|at)/, /created at/, /paid date/, /^added$/]),
     eventTitle: findColumn(h, [/^event( name| title)?$/]),
     eventDate: findColumn(h, [/event (date|start)/, /^start(s at| time| date)?$/]),
   };
+}
+
+/**
+ * Identity-key hygiene for real-world form typos: strip embedded whitespace
+ * and trailing dots ("ada@gmail.com....." is a real row), then validate.
+ * Returns null when the value can't be an email.
+ */
+function sanitizeEmail(raw: string): string | null {
+  const email = raw.replace(/\s+/g, "").replace(/\.+$/, "").toLowerCase();
+  if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) return null;
+  return email;
 }
 
 /** "no-name@x.com" -> "No Name" — last-resort display name. */
@@ -228,14 +269,20 @@ export function parseSourceCsv(filename: string, text: string): ExternalData {
   const isRoster = !hasEventSignal && (cols.joinDate !== -1 || /member|roster|audience/i.test(filename));
 
   if (isRoster) {
+    const joinOrder =
+      cols.joinDate !== -1
+        ? detectSlashOrder(rows.slice(1).map((r) => r[cols.joinDate] ?? ""))
+        : "dmy";
     const roster: ExternalMember[] = [];
     for (const row of rows.slice(1)) {
-      const email = (row[cols.email] ?? "").trim().toLowerCase();
-      if (!email || !email.includes("@")) continue;
+      const email = sanitizeEmail(row[cols.email] ?? "");
+      if (!email) continue;
+      const whatsapp = cols.whatsapp !== -1 ? (row[cols.whatsapp] ?? "").trim() : "";
       roster.push({
         email,
         fullName: nameFrom(cols, row) ?? nameFromEmail(email),
-        joinedAt: cols.joinDate !== -1 ? parseSourceDate(row[cols.joinDate] ?? "") : null,
+        joinedAt: cols.joinDate !== -1 ? parseSourceDate(row[cols.joinDate] ?? "", joinOrder) : null,
+        whatsapp: whatsapp || null,
         source: filename,
       });
     }
@@ -245,8 +292,8 @@ export function parseSourceCsv(filename: string, text: string): ExternalData {
   const fromFile = titleFromFilename(filename);
   const attendance: ExternalAttendance[] = [];
   for (const row of rows.slice(1)) {
-    const email = (row[cols.email] ?? "").trim().toLowerCase();
-    if (!email || !email.includes("@")) continue;
+    const email = sanitizeEmail(row[cols.email] ?? "");
+    if (!email) continue;
 
     const rsvp = cols.rsvpStatus !== -1 ? (row[cols.rsvpStatus] ?? "").trim().toLowerCase() : "";
     if (rsvp && NEGATIVE_RSVP.has(rsvp)) continue; // never actually registered

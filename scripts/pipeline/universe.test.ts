@@ -36,7 +36,7 @@ describe("buildUniverse — membership", () => {
       emptyDb({ users: [ADA] }),
       emptyExternal({
         roster: [
-          { email: "grace@example.com", fullName: "Grace Hopper", joinedAt: new Date("2025-01-01"), source: "community/members.csv" },
+          { email: "grace@example.com", fullName: "Grace Hopper", joinedAt: new Date("2025-01-01"), whatsapp: null, source: "community/members.csv" },
         ],
         attendance: [
           { email: "walk@example.com", fullName: "Walk In", eventTitle: "orbit kickoff", eventDate: new Date("2025-09-12"), registeredAt: null, checkedIn: true, checkedInAt: null, source: "orbit.csv" },
@@ -55,7 +55,7 @@ describe("buildUniverse — membership", () => {
       emptyDb({ users: [ADA] }),
       emptyExternal({
         roster: [
-          { email: "ada@example.com", fullName: "Ada Lovelace", joinedAt: new Date("2023-05-01"), source: "community/members.csv" },
+          { email: "ada@example.com", fullName: "Ada Lovelace", joinedAt: new Date("2023-05-01"), whatsapp: null, source: "community/members.csv" },
         ],
       }),
       YEAR_START,
@@ -73,12 +73,30 @@ describe("buildUniverse — membership", () => {
     const universe = buildUniverse(
       emptyDb(),
       emptyExternal({
-        roster: [{ email: "grace@example.com", fullName: "Grace Hopper", joinedAt: null, source: "m.csv" }],
+        roster: [{ email: "grace@example.com", fullName: "Grace Hopper", joinedAt: null, whatsapp: null, source: "m.csv" }],
       }),
       YEAR_START,
       YEAR_END
     );
     expect(universe.members[0]!.userId).toBeNull();
+  });
+
+  it("takes a WhatsApp number from the roster when auth has none, but auth wins", () => {
+    const noPhoneAda = { ...ADA, whatsapp_number: null };
+    const universe = buildUniverse(
+      emptyDb({ users: [noPhoneAda] }),
+      emptyExternal({
+        roster: [
+          { email: "ada@example.com", fullName: "Ada Lovelace", joinedAt: null, whatsapp: "+2348122229581", source: "forms/membership.csv" },
+          { email: "grace@example.com", fullName: "Grace Hopper", joinedAt: null, whatsapp: "07044251887", source: "forms/membership.csv" },
+        ],
+      }),
+      YEAR_START,
+      YEAR_END
+    );
+    const byEmail = new Map(universe.members.map((m) => [m.email, m]));
+    expect(byEmail.get("ada@example.com")!.whatsappNumber).toBe("+2348122229581");
+    expect(byEmail.get("grace@example.com")!.whatsappNumber).toBe("07044251887");
   });
 });
 
