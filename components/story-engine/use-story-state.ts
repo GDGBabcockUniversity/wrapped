@@ -67,7 +67,7 @@ function reducer(state: EngineState, action: Action): EngineState {
   const active = activeIndexesFor(state.isMember);
   switch (action.type) {
     case "NEXT": {
-      if (state.phase === "setup") return { ...state, phase: "reveal" };
+      if (state.phase === "setup") return { ...state, phase: "reveal", paused: false };
       const pos = active.indexOf(state.storyIndex);
       const last = active[active.length - 1]!;
       if (state.storyIndex === last) return state; // end state (summary), do nothing
@@ -79,11 +79,12 @@ function reducer(state: EngineState, action: Action): EngineState {
         storyIndex: next,
         phase: "setup",
         vector: vectorForTransition(state.storyIndex, next),
+        paused: false,
         seen,
       };
     }
     case "PREV": {
-      if (state.phase === "reveal") return { ...state, phase: "setup" };
+      if (state.phase === "reveal") return { ...state, phase: "setup", paused: false };
       const pos = active.indexOf(state.storyIndex);
       if (pos <= 0) return { ...state }; // restart setup timer via consumer key remount
       const prev = active[pos - 1]!;
@@ -92,6 +93,7 @@ function reducer(state: EngineState, action: Action): EngineState {
         storyIndex: prev,
         phase: "setup",
         vector: vectorForTransition(state.storyIndex, prev),
+        paused: false,
       };
     }
     case "GOTO": {

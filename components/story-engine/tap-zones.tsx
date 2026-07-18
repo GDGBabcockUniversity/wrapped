@@ -18,12 +18,14 @@ export function TapZones({
   onPause,
   onResume,
   onOpenGrid,
+  paused,
 }: {
   onNext: () => void;
   onPrev: () => void;
   onPause: () => void;
   onResume: () => void;
   onOpenGrid: () => void;
+  paused: boolean;
 }) {
   const holdTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isHolding = useRef(false);
@@ -93,6 +95,12 @@ export function TapZones({
         onOpenGrid();
         return;
       }
+    }
+
+    // If the story is paused, a simple tap resumes rather than navigating.
+    if (paused) {
+      onResume();
+      return;
     }
 
     const rect = e.currentTarget.getBoundingClientRect();

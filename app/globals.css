@@ -41,6 +41,7 @@ html,
 body {
   background: var(--color-ink);
   color: var(--color-cream);
+  overflow-x: hidden;
 }
 
 /* ---------- Type scale (§3.2) ---------- */

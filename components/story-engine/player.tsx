@@ -275,6 +275,7 @@ export function Player() {
         onPause={() => dispatch({ type: "PAUSE" })}
         onResume={() => dispatch({ type: "RESUME" })}
         onOpenGrid={() => dispatch({ type: "OPEN_GRID" })}
+        paused={state.paused}
       />
 
       <ProgressBar
