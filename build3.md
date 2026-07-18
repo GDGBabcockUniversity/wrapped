@@ -24,15 +24,29 @@ Neku and Victor, after the §11/§12 glory pass shipped:
 > pictures come in one by one" · "The sharing doesn't work yet"
 
 Four distinct bugs. Each was root-caused with a real headless-browser
-reproduction (not guessed) before a fix was written; three of the four
-already have a verified, committed fix — this document is both the record of
-what shipped and the exact remaining work. **No item below is a hypothesis
-presented as fact without saying so** — where the evidence is circumstantial
-rather than a reproduced failure, it's labeled DIAGNOSIS, not CONFIRMED.
+reproduction (not guessed) before a fix was written. **No item below is a
+hypothesis presented as fact without saying so** — where the evidence is
+circumstantial rather than a reproduced failure, it's labeled DIAGNOSIS, not
+CONFIRMED.
+
+**Note on timing**: between this investigation starting and finishing, a
+parallel effort landed directly on `main` (`4ea215f feat(stories): overhaul
+pacing, gallery layout, and team credits` and neighboring commits) that
+independently reworked several of the same files — most notably a full
+rewrite of `04-people.tsx`'s chapter list (nine sections now, not five) and
+new `revealMs`/`setupMs` values across `lib/stories.ts`. That work is folded
+in below rather than treated as a conflict: §1's People-specific inline-style
+patch was superseded by the rewrite (fine — the systemic CSS fix in §1.2 is
+what actually mattered, and it still applies to the new file unchanged), and
+§4 was rewritten to assess the pacing values as they now stand rather than
+as they stood when this investigation started.
+
+**Status: §1, §2, and §3 are BUILT and verified in this repo. §4 is an audit
+with no code change (see §4.2 for why).**
 
 ---
 
-## 1. Text rendering — CONFIRMED, FIXED, committed
+## 1. Text rendering — CONFIRMED, FIXED, BUILT
 
 ### 1.1 Root cause
 
@@ -79,27 +93,27 @@ assumed.
 Verified post-fix: `text-[6rem]` on the landing marquee now measures 96px
 computed (was ~12px pre-fix).
 
-### 1.3 Fix (already committed — `components/stories/04-people.tsx`)
+### 1.3 `04-people.tsx` name-label overlap — superseded by a parallel rewrite, re-checked
 
 Independent of the cascade bug, the People credits `CastMoment` name label
 was itself the wrong tool: `.t-label` is uppercase with `0.22em` letter
-tracking, designed for short chip labels, not full names in a 68px-wide grid
+tracking, designed for short chip labels, not full names in a narrow grid
 cell — at that width it was the actual layout cause of names overlapping
 into neighboring columns (visible in the "AZUBUIKE CHIMAMAND…" /
 "BRAIMAH LATILEW…" collision from the original critique screenshots).
 
-Fixed by switching to a plain, non-uppercase bold style with an **inline**
-`fontSize` (inline styles have unconditional priority, so this one line is
-immune to any future cascade-layer regression by construction):
-
-```tsx
-<p
-  className="font-bold text-ink/75 text-center leading-tight line-clamp-2"
-  style={{ fontSize: "0.5rem" }}
->
-  {p.name}
-</p>
-```
+An inline-`fontSize` patch for this was written and verified during this
+investigation, but before it could be merged, a parallel effort
+(`f62cdf6 fix(stories): sync people with website and remove subteams`)
+rewrote `04-people.tsx` entirely — nine chapters instead of five, new
+`CastMoment` markup. That rewrite reintroduces the same pattern (`.t-label`
++ `text-[0.45rem]`/`text-[0.55rem]` for names), so the standalone patch was
+dropped as moot rather than fought back in. **This is safe**: §1.2's cascade
+fix is systemic — it makes `text-[...]` reliably win over `.t-label` again
+everywhere, including in the rewritten file — so the actual overlap symptom
+is still fixed, just via the general mechanism instead of a one-off inline
+style. Re-verify visually per §1.4 against the *current* `04-people.tsx`,
+not the version described in earlier drafts of this document.
 
 ### 1.4 Remaining verification (do this before considering §1 closed)
 
@@ -115,7 +129,7 @@ immune to any future cascade-layer regression by construction):
 
 ---
 
-## 2. Image preloading — CONFIRMED root cause, fix specified below (not yet built)
+## 2. Image preloading — CONFIRMED root cause, FIXED, BUILT
 
 ### 2.1 Root cause
 
@@ -149,13 +163,12 @@ in place in `02-moments.tsx` and `04-people.tsx`. No change needed there;
 this was a test-setup artifact from an earlier check that didn't set an
 explicit viewport, not a production bug.)
 
-### 2.2 Fix — use Next's own URL builder, not a raw path
+### 2.2 Fix (built — `components/story-engine/preloader.ts`)
 
 `next/image` exports `getImageProps`, the documented, supported way to get
 the exact `src`/`srcSet` Next would render for a given `src`/`sizes`/`width`
-combination, without mounting a component. Rewrite
-`components/story-engine/preloader.ts` to build the *real* optimizer URL and
-preload that:
+combination, without mounting a component. `preloader.ts` now builds the
+*real* optimizer URL and preloads that:
 
 ```ts
 import { getImageProps } from "next/image";
@@ -163,15 +176,14 @@ import { ASSET_MANIFEST } from "@/lib/content/chapter";
 import { STORIES } from "@/lib/stories";
 
 // Must match the `sizes` the real <Image> for each story actually renders
-// with — 02-moments.tsx uses "(max-width: 480px) 60vw, 220px", 04-people.tsx
-// uses a fixed `${size}px`. Preloading the wrong `sizes` still warms A
-// cache entry, just not necessarily the one the real render picks — keep
-// these two strings in sync with the story components by hand (both are
-// small, static values; a shared constant in lib/stories.ts is the
-// long-term fix if a third photo story is ever added).
+// with (02-moments.tsx / 04-people.tsx) — preloading a different `sizes`
+// still warms a cache entry, just not necessarily the one the real render
+// picks. Keep in sync with those two components by hand (both are small,
+// static values; a shared constant in lib/stories.ts is the long-term fix
+// if a third photo story is ever added).
 const SIZES_FOR: Partial<Record<string, string>> = {
-  moments: "(max-width: 480px) 60vw, 220px",
-  people: "68px",
+  moments: "(max-width: 480px) 60vw, 240px",
+  people: "84px",
 };
 
 export function preloadStoryAssets(currentIndex: number) {
@@ -191,8 +203,8 @@ export function preloadStoryAssets(currentIndex: number) {
     const { props } = getImageProps({
       src: url,
       alt: "",
-      width: 220,
-      height: 220,
+      width: 240,
+      height: 240,
       sizes,
       quality: 75,
     });
@@ -222,21 +234,22 @@ That part already works as specified; it just needs the preload fix above so
 the images are *decoded and ready* by the time that choreography plays, not
 still fetching mid-animation.
 
-### 2.4 Verification
+### 2.4 Verification (done)
 
-1. Headless check: navigate directly to `?story=moments` (or `people`),
-   record every `image`/`_next/image` request and its timing; confirm the
-   `w=` bucket requested by the *preload* (fired one story earlier) matches
-   the `w=` bucket the real `<img>` ends up using (`img.currentSrc`) — same
-   URL string means it was a cache hit, not a second fetch.
-2. On a throttled connection (Chrome DevTools "Slow 3G" or Playwright's
-   `context.route` with an artificial delay), confirm photos are already
-   decoded (no visible blank/placeholder flash) by the time the scene
-   transitions to them, for both `moments` and `people`.
+Headless check, real viewport (390×844 @3x DPR): landed on `?story=the-year`
+and recorded every `_next/image` request that fired *before* ever navigating
+to `moments`. Result — all 8 `moments` photos requested at `w=750`, matching
+exactly the `w=` bucket a live `02-moments.tsx` render at that viewport
+selects (per the §2.1 ruled-out-theory check). Confirms the preload now
+warms the exact cache entry the real render will ask for.
+
+Remaining device check (not done here, needs a real network throttle):
+on a throttled connection, confirm photos are already decoded (no visible
+blank/placeholder flash) by the time the scene transitions to them.
 
 ---
 
-## 3. Sharing — two CONFIRMED bugs, fixes specified below (not yet built)
+## 3. Sharing — two CONFIRMED bugs, both FIXED and BUILT (one DIAGNOSIS remains open)
 
 ### 3.1 How this was actually tested
 
@@ -286,34 +299,26 @@ rewinds the story underneath the open sheet**, which reads as the sheet not
 responding, or the whole experience glitching, exactly the shape of "the
 sharing doesn't work yet."
 
-**Fix**: portal `ShareSheet` to `document.body` instead of rendering it
-inline. This is the standard fix for exactly this class of bug — it removes
-the sheet from the transformed subtree entirely, so its `fixed`/`z-[70]`
-work against the real viewport, it's never DOM-nested under `TapZones`, and
-the backdrop click reaches the sheet directly with no forwarding hack
-needed for it specifically.
+**Fix (built — `components/share/share-sheet.tsx`)**: portal `ShareSheet` to
+`document.body` via `createPortal` instead of rendering it inline. This
+removes the sheet from the transformed subtree entirely, so its
+`fixed`/`z-[70]` work against the real viewport, it's never DOM-nested under
+`TapZones`, and the backdrop click reaches the sheet directly with no
+forwarding hack needed for it specifically. No change to `share-button.tsx`
+or `player.tsx` was required — `sheetOpen && snapshot && <ShareSheet .../>`
+still mounts/unmounts the component from the same place, it just now renders
+its DOM elsewhere.
 
-```tsx
-// components/share/share-sheet.tsx
-import { createPortal } from "react-dom";
+**Verified**: with the portal in place, a real coordinate-click at a point
+whose topmost DOM element is now confirmed (via `document.elementFromPoint`)
+to be the sheet's own backdrop — not `TapZones` — correctly fires `onClose`
+and unmounts the sheet, and the story underneath does not advance or
+rewind. Before this fix, that same click could only be observed reaching
+the sheet's *buttons* (via `TapZones`'s `interactiveBelow` forwarding,
+which only forwards to `button`/`a`/`[role=button]`) — the plain-`div`
+backdrop was never reachable at all.
 
-export function ShareSheet({ storyId, snapshot, onClose }: { /* unchanged */ }) {
-  // ...unchanged state/handlers...
-
-  return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-ink/70 backdrop-blur-sm" onClick={onClose}>
-      {/* ...unchanged sheet markup... */}
-    </div>,
-    document.body
-  );
-}
-```
-
-No other change to `share-button.tsx` or `player.tsx` is required —
-`sheetOpen && snapshot && <ShareSheet .../>` still mounts/unmounts the
-component from the same place, it just now renders its DOM elsewhere.
-
-### 3.3 DIAGNOSIS (not reproduced here) — silent failure on iOS Safari's `MediaRecorder`
+### 3.3 Safari `MediaRecorder` — DIAGNOSIS, defensive fixes BUILT
 
 `live-card.ts`'s `pickMimeType()` tries, in order: `video/mp4;codecs=avc1
 .42E01E`, `video/mp4`, `video/webm;codecs=vp9`, `video/webm`. This is a
@@ -333,127 +338,130 @@ enough, this presents as sharing silently doing nothing.
 This is a DIAGNOSIS, not a confirmed repro — it can't be reproduced in this
 environment (headless Chromium fully supports the pipeline; there's no iOS
 Safari available to test against). Two independent, cheap defensive fixes
-close the gap regardless of which exact failure mode it turns out to be:
+were built regardless, because they're correct hardening either way:
 
-1. **Never let the error state be silent.** Currently the failure message
-   only shows for 600ms before the stage resets to `idle`, and the sheet
-   stays open with no further affordance. Extend the error hold and add a
-   direct "Share image instead" action in the error state itself (reuse the
-   existing `shareImage()` handler) rather than making the tester notice a
-   fading line and re-find the second button themselves.
-2. **Time out the recording.** `renderLiveCardBlob` currently has no upper
-   bound beyond its own 3-second animation loop — if `recorder.ondataavail
-   able` never fires (a known Safari MediaRecorder gotcha when `.start()` is
-   called with no `timeslice` argument), the returned promise can hang
-   indefinitely with the sheet stuck on "Rendering…". Fix by (a) calling
-   `recorder.start(250)` instead of `recorder.start()` — passing a timeslice
-   is the documented workaround for exactly this Safari behavior, requesting
-   a `dataavailable` chunk every 250ms instead of relying on one delivered at
-   `stop()` — and (b) wrapping the whole `renderLiveCardBlob` call in
-   `share-sheet.tsx` with a hard timeout (e.g. `Promise.race` against an
-   8-second timer) that surfaces the same "couldn't render, try the image"
-   state instead of hanging forever.
+1. **Built (`share-sheet.tsx`)** — the error state no longer auto-resets
+   after 600ms; it now holds and shows a direct "Share image instead"
+   button (reusing the existing `shareImage()` handler) instead of a fading
+   line the tester has to notice and act on before it disappears.
+2. **Built (`live-card.ts` + `share-sheet.tsx`)** — `recorder.start()` is
+   now `recorder.start(250)` (the documented workaround for Safari builds
+   where `MediaRecorder` otherwise never fires `dataavailable` for a
+   canvas-captured stream), and `shareLive()` now races
+   `renderLiveCardBlob()` against an 8-second timeout
+   (`RECORD_TIMEOUT_MS`), surfacing the same "couldn't render, try the
+   image" state instead of leaving the sheet stuck on "Rendering…"
+   forever if the recorder never settles.
+
+Both changes were verified not to regress the working Chromium path (§3.4).
+The iOS-specific failure mode itself remains unconfirmed — see §3.4's
+on-device item.
 
 ### 3.4 Verification
 
-1. Headless repro of §3.2: open the sheet, click (via raw coordinates, not
-   a locator) at the backdrop area outside the sheet card, and confirm
-   `onClose` fires (sheet unmounts) rather than the story underneath
-   advancing. Re-run the full existing Chromium share-flow test to confirm
-   nothing regressed.
-2. On-device check (blocking — this class of bug is specifically
-   engine-dependent and cannot be fully closed out from this environment):
-   real iPhone, Safari, tap through Share → "Share live card" on both
-   `your-club` and `summary`. If it still fails after §3.2+§3.3, capture the
-   actual thrown error (temporarily log it, or check Safari's remote Web
-   Inspector) rather than guessing further — this is the one item in this
-   document where the next debugging step depends on data this environment
-   cannot produce.
+1. **Done** — headless repro of §3.2: real coordinate-click at the exact
+   point `document.elementFromPoint` confirms is the sheet's backdrop.
+   Before the portal fix, `TapZones` (`z-[15]`) was the topmost element
+   there and the click never reached the backdrop's `onClick` at all. After
+   the fix, the backdrop's `onClose` fires directly and the story
+   underneath does not navigate.
+2. **Done** — re-ran the full share-flow test (tap Share → sheet opens →
+   tap "Share live card" → recording completes → file downloads) after all
+   of §3.2's and §3.3's changes: still produces a valid non-empty `.mp4` via
+   the same real-coordinate-click path, confirming the portal move and the
+   `start(250)`/timeout changes didn't regress the working Chromium path.
+3. **Still open** — on-device check (blocking; this class of bug is
+   specifically engine-dependent and cannot be fully closed out from this
+   environment): real iPhone, Safari, tap through Share → "Share live card"
+   on both `your-club` and `summary`. If it still fails after §3.2+§3.3,
+   capture the actual thrown error (temporarily log it, or check Safari's
+   remote Web Inspector) rather than guessing further — this is the one
+   item in this document where the next debugging step depends on data
+   this environment cannot produce.
 
 ---
 
 ## 4. Pacing — "it's moving too quickly"
 
-### 4.1 What's already been addressed (build2 §12.1)
+### 4.1 Already substantially addressed, outside this document
 
-The People credits (`revealMs: 28000`) and the-year cold open/receipt
-(`setupMs: 5000, revealMs: 8000`) were already slowed in the prior amendment
-pass specifically in response to "cadence is important, step by step." Both
-were re-checked in this pass and their own choreography finishes well inside
-the §10.0 80%-of-revealMs budget (the-year's receipt-print sequence
-completes ~1.8s into an 8000ms reveal, for example) — so those two stories
-are not the source of a *new* "too fast" complaint; if they still feel rushed
-it's a budget-vs-content question (§4.2), not a leftover choreography bug.
+While this investigation was in progress, the parallel effort mentioned in
+§0 (`4ea215f feat(stories): overhaul pacing, gallery layout, and team
+credits`) rewrote `lib/stories.ts`'s durations wholesale — every
+story got longer, not just People and the-year:
 
-### 4.2 DIAGNOSIS — likely sources, ranked, with concrete actions
+| Story | Old `setupMs`+`revealMs` (build2 §12.1) | Current |
+|---|---|---|
+| the-year | 5000 + 8000 = 13.0s | 4200 + 8000 = 12.2s |
+| moments | 3500 + 12000 = 15.5s | 3000 + 13000 = 16.0s |
+| built | 3500 + 9000 = 12.5s | 3200 + 9000 = 12.2s |
+| people | 3500 + 28000 = 31.5s | 3500 + 45000 = 48.5s |
+| your-events / standing / your-chapter | 3500 + 8000 = 11.5s each | 3200 + 8500 = 11.7s each |
+| your-club | 4000 + 10000 = 14.0s | 3500 + 10000 = 13.5s |
+| whats-next | 3000 + 7000 = 10.0s | 3000 + 8000 = 11.0s |
+
+So the specific "budget vs. content" gap this document set out to measure
+(§4.2 item 2, below) has already been substantially closed by someone
+increasing the budgets directly — People alone gained 17 more seconds. **No
+further `revealMs` change is prescribed here**; per DO-NOT-INVENT, changing
+an already-changed value without a fresh measurement showing it's still
+wrong would be a guess, not a fix.
+
+### 4.2 DIAGNOSIS — what's left, ranked, with concrete actions
 
 This complaint is vaguer than the other three (no specific slide named) and
-wasn't reproducible as a single bug the way §1–3 were. Rather than invent a
-fix for an untested cause, here is the ranked, checkable list:
+wasn't reproducible as a single bug the way §1–3 were. What's left after
+§4.1's budget increases:
 
-1. **Most likely: testers don't know pause/revisit exists.** The engine
-   supports hold-to-pause and swipe-down for the chapter grid (`build.md`
-   §6, unchanged), but nothing in the UI teaches a first-time viewer these
-   controls — Spotify Wrapped has the same auto-advance cadence but visibly
-   telegraphs "tap and hold" via onboarding shimmer on first launch. Action:
-   add a one-time hint on the FIRST story only (first-ever session, gated by
-   a `localStorage` flag) — a small `t-label` caption fading in under the
-   progress bar reading "Hold to pause · Swipe down for all stories",
-   visible for ~2.5s then fading with the rest of the chrome's idle-hide
-   behavior (reuse `ProgressBar`'s existing `chromeVisible` fade, don't
-   invent a second timer system).
-2. **Second: the shorter public stories (`built`: 3500+9000=12.5s,
-   `whats-next`: 3000+7000=10s) may be under-filled relative to their
-   time**, i.e. the choreography finishes fast and then the screen just
-   *sits* for several seconds before auto-advancing — which reads as
-   "nothing's happening, why is it holding me here" rather than "too fast."
-   That's the opposite defect from what the words say but produces the same
-   complaint from a bored viewer tapping ahead impatiently, which then *does*
-   feel rushed once they're tapping manually. Action: audit `built.tsx` and
-   `whats-next.tsx`'s own choreography completion time the same way §4.1 did
-   for the-year (log/observe when the last `motion` element's transition
-   finishes vs. `revealMs`) and either add a small idle beat (a slow
-   `IdleFloat` drift, already used elsewhere) so an already-landed screen
-   still feels alive while it holds, or trim `revealMs` down to match actual
-   content time — do not guess which without measuring first.
-3. **Third: the whip transition itself (`WHIP_DURATION = 0.47s`, §11.3) is
-   fast by design** — that's a deliberate "camera acceleration" choice from
-   the earlier critique pass ("transitions should feel like camera whips
-   with acceleration"), not a regression. Do not slow this down as a
-   response to this feedback without confirming with the team first — it
-   would directly undo an explicit prior instruction ("push the limits...
-   really push the limits" on motion). If it turns out this IS what testers
-   mean, that's a genuine tension between two rounds of feedback and belongs
-   back to the team as a question, not a unilateral reversal.
+1. **Most likely remaining cause: testers don't know pause/revisit
+   exists.** The engine supports hold-to-pause and swipe-down for the
+   chapter grid (`build.md` §6, unchanged), but nothing in the UI teaches a
+   first-time viewer these controls — Spotify Wrapped has the same
+   auto-advance cadence but visibly telegraphs "tap and hold" via
+   onboarding shimmer on first launch. A viewer who doesn't know they can
+   hold to pause experiences even a *generous* `revealMs` as being rushed
+   past them. **Not yet built** — this is the one concrete, scoped action
+   item this document leaves open: add a one-time hint on the FIRST story
+   only (first-ever session, gated by a `localStorage` flag) — a small
+   `t-label` caption fading in under the progress bar reading "Hold to
+   pause · Swipe down for all stories", visible for ~2.5s then fading with
+   the rest of the chrome's idle-hide behavior (reuse `ProgressBar`'s
+   existing `chromeVisible` fade, don't invent a second timer system).
+2. **The whip transition itself (`WHIP_DURATION = 0.47s`, §11.3) is fast
+   by design** — that's a deliberate "camera acceleration" choice from the
+   earlier critique pass ("transitions should feel like camera whips with
+   acceleration"), not a regression. Do not slow this down as a response to
+   this feedback without confirming with the team first — it would directly
+   undo an explicit prior instruction ("push the limits... really push the
+   limits" on motion). If it turns out this IS what testers mean, that's a
+   genuine tension between two rounds of feedback and belongs back to the
+   team as a question, not a unilateral reversal.
 
 ### 4.3 Verification
 
-For every story, instrument (temporarily, dev-only) the elapsed time from
-reveal-phase-start to the last scheduled animation's `onAnimationComplete`,
-and tabulate against that story's `revealMs`. Flag any story where
-completion happens before 40% of `revealMs` (likely "sits there," candidate
-for #2 above) or after 80% (violates the existing §10.0 rule, candidate for
-a genuine rush). Bring the table back before changing any `revealMs` value
-— per the DO-NOT-INVENT rule, a specific new duration is not specified here
-because it isn't derivable without that measurement.
+Re-test with real testers *after* the §4.1 duration increases have been on
+a live build for a few days — if "moving too quickly" persists even with
+People at 48.5s total, that's strong evidence it was never about raw
+duration and points squarely at #1 (undiscovered pause control) rather than
+needing yet another `revealMs` bump.
 
 ---
 
 ## 5. Sequencing
 
-Implementation order (each its own commit — §1 is already done):
-
 1. ~~`fix(css): restore cascade-layer priority for type-scale classes`~~ —
-   **shipped** (also fixed the People name-label layout bug).
-2. `fix(preloader): warm the actual next/image optimizer URL` (§2.2).
-3. `fix(share): portal ShareSheet out of the camera-whip stacking context`
-   (§3.2) + `fix(share): timeslice + timeout + louder error state for live
-   card recording` (§3.3) — can ship as one commit or two; §3.2 is the
-   higher-confidence fix and should land first regardless.
-4. Pacing (§4): instrumentation + audit is dev-only and never ships; only
-   open a follow-up commit once the table in §4.3 identifies a specific
-   story/value to change.
+   **shipped**, survived a rebase over the parallel pacing/people rewrite
+   with no conflict of substance (§1).
+2. ~~`fix(preloader): warm the actual next/image optimizer URL`~~ —
+   **shipped and verified** (§2.2, §2.4).
+3. ~~`fix(share): portal ShareSheet out of the camera-whip stacking context`~~
+   + ~~`fix(share): timeslice + timeout + louder error state for live card
+   recording`~~ — **shipped and verified** (§3.2, §3.3, §3.4).
+4. `feat(onboarding): first-story pause/grid hint` (§4.2 item 1) — **not
+   built**, the one concrete action item this pass leaves open; small and
+   well-scoped whenever it's picked up.
 
-Device checks before calling this pass done: real phone re-test of all four
-original complaints, specifically including an iPhone for §3.3 (the one item
-this environment cannot fully verify itself).
+Device checks before calling this pass fully done: real phone re-test of all
+four original complaints, specifically including an iPhone for §3.3 (the one
+item this environment cannot fully verify itself) and a live-for-a-few-days
+re-test of §4 with real testers.
