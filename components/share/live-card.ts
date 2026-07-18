@@ -401,7 +401,11 @@ export async function renderLiveCardBlob(
     recorder.onstop = () => resolve(new Blob(chunks, { type: picked.mimeType }));
   });
 
-  recorder.start();
+  // A timeslice (vs. the argument-less default) asks for a dataavailable
+  // chunk every 250ms instead of relying on one delivered at stop() — the
+  // documented workaround for Safari builds where MediaRecorder otherwise
+  // never fires dataavailable for a canvas-captured stream (build3.md §3.3).
+  recorder.start(250);
   const start = performance.now();
 
   await new Promise<void>((resolve) => {
