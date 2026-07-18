@@ -1,4 +1,4 @@
-# GDG Wrapped — build4: the Spotify-parity motion pass
+# GDG Wrapped — build4: the glory pass (Spotify Wrapped 2025 motion parity)
 
 This document AMENDS `build.md`, `build2.md`, and `build3.md`. Everything in
 those files stays in force — especially the prime directive:
@@ -8,467 +8,567 @@ those files stays in force — especially the prime directive:
 > spec; if it is genuinely missing, stop and ask — do not fill the gap with
 > your own idea.
 
-Where this file conflicts with earlier build docs, **this file wins**. This
-is a spec-only pass — nothing here is built yet.
+Where this file conflicts with earlier build docs, **this file wins**. It
+fully replaces the earlier draft of build4 (which was written before the
+reference had been studied properly).
 
 ---
 
-## 0. Why this amendment exists
+## 0. The reference, actually studied
 
-The owner sent a screen recording of the real Spotify Wrapped 2025 flow
-(TikTok capture, @jmayavlogs, "Spotify Wrapped 2025 Part 1") as the "level of
-motion" reference that an earlier YouTube link (403'd, inaccessible) was
-meant to point at. It was watched frame-by-frame (1fps extraction, 50
-frames across the full ~50s clip) rather than guessed at from memory of
-Spotify Wrapped in general — three things in it are motion vocabulary our
-build genuinely doesn't have yet, distinct from anything already spec'd in
-build2/build3:
+The owner supplied a 50-second screen recording of the real Spotify Wrapped
+2025 flow. It was extracted at 3fps end-to-end (150 frames, full timeline
+mapped) plus 10fps bursts at the three densest moments (the op-art intro,
+the stat slam, the pick-game response). Everything below cites what those
+frames actually show — not memory, not vibes.
 
-1. **A recurring signature motif** — a black-and-white concentric-ring/
-   checkerboard pattern pulses in as connective tissue between otherwise
-   unrelated screens (it appears behind "You listened. We counted.", behind
-   "Age is just a number.", and again later) — it's what makes ten separate
-   cards read as one continuous object.
-2. **Full-frame hand-drawn scribble lines** that stroke across nearly every
-   screen — loose, felt-tip, gestural — appearing at full stage scale, not
-   as small decorative icons.
-3. **An actual interactive mini-game** — "Make your pick": a Tinder-style
-   swipe-card stack (green check / red X) rating the visitor's top songs.
-   Not a reveal, a real input.
+Reference timeline (t = seconds into the clip):
 
-Everything else in the reference (chunky rounded display type, full-bleed
-dot textures, bouncy count-ups, the "Share this story" chip appearing
-inline mid-flow) is already covered by what build2 §11/§12 shipped —
-PopLetters, `Counter`, the pattern-\* system, the header share chip. This
-document specs only the three genuinely new pieces, each grounded in a real,
-already-existing data source or system per DO-NOT-INVENT — nothing here
-requires new content, new pipeline fields, or invented data.
+| t | Screen | What is MOVING while it holds |
+|---|---|---|
+| 0–4 | Op-art overture: giant red "2025" numerals drive through the frame at billboard scale over a black/white checker×ring warp field; Spotify logo pinned center; thin scribbles whip across | Everything — numerals travel, the pattern itself warps continuously |
+| 4–7 | "We're ready for you." / "Come on down." — calm cream beat, red numeral band cropped at bottom | One thin scribble arc; the numeral band |
+| 7–13 | "You listened. We counted." — ink field | Quarter-circle concentric rings bottom-left; ONE ring band highlighted purple, and the highlight cycles outward through the rings; scribbles drift |
+| 13–17 | "5,495" minutes stat | Number slams in ALONE (no count-up, a slice-settle) → caption fades in ~1.1s later → "Share this story" pill ~1s after that; diagonal-stripe band at bottom with a purple runner segment sliding through it the whole time |
+| 18–25 | "Taste like yours can't be defined." → "Your top genres" list | Full-screen polka-dot field: individual dots coin-flip between black and red continuously (3D flip, color swaps mid-flip); list items are white-on-black redacted-style bars popping in one-by-one; the exit slides up with a slight rotation/shear |
+| 25–30 | "Age is just a number." | An hourglass is DRAWN stroke-by-stroke (single-line contour, ~2s) above the headline; bottom half is a checker×ring warp field that keeps bending; sub-line lands after |
+| 30–35 | "Your listening age: 22" → "You listened to 665 songs" | Green 22 slams in (same three-beat layering); vertical-stripe broken-circle figure with purple runner; flower-outline scribble draws itself |
+| 35–40 | "Make your pick." — the guess game | Five outlined song rows; user taps a guess; INSTANTLY: the true #1 fills green, tilts ~4°, gets a check; the wrong pick gets a red outline + X; the HEADLINE ITSELF swaps to "Failure builds character."; the green row settles 4°→0° over ~0.7s |
+| 40–47 | "Your top song" reveal → "Your top songs" list | Album art with newsprint/xerox collage texture, stripe fragments overlapping its corners; list rows with a white sticker-chip title label; purple runner in the stripe band |
+| 47–50 | Playlist outro: "Your Top Songs 2025" card | Giant purple "2025" numerals overlap the white card's bottom edge; "Add to Your Library" CTA |
 
-**Two things from the reference are deliberately NOT specified below.** See
-§4 for why.
+## 1. The seven laws (what actually makes it great)
+
+Every spec in §2–§9 exists to enforce one of these. When implementing,
+check each screen against this list — a screen that violates law 1 or 2 is
+wrong even if it matches its own section's letter.
+
+1. **Nothing is ever still — but only ONE thing moves.** Every screen has
+   exactly one continuously-running ambient subsystem (a runner band,
+   coin-flipping dots, a warping field, a drifting scribble). Never two.
+   Content holds; the ONE ambient system breathes. That's why it reads
+   alive instead of busy.
+2. **The field is monochrome; the accent is what moves.** The black/white
+   (our ink/cream) geometry is the static bones. The single accent color
+   is almost always attached to the MOVING element — the purple runner,
+   the red flip-in dots. Accent = motion. Our existing "one accent per
+   story at <10% of frame" rule (build.md §3) is unchanged; this law says
+   WHERE that accent lives: on the thing that moves.
+3. **Payoffs land in three beats.** Stat alone → caption → share
+   affordance, ~1.1s apart. Never all at once. And big stats SLAM — they
+   arrive whole with a slice-settle, they do not count up. (Count-ups
+   survive only where the metaphor earns them: our receipt rows print,
+   a till prints incrementally. Monument numerals slam.)
+4. **Hand line-work is a first-class layer.** Two kinds, both single-line
+   contour style: ambient scribbles that drift and redraw continuously,
+   and one SUBJECT doodle per designated screen that draws itself as the
+   screen's illustration (their hourglass).
+5. **The op-art warp is the brand.** Checker × concentric-ring geometry,
+   monochrome, continuously bending — used at three scales: full-screen
+   spectacle (the overture), partial edge figures (ambient), and the
+   connective tissue between chapters.
+6. **Type is physical.** Lists are redacted-style bars sized to their text.
+   Labels are sticker chips slapped on at a slight angle. Chosen things
+   tilt then settle. Screens exit with a slight shear/rotation, not a
+   straight slide.
+7. **The experience talks back.** The copy REACTS to what the visitor does
+   — their headline literally swaps to "Failure builds character." when
+   you guess wrong. One reactive beat like this is worth ten animations.
 
 ---
 
-## 1. The signature passage — a recurring motif between stories
+## 2. The living-background engine (law 1 + 2 + 5)
 
-### 1.1 What it is
+The single biggest gap between our build and the reference: our WebGL
+ambient layer (`components/gl/shaders.ts`) is *subtle* — 5–16% opacity
+mixes, texture-grade. The reference's ambient layer is *bold* — full-
+contrast monochrome geometry covering 25–45% of the frame, with the accent
+runner cycling through it. Same architecture, different conviction.
 
-A full-bleed concentric-ring pattern (alternating field/accent bands,
-radiating from a fixed point) that flashes for a beat during a story
-transition — not a per-story ambient background (every story already has
-one, `components/gl/shaders.ts`'s per-`u_story` WebGL treatment), a
-**between-stories** moment, reused identically everywhere it fires so it
-reads as one recurring signature rather than ten different effects.
+### 2.1 The three new shader figures
 
-### 1.2 Where it hooks in
+Rewrite three story branches in `FRAGMENT_SRC` (`components/gl/shaders.ts`).
+All three share the runner helper — add above `main()`:
 
-`components/story-engine/player.tsx` already has a "seam flash" for exactly
-this purpose — `SEAM_VARIANTS` (lines ~104–108) flashes a thin 2px line of
-the incoming story's accent color at the crossing edge during the whip,
-variant-propagated from the parent `AnimatePresence`, timed
-`{ delay: 0.1, duration: 0.3 }` inside the 470ms `WHIP_DURATION`. The
-passage motif is a second, bigger sibling of that same mechanism — not a
-replacement (the seam line stays; it's the connective tissue for the OTHER
-9 transitions where the passage doesn't fire, see §1.4).
-
-### 1.3 The visual
-
-A new CSS class, `.passage-rings`, added to `app/globals.css` alongside the
-existing `.pattern-*` block (§9.8 build.md):
-
-```css
-.passage-rings {
-  background-image: repeating-radial-gradient(
-    circle at 50% 50%,
-    var(--ring-a) 0,
-    var(--ring-a) 14px,
-    var(--ring-b) 14px,
-    var(--ring-b) 28px
-  );
+```glsl
+// Accent runner: returns 1.0 on the stripe/ring whose index the runner is
+// currently crossing. idx = which band this fragment is in; n = band count.
+// The runner sweeps continuously (not stepped) and wraps with a 25% rest gap.
+float runner(float idx, float n, float t) {
+  float pos = mod(t * 2.2, n * 1.25);          // 2.2 bands/sec, wraps past the end
+  return smoothstep(1.0, 0.0, abs(idx - pos)); // soft one-band-wide highlight
 }
 ```
 
-`--ring-a`/`--ring-b` are set inline per-fire to the outgoing field's ink/
-cream pair (`#0f0f0f`/`#fff6e0`) — the same two colors always, regardless of
-which story is entering, exactly like the reference's motif never changing
-color. A new component, `components/passage-rings.tsx`:
+**Story 0 — THE YEAR (ink/blue): the diagonal stripe band.** Replaces the
+current scanline+motes branch. A band of 45° stripes occupying the bottom
+18% of the frame (and its mirror, top 8%, half opacity), cream stripes on
+ink, with the blue runner sliding through:
 
-```tsx
-"use client";
-import { motion, useReducedMotion } from "motion/react";
-
-export function PassageRings({ fire }: { fire: boolean }) {
-  const reduceMotion = useReducedMotion();
-  if (reduceMotion) return null;
-  return (
-    <motion.div
-      aria-hidden
-      className="absolute inset-0 z-[19] passage-rings pointer-events-none"
-      style={{ ["--ring-a" as string]: "#0f0f0f", ["--ring-b" as string]: "#fff6e0" }}
-      initial={{ opacity: 0, scale: 0.4 }}
-      animate={fire ? { opacity: [0, 0.94, 0], scale: [0.4, 2.4, 2.4] } : { opacity: 0, scale: 0.4 }}
-      transition={{ duration: 0.42, times: [0, 0.42, 1], ease: "easeOut" }}
-    />
-  );
+```glsl
+if (u_story == 0) {
+  float band = smoothstep(0.19, 0.18, uv.y) + 0.5 * smoothstep(0.91, 0.92, uv.y);
+  float sIdx = floor((p.x + p.y) * 22.0);
+  float stripe = step(0.5, fract((p.x + p.y) * 11.0));
+  vec3 stripeCol = mix(base, CREAM * 0.92, stripe * 0.85);
+  stripeCol = mix(stripeCol, u_accent, stripe * runner(sIdx, 30.0, u_time) * 0.9);
+  col = mix(col, stripeCol, band);
 }
 ```
 
-`z-19` — above the traveling screens (`z-10`) and the seam flash, below the
-chrome (`ProgressBar`/share chip sit at `z-20`). The reference footage never
-loses the chrome behind its motif, so the rings must stay under it, not
-over it.
+**Story 3 — PEOPLE (cream/yellow): the quarter-rings.** Replaces the
+spotlight sweep. Concentric ring quarters anchored at the bottom-left
+corner, ink rings on cream, covering roughly the bottom-left 40% of frame,
+yellow runner cycling outward through the rings — the reference's "You
+listened. We counted." figure exactly:
 
-### 1.4 When it fires — not every transition
+```glsl
+if (u_story == 3) {
+  vec2 c = vec2(-0.42, -0.95);                  // anchor: bottom-left, off-frame
+  float r = length(p - c);
+  float rIdx = floor(r * 14.0);
+  float ring = step(0.5, fract(r * 7.0));
+  float mask = smoothstep(1.15, 0.55, r);       // fade out past ~half the frame
+  vec3 ringCol = mix(base, INK, ring * 0.88);
+  ringCol = mix(ringCol, u_accent, ring * runner(rIdx, 16.0, u_time) * 0.95);
+  col = mix(col, ringCol, mask);
+}
+```
 
-Firing on all 9 transitions would make it wallpaper, not a signature (the
-reference uses it maybe 3 times in a 50-second clip — a punctuation mark,
-not a background). Fire it on **chapter boundaries only**: the transition
-INTO `the-year` (cold open, already special-cased), INTO `people` (public →
-credits, a tonal shift), and INTO `your-club` (public → the personal
-showpiece, build.md's "the only story allowed to leave ink/cream" — the
-biggest tonal jump in the whole deck). Three fires, matching the reference's
-cadence, each at a genuine structural hinge in the story order — not
-decorative, load-bearing.
+**Story 2 — BUILT (ink/blue): the stripe circle.** Replaces the blueprint
+grid. Vertical stripes clipped to a large circle bleeding off bottom-left
+(the reference's "665 songs" figure), blue runner walking across the
+stripes:
 
-Implementation: `player.tsx` already computes `state.storyIndex` on every
-transition. Add:
+```glsl
+if (u_story == 2) {
+  vec2 c = vec2(-0.30, -0.75);
+  float inCircle = smoothstep(0.68, 0.66, length(p - c));
+  float sIdx = floor(uv.x * 16.0);
+  float stripe = step(0.5, fract(uv.x * 8.0));
+  vec3 sc = mix(base, CREAM * 0.92, stripe * 0.8);
+  sc = mix(sc, u_accent, stripe * runner(sIdx, 22.0, u_time) * 0.9);
+  col = mix(col, sc, inCircle);
+}
+```
+
+Stories 4–9 keep their existing treatments (constellation, stamp rings,
+aurora, club foil, embers, orbit dots) — they were already choreography-
+correct; the three above were the texture-grade ones. Story 1 (Moments)
+keeps its paper grain: its scrapbook photos ARE its motion; adding a bold
+figure would break law 1's "only one thing moves."
+
+### 2.2 The overture warp field (shader story 10)
+
+A NEW branch, `u_story == 10`, used only by the cold open (§4): the full-
+screen checker×ring warp — a checkerboard displaced radially by an
+expanding wave, which is exactly what the reference's morphing intro field
+is (checker cells bending around ring centers):
+
+```glsl
+if (u_story == 10) {
+  vec2 c1 = vec2(0.0, 0.55 * sin(u_time * 0.21));
+  float d1 = length(p - c1);
+  // radial displacement wave: checker cells bend around the moving center
+  vec2 warped = p + normalize(p - c1 + 1e-4) * 0.10 * sin(d1 * 18.0 - u_time * 1.6);
+  float cx = step(0.5, fract(warped.x * 5.0));
+  float cy = step(0.5, fract(warped.y * 5.0));
+  float checker = abs(cx - cy);              // 1.0 on alternating cells
+  float rings = step(0.5, fract(d1 * 9.0 - u_time * 0.35));
+  float fig = mix(checker, rings, smoothstep(0.75, 0.2, d1)); // rings near center, checker out
+  col = mix(CREAM * 0.96, INK, fig * 0.92);
+}
+```
+
+Wiring: `player.tsx` currently passes `state.storyIndex` to `StoryFrame` →
+`ShaderField`. Compute instead:
 
 ```ts
-const PASSAGE_INDEXES = new Set([0, 3, 7]); // the-year, people, your-club — indexes per lib/stories.ts
-const firePassage = PASSAGE_INDEXES.has(state.storyIndex);
+const shaderStory = state.storyIndex === 0 && state.phase === "setup" ? 10 : state.storyIndex;
 ```
 
-and render `<PassageRings fire={firePassage} />` as a sibling of the
-existing seam-flash `motion.div`, inside the same `AnimatePresence` so it
-keys off `def.id` and re-fires on every entry (not just the first).
+and pass `shaderStory`. Nothing else in `ShaderField` changes — its
+crossfade machinery already handles the story-value swap at reveal.
 
-### 1.5 Verification
+### 2.3 The DOM fallback rule
 
-Confirm the rings never fire on the other 6 transitions (they'd become
-wallpaper), confirm chrome (progress bar, share chip) stays legible over the
-flash at `z-19`, confirm `prefers-reduced-motion` renders nothing (component
-returns `null`), confirm the 420ms flash finishes within the 470ms
-`WHIP_DURATION` so it never outlives the transition it's marking.
+`useGlQuality()` returns `"off"` on low-memory/save-data/no-WebGL2 devices
+and the canvas self-kills below 42fps — on those devices the figures
+simply don't exist today, which was acceptable for texture but not for
+law 1. Rule: every story whose shader figure is load-bearing gets a static
+DOM stand-in — a plain CSS render of the same geometry (repeating
+linear/radial gradients, no animation) at 60% opacity, rendered only when
+quality is `"off"`. Expose quality from `StoryFrame` via context
+(`GlQualityContext`), one new file `components/gl/quality-context.tsx`.
+Static is fine: law 1 is aspirational on a device that can't afford it —
+a still figure beats a missing one, and reduced-motion users get the same
+static render.
 
----
+## 3. The coin-flip dot field (law 1 + 2, DOM lane)
 
-## 2. Full-frame gestural scribbles
+The reference's genre screens: a cream field with big polka dots in bands
+at top and bottom, where individual dots continuously coin-flip (3D flip
+around the X axis, color swapping at the 90° edge-on point) between black
+and red. Constant, hypnotic, cheap.
 
-### 2.1 What exists already vs. what's missing
+New component `components/dot-field.tsx`:
 
-`components/stories/02-moments.tsx` already has the *technique* — small
-self-drawing SVG icons (star, arrow, wave, circle) using `.doodle-path` +
-`.doodle-draw` (a `stroke-dashoffset` animation, `1.2s cubic-bezier(0.83, 0,
-0.17, 1)`, `app/globals.css`'s "Scrapbook Doodles" block) — but only as
-16–24px decorative icons scattered on the Moments scrapbook. The reference
-uses the SAME self-drawing-line technique at **full stage scale**, as loose
-gestural strokes that cross the whole screen, appearing on cold-open cuts,
-stat reveals, and the club card — closer to a hand annotating the page than
-a sticker on it.
+- Props: `{ accent: string; edge: "top" | "bottom" | "both"; rows?: number }`
+  (default 2 rows per edge).
+- Renders rows of circles, diameter `11cqw` capped 44px, gap `4.5cqw`,
+  offset alternate rows by half a diameter (the reference's grid is
+  half-dropped).
+- Each dot is a `motion.div` with `transformStyle: preserve-3d` flipping
+  `rotateX: 0 → 180 → 360` on a loop; two absolutely-stacked faces
+  (`backface-visibility: hidden`): ink face and accent face. The color
+  swap at the edge-on moment comes free from backface culling.
+- Deterministic stagger, no `Math.random` (SSR rule): dot i flips with
+  `delay: ((i * 41) % 23) * 0.35s`, `duration: 0.9s`, `repeatDelay:
+  ((i * 17) % 11) + 4s`. Net effect ≈ 2–4 dots mid-flip at any moment —
+  matches the reference's density.
+- Reduced motion / quality "off": static dots, ~1 in 5 pre-set to the
+  accent face (deterministic: `i % 5 === 2`).
 
-### 2.2 The asset
+Placement (exactly two stories — law 1 forbids stacking it on stories
+that already have a figure):
 
-Three new full-stage SVG paths, `components/scribble-lines.tsx` (a sibling
-of `pop-letters.tsx`, same file-size discipline — inline paths, no external
-SVG import):
+- **standing (cream/red)**: `edge="both"`, red. The dot bands frame the
+  stamp. Mount in both setup and reveal phases.
+- **whats-next (cream/green)**: `edge="bottom"`, green. Replaces the
+  shader ember motes as the story's one ambient system (turn story 8's
+  shader branch down to grain-only when this lands: delete the mote
+  block, keep the fbm darkening).
 
-```tsx
-"use client";
-import { motion, useReducedMotion } from "motion/react";
+## 4. The overture (law 5) — rebuild of the cold open
 
-// Three loose gestural strokes, viewBox 0 0 400 700 (matches the 9:16
-// stage's aspect ratio so they scale via `preserveAspectRatio="none"`
-// without redrawing per-viewport). Hand-drawn feel comes from the path
-// data itself (real cubic beziers with irregular control points), not from
-// runtime randomness — deterministic, SSR-safe, matches every other
-// doodle in the app.
-const STROKES = {
-  swoop: "M20,80 C120,20 280,140 380,40",
-  underline: "M40,620 C160,600 260,660 370,610",
-  loop: "M60,350 C180,280 140,420 260,380 C340,355 300,280 380,320",
+The current cold open (§11.4/§12.1 build2) is four hard-cut text lines.
+The reference's intro is not text cuts — it is a continuous **numeral
+drive-through**: billboard-scale numerals sweeping through the frame over
+the warp field, logo pinned center as the still anchor, resolving into a
+calm beat. Rebuild `ColdOpen` in `components/stories/01-the-year.tsx`:
+
+Timeline (setupMs for the-year: 4200 → **5600**; every other registry
+value untouched):
+
+- **0–3400ms, the drive-through.** Over the §2.2 warp field (shader story
+  10): the numerals "25" then "26" travel through the frame at monument
+  scale — `t-monument` sizing (`clamp(9rem, 62cqw, 22rem)`), `text-gdg-red`,
+  one motion.div per numeral pair, path: enters at `{x: "70%", y: "-30%",
+  rotate: -8}`, exits at `{x: "-70%", y: "30%", rotate: 6}`, linear ease,
+  3400ms, the "26" starting 1400ms after the "25" on the mirrored
+  diagonal (enter bottom-left, exit top-right). The glyphs are so large
+  only parts are ever on screen — that's the billboard effect; do NOT
+  shrink them to fit.
+  Pinned center the whole time: the GDG sticker logomark
+  (`/Sticker Logomark.png`, 64px, drop-shadow-md), static — the anchor
+  the world moves around.
+  Two cold-open lines ride ON the drive-through as small centered
+  overlays (`t-label`, cream, on 55%-opacity ink pill): "One chapter." at
+  400ms, "One unhinged year." at 1900ms, each holding 1200ms then
+  fading 150ms. (The four-line §12.1 cadence is superseded here — two
+  lines overlay the spectacle, and the remaining two get the calm beat.)
+- **3400–3700ms, the resolve.** The warp field's shader fade runs (the
+  existing `ShaderField` crossfade handles it when `shaderStory` flips at
+  reveal — but here we're still in setup, so: pass `shaderStory = 10`
+  only while `setupElapsed < 3400`; player owns a `setupBeat` state
+  flipped by one timeout). Field settles to the story-0 stripe band.
+  Haptic `vibrate(8)`.
+- **3700–5600ms, the calm.** Cream-on-ink centered: "What a year." in
+  `t-display` (PopLetters, profile "fast"), then 900ms later "We kept the
+  receipts." in `t-editorial` with `accentWord` blue on "receipts"
+  (existing `ColdOpenLine` accent mechanism). Both hold until reveal.
+  This is the reference's "We're ready for you. / Come on down." beat —
+  spectacle, then a breath, then the show.
+
+Reduced motion: skip the drive-through entirely; render the calm beat for
+the whole setup (both lines, no PopLetters).
+
+## 5. Stat slams — the three-beat payoff (law 3)
+
+### 5.1 `components/slam-stat.tsx` — slice-assemble numeral
+
+New primitive replacing count-up where the number is monumental. The
+reference's "5,495" arrives whole, sliced into three horizontal bands that
+are momentarily offset and converge:
+
+- Three absolutely-stacked copies of the SAME final string, each clipped
+  to a horizontal third via `clipPath: inset(0 0 66.6% 0)` / `inset(33.3%
+  0 33.3% 0)` / `inset(66.6% 0 0 0)`.
+- Initial x offsets: `-14px, +18px, -10px`. All animate to 0, `duration
+  0.24s`, stagger 40ms, ease `[0.83, 0, 0.17, 1]`; the wrapping div
+  simultaneously does `scale: 1.04 → 1` on `SPRING.stamp`. Haptic
+  `vibrate(10)` on mount.
+- Reduced motion: plain static text.
+
+Adopt in:
+- `05-your-events.tsx` — the monumental check-in numeral (currently
+  Counter): a till prints rows; a monument slams. `SlamStat`.
+- `06-standing.tsx` — the "TOP X%" figure inside the stamp keeps the
+  existing stamp spring (it already slams — no double treatment), but the
+  two big stat blocks in the non-tier variant become `SlamStat`.
+- `01-the-year.tsx` receipt rows: KEEP Counter (law 3's explicit carve-out
+  — the receipt prints).
+
+### 5.2 The layering discipline
+
+On every personal reveal screen the three beats are mandatory and timed
+from reveal start: **stat at 0ms** (slam), **caption at +1100ms** (opacity
+0→1, y 8→0, 300ms), **share affordance at +2200ms**. The header share
+chip currently appears instantly with reveal (`showShareChip` in
+player.tsx) — gate it: pass the existing `state.phase === "reveal"`
+condition through a 2200ms-delayed opacity transition in `ProgressBar`'s
+`shareSlot` wrapper (`transition: opacity 0.3s 2.2s`). One CSS change, no
+new state.
+
+## 6. The line-work system (law 4)
+
+### 6.1 `components/ambient-scribbles.tsx`
+
+Two thin paths per designated screen that never stop moving. Component
+renders one `<svg viewBox="0 0 400 700" preserveAspectRatio="none">` with
+2 paths; each path loops forever through: draw in (`pathLength 0→1`,
+1.6s, ease `[0.83, 0, 0.17, 1]`) → hold with slow drift (parent group
+`translate ±8px` over 6s, alternate) → fade out (`opacity → 0`, 0.4s) →
+swap `d` to the next variant → redraw. Three `d` variants per slot,
+cycled; offsets between the two paths so they never draw simultaneously.
+
+Variants (loose single-line curves, drawn in the reference's felt-tip
+voice — these exact paths, deterministic):
+
+```
+A1: M-10,120 C90,60 210,150 410,70
+A2: M-10,90  C140,140 260,40 410,120
+A3: M-10,60  C60,120 330,90 410,150
+B1: M-10,620 C120,560 300,650 410,590
+B2: M-10,580 C90,640 280,560 410,640
+B3: M-10,650 C150,590 250,660 410,570
+```
+
+Stroke: `currentColor`, width 1.5, opacity 0.5 on ink fields / 0.35 on
+cream. Color: `text-cream/60` on ink, `text-ink/40` on cream — never the
+accent (the accent belongs to the runner, law 2).
+
+Placement: every ink-field story reveal (`the-year`, `built`,
+`your-events`, `your-chapter`, `summary`) plus `people`'s reveal. NOT on
+moments (photos own it), NOT on your-club (foil owns it), NOT on standing
+or whats-next (dots own them). Law 1: the scribbles on those six screens
+are quiet enough to coexist with the shader figure only because they're
+monochrome and ≤2 paths; never add a third system.
+
+Reduced motion / quality off: render both paths static at full length.
+
+### 6.2 Subject doodles — the self-drawing illustration
+
+Three screens get ONE subject doodle each, drawn during the setup phase
+above the setup line, `pathLength 0→1` over 1.8s, stroke width 2,
+`currentColor` at full opacity, ~120px tall, centered:
+
+- **your-chapter setup** (the time story — the reference's hourglass joke
+  lands here): an hourglass,
+  `M140,40 h120 l-44,90 44,90 h-120 l44,-90 -44,-90 z` plus the loose
+  crossing scribble `M110,220 C160,190 240,250 290,215`.
+- **your-events setup**: a ticket outline,
+  `M100,80 h200 a0,0 0 0 1 0,60 v40 a0,0 0 0 1 0,60 h-200 a0,0 0 0 0
+  0,-60 v-40 a0,0 0 0 0 0,-60 z` with a perforation dash line
+  `M200,80 v220` (stroke-dasharray 4 6).
+- **standing setup**: a five-point star drawn in one stroke,
+  `M200,60 L235,170 350,170 258,238 293,350 200,280 107,350 142,238
+  50,170 165,170 z`.
+
+After drawing, the doodle holds and drifts with the same ±8px 6s drift as
+§6.1. Reduced motion: static full-length path.
+
+## 7. Physical type (law 6)
+
+### 7.1 Redacted bars — `built`'s product list
+
+`03-built.tsx`'s rows restyle from open text to the reference's
+redacted-bar list: each product name sits on a filled bar sized to its
+text (`inline-block`, `bg-cream text-ink`, padding `0.1em 0.35em`,
+`rounded-[3px]`), the row number outside the bar in `text-cream/40`. Bars
+pop in one-by-one: `scaleX 0.9→1, y 10→0, opacity 0→1`, `SPRING.default`,
+stagger 90ms, transform-origin left. The active-row swell (§10.7 build2)
+now scales the BAR (1 → 1.06) and flips it to the product's accent
+(`BG_CLASS[p.color]` + matching `CHIP_TEXT`) while active — the bar IS
+the highlight; delete the separate LIVE chip pulse (the LIVE chip stays,
+static).
+
+### 7.2 Sticker chips
+
+New global class in `app/globals.css` (inside `@layer components`):
+
+```css
+.sticker-chip {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  padding: 0.35rem 0.8rem;
+  border-radius: 4px;
+  rotate: -1.5deg;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.18);
+  display: inline-block;
+}
+```
+
+Applied to (with `t-label` type): the `built` reveal label, `people`'s
+CastMoment chapter label, and the summary card's "WRAPPED 25/26" header
+line. Mount animation wherever one appears: `scale 1.25→1, rotate -6°→
+-1.5°, opacity 0→1`, `SPRING.stamp` — slapped on, not faded in.
+
+### 7.3 Tilt-settle and exit shear
+
+- **Tilt-settle** (the reference's green row): anything "chosen" arrives
+  tilted and settles: `rotate: chosen ? [4, 0] : 0` with `SPRING.default`
+  on the rotate channel, 700ms visible settle. Used by the guess game
+  (§8) and the built active bar (tilt 2°, subtler).
+- **Exit shear**: the camera whip (`CAMERA_VARIANTS.exit`, player.tsx)
+  gains a rotation keyframe on horizontal/diagonal exits only:
+  `rotate: [0, 0.4 * s, 2.2 * s]` degrees where `s = Math.sign(v[0])`,
+  same `SMEAR_TRANSITION` times; pure-vertical exits keep `rotate: 0`
+  (the reference tilts on its sideways-energy exits, holds straight on
+  clean verticals). `enter` stays untilted — only the leaving screen
+  shears.
+
+## 8. The guess game (law 7) — reactive beat in `built`
+
+The reference mechanic, verified frame-by-frame in the 10fps burst: it is
+a TAP-TO-GUESS LIST, not a swipe stack. Response is instant (<100ms).
+
+### 8.1 Content (`lib/content/chapter.ts`)
+
+```ts
+export const GUESS_GAME = {
+  question: "One of these went live first. Which?",
+  answerIndex: 0, // TBD-confirm with leads (index into PRODUCTS)
+  right: "First try. You were paying attention.",
+  wrong: "Wrong. The receipts don't lie.",
+  timeout: "No guess? It was {answer}.",
 } as const;
-
-export function ScribbleLine({
-  variant,
-  className,
-}: {
-  variant: keyof typeof STROKES;
-  className?: string;
-}) {
-  const reduceMotion = useReducedMotion();
-  if (reduceMotion) return null;
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 400 700"
-      preserveAspectRatio="none"
-      className={className}
-    >
-      <motion.path
-        d={STROKES[variant]}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={3}
-        strokeLinecap="round"
-        className="doodle-path"
-        initial={{ pathLength: 0, opacity: 0.8 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: 1.1, ease: [0.83, 0, 0.17, 1] }}
-      />
-    </svg>
-  );
-}
 ```
 
-Uses Motion's `pathLength` (not the CSS `doodle-draw` keyframe class this
-time — `pathLength` gets the same self-drawing look but composes with
-`AnimatePresence` exit/enter, which the CSS keyframe version can't) — this
-is a deliberate, justified deviation from the existing `.doodle-draw`
-mechanism, not an inconsistency: the existing one is for small icons that
-mount once inside an already-mounted parent; this one needs to draw in and
-out in step with a story that itself mounts/unmounts.
+(Copy lines live here rather than copy.ts because they're bound to the
+PRODUCTS data; keep our voice — the reference's "Failure builds
+character." is the register: short, dry, a little smug.)
 
-### 2.3 Where it fires
+### 8.2 Mechanic (`components/stories/built-guess.tsx`)
 
-One `ScribbleLine` per cold-open cut (`components/stories/01-the-year.tsx`'s
-`ColdOpen`, currently four cuts, `CUT_DELAYS_MS = [0, 1150, 2300, 3500]`) —
-`variant="swoop"` behind cut 1, `variant="underline"` behind cut 3, `opacity
-0.14` (`text-cream/14` equivalent — faint, texture not decoration, it must
-never compete with the headline type sitting on top of it), positioned
-`absolute inset-0` behind the `<p className="t-display">`. This directly
-answers "the beginning" half of build3 §1's original complaint by giving
-the cold open the same connective-line energy the reference's opening beats
-have, without touching anything build3 already fixed there.
+Mounts as the final beat of `built`'s reveal, after one full table cycle
+(existing `ACTIVE_CYCLE_MS * 5 = 9000ms`); registry: built `revealMs 9000
+→ 15000` (interaction window 6000ms — visitor-paced, so the §10.0 80%
+rule applies to the post-answer auto-advance, not the wait; a real
+interaction is never rushed, same principle as hold-to-pause).
 
-A third placement: `components/stories/08-your-club.tsx`'s `FoilCard`, one
-`variant="loop"` at `opacity 0.08`, `text-outline` color matching
-`club.hex`, behind the card during Beat 3 (the flip payoff) — echoing the
-reference's line motif on its own showpiece card.
+- The five product rows morph in place: bars (§7.1) → outlined cards
+  (`border border-cream/30 rounded-lg`, transparent fill, art-less — 
+  layout-animated with `layout` prop on the existing row motion.divs, no
+  remount). Headline swaps to `GUESS_GAME.question` (PopLetters, fast).
+- Tap a row (rows are real `<button>`s — TapZones' `interactiveBelow`
+  forwarding already handles buttons; verified pattern from build3 §3):
+  - **Instantly, same frame**: the CORRECT row (answerIndex) fills
+    `bg-gdg-green text-ink`, gets a ✓ (checkmark span, `t-label`), and
+    tilt-settles (§7.3, 4°). If the tapped row ≠ answer, the tapped row
+    gets `border-2 border-gdg-red` + ✗, stays untilted. Headline swaps
+    instantly to `right`/`wrong` line. Haptic: `vibrate(10)` right,
+    `vibrate([8, 30, 8])` wrong.
+  - Hold 2400ms, then auto-advance the story (dispatch NEXT via a new
+    optional `onComplete` StoryProps callback — same wiring pattern as
+    `onReplay`).
+- No tap within 6000ms: correct row fills + tilts, headline swaps to
+  `timeout` with `{answer}` interpolated (`fmt()` from copy.ts), hold
+  2400ms, advance.
+- Guests and members see the same beat (it's chapter data, not personal).
+- Reduced motion: no tilt (fill + check only); everything else identical
+  — the interaction is not motion, it stays.
 
-### 2.4 Verification
+## 9. Collage texture and the bookend numerals
 
-Confirm the lines read as texture, not noise — screenshot each placement
-and check the headline/card content is still the clear focal point.
-Confirm `prefers-reduced-motion` renders nothing (three fewer DOM nodes,
-zero animation cost). Confirm the `pathLength` draw-in finishes before or
-alongside its cut's `CUT_DELAYS_MS` window closes, never mid-draw when the
-next cut hard-cuts in.
+### 9.1 Newsprint collage on the club card
 
----
+The reference's top-song reveal treats the album art as a xerox collage:
+grayscale, high contrast, halftone, with monochrome stripe fragments
+overlapping the corners. Apply to `08-your-club.tsx`'s FoilCard pattern
+panel (the `h-[34%]` div): add inside it a `pattern-halftone` overlay at
+`opacity 0.5, color: #0f0f0f`, and TWO stripe fragments — absolutely
+positioned strips (`h-3`, repeating-linear-gradient 90°, cream/ink 8px
+bars) overlapping the panel's top-right corner (`rotate 4°, w-24,
+-top-1.5 -right-3`) and bottom-left (`rotate -3°, w-16`). One fragment
+carries the accent runner as CSS: a `::after` band of `club.hex` 8px wide
+animating `left: -8px → 100%` on a 2.6s linear infinite loop (compositor:
+animate `translateX`, not `left` — the strip is `overflow-hidden` with a
+child span). Reduced motion: fragments static, no runner.
 
-## 3. The swipe beat — a real interactive mini-game
+### 9.2 The bookend — giant numerals on the summary
 
-### 3.1 Where it goes, and why there instead of elsewhere
+The reference closes the way it opens: giant accent numerals overlapping
+the closing card. `10-summary.tsx`: behind-and-below the membership card,
+a cropped monument "25/26" — `t-monument`, `text-gdg-green`, `rotate
+-6°`, positioned `absolute -bottom-[6%] -left-[8%]`, `z-0` (card is
+above it), `opacity 1`. It enters when the card settles: `y 60→0,
+opacity 0→1`, `SPRING.default`, delay 600ms. The overture opens with red
+numerals driving through; the summary parks green ones under the card —
+open loud, close settled, same voice.
 
-The reference's "Make your pick" rates the five top *songs* — we have no
-per-song listening data (build.md's WhatsApp-derived stats are message/
-check-in counts, not track plays), so a literal port would invent data that
-doesn't exist. The one place in the deck with a small, fixed, already-real
-list that a swipe-rate genuinely fits is `PRODUCTS` in
-`lib/content/chapter.ts` — five real shipped products (GDG WEBSITE,
-BABCOCKVOTES, RADAR, ORBIT, BABCOCK 100), already the subject of
-`03-built.tsx`. "Which did you use most this year?" is a real question with
-a real, bounded answer set — the swipe becomes a rating of the chapter's
-actual output, not a fabricated feature bolted on for motion's sake.
+## 10. Performance & degradation contract
 
-It was NOT placed in Moments (`02-moments.tsx` already has an elaborate,
-heavily-tuned three-scene scrapbook system — build2 §11.5 — adding a second
-interaction model to an already-complex story risks fighting its existing
-pacing) or Your Club (`08-your-club.tsx`'s three-beat ritual, build2 §10.3,
-already IS the interactive high point of the deck — a card flip with
-pointer-tilt parallax — and doesn't need a second mechanic layered on).
+- DOM animation channels remain `transform`/`opacity` only (build.md
+  §1.2). The dot-field flips are `rotateX`; the runner fragment is
+  `translateX`; bars are `scaleX/y/opacity`. No `filter`, no layout
+  animation except the one `layout` morph in §8.2.
+- Per-screen ambient budget (law 1, enforced numerically): at most ONE of
+  {shader figure, dot field, photo choreography} plus at most 2 ambient
+  scribble paths plus at most 1 subject doodle. A screen at the cap takes
+  no additions.
+- The shader figures cost what the current shader costs (same single
+  fullscreen triangle, same uniform set — branch complexity is
+  negligible); the existing 42fps self-degrade → self-kill ladder in
+  `shader-field.tsx` stays the safety net, now backstopped by §2.3's
+  static DOM stand-ins.
+- Dot field: ≤ 28 dots per screen (2 rows × 2 edges × 7), each a single
+  compositor layer only while mid-flip (motion sets `will-change`
+  transiently). Static between flips.
+- Reduced motion, complete map: overture → calm beat only; figures/dots/
+  runners/scribbles/doodles → static renders; slams → plain text; tilt/
+  shear → none; guess game → fill+check, fully playable; three-beat
+  layering → kept (opacity only). Nothing is ever an empty region.
 
-### 3.2 The mechanic
+## 11. Sequencing
 
-Appended as a NEW final beat to `03-built.tsx`'s reveal phase, after the
-existing table-of-contents cycle has played through once (`ACTIVE_CYCLE_MS
-* PRODUCTS.length` = 1800 × 5 = 9000ms — conveniently already matches
-`built`'s current `revealMs: 9000`, so the swipe beat needs its own budget;
-see §3.5).
+Each its own commit, this order (every step leaves the app shippable):
 
-A new component, `components/stories/built-swipe.tsx`:
+1. `feat(gl): bold ambient figures with accent runners` — §2.1 shader
+   rewrite (stories 0/2/3), §2.2 overture branch + `shaderStory` wiring,
+   §2.3 quality context + static stand-ins.
+2. `feat(ambient): coin-flip dot field on standing and whats-next` — §3
+   (including the story-8 shader mote removal).
+3. `feat(stories): the overture` — §4 cold-open rebuild (registry:
+   the-year setupMs 5600).
+4. `feat(stories): slam stats and three-beat payoffs` — §5 (SlamStat,
+   adoption in your-events/standing, share-chip delay).
+5. `feat(type): line-work system` — §6 (ambient scribbles + three subject
+   doodles).
+6. `feat(type): redacted bars, sticker chips, tilt-settle, exit shear` —
+   §7.
+7. `feat(stories): the guess game` — §8 (GUESS_GAME content + built-guess
+   + registry built revealMs 15000 + onComplete wiring).
+8. `feat(stories): club collage and summary bookend` — §9.
 
-```tsx
-"use client";
-import { useState } from "react";
-import { motion, useMotionValue, useTransform, type PanInfo } from "motion/react";
-import { PRODUCTS } from "@/lib/content/chapter";
-import { vibrate } from "@/lib/haptics";
+Verification gates (run after 2, 5, and 8): `tsc`, `eslint`, `vitest`,
+production build, then a real-device pass on one iPhone + one Android
+checking, in order: the overture reads as spectacle-then-breath (not two
+unrelated screens); every screen has exactly one thing visibly alive
+during its hold; the runner reads as the accent "walking" its figure; the
+guess game responds the same frame you tap; reduced-motion end-to-end
+shows no dead regions and no motion. The §10.0 80% rule holds for every
+scripted sequence at its story's revealMs; the guess game's wait window
+is exempt per §8.2.
 
-const SWIPE_THRESHOLD = 90; // px drag distance to commit a decision
-const BG_CLASS: Record<string, string> = {
-  blue: "bg-gdg-blue", red: "bg-gdg-red", yellow: "bg-gdg-yellow", green: "bg-gdg-green",
-};
+## 12. What this pass deliberately does not do
 
-function SwipeCard({ product, onDecide, isTop }: {
-  product: (typeof PRODUCTS)[number];
-  onDecide: (used: boolean) => void;
-  isTop: boolean;
-}) {
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-160, 160], [-14, 14]);
-  const likeOpacity = useTransform(x, [20, 100], [0, 1]);
-  const passOpacity = useTransform(x, [-100, -20], [1, 0]);
-
-  function onDragEnd(_: unknown, info: PanInfo) {
-    if (Math.abs(info.offset.x) > SWIPE_THRESHOLD) {
-      vibrate(10);
-      onDecide(info.offset.x > 0);
-    }
-  }
-
-  return (
-    <motion.div
-      className={`absolute inset-0 rounded-2xl ${BG_CLASS[product.color]} flex flex-col items-center justify-center p-6`}
-      style={{ x, rotate }}
-      drag={isTop ? "x" : false}
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.6}
-      onDragEnd={onDragEnd}
-      animate={isTop ? { scale: 1 } : { scale: 0.94, y: 10 }}
-      exit={{ x: x.get() > 0 ? 400 : -400, opacity: 0, transition: { duration: 0.25 } }}
-    >
-      <motion.span style={{ opacity: likeOpacity }} className="absolute top-6 left-6 t-label text-cream rounded-full border-2 border-cream px-3 py-1 -rotate-12">
-        USED IT
-      </motion.span>
-      <motion.span style={{ opacity: passOpacity }} className="absolute top-6 right-6 t-label text-cream rounded-full border-2 border-cream px-3 py-1 rotate-12">
-        NOT YET
-      </motion.span>
-      <p className="t-display text-cream text-center" style={{ fontSize: "clamp(1.5rem, 9cqw, 2.5rem)" }}>
-        {product.name}
-      </p>
-    </motion.div>
-  );
-}
-```
-
-Full-card stack + response logic lives in `built-swipe.tsx`'s default
-export, `BuiltSwipe({ onFinish }: { onFinish: () => void })`: renders
-`PRODUCTS` as a stack (top card draggable, rest peek behind at `scale 0.94`
-per §above), pops the top card via `AnimatePresence` on decision, tracks a
-`usedCount` in local state (never persisted — cosmetic only, exactly like
-the reference's swipe, no snapshot field, no pipeline change), and after
-the fifth decision shows one closing line selected by count:
-
-- 0 used: "Fair — there's five now. Something for next semester."
-- 1–2 used: "You've got range."
-- 3–4 used: "You were paying attention."
-- 5 used: "You used every single one. That's the whole point."
-
-These four lines go in `lib/copy.ts` under a new `copy.built.swipeResponse`
-keyed array (indices 0/[1,2]/[3,4]/5) — not invented content in the sense
-the DO-NOT-INVENT rule cares about (no fabricated stats, no fake data),
-just closing copy in the same voice as every other line in `copy.ts`.
-Tap-anywhere or a 2.5s auto-timeout advances past the closing line to the
-next story, same auto-advance contract every other story already honors.
-
-### 3.3 Reduced motion / accessibility fallback
-
-`prefers-reduced-motion`: no drag gesture (dragging is inherently a motion
-affordance) — render the five products as a static tap-to-toggle list
-instead (tap a row to mark "used," tap again to unmark), same `usedCount`
-logic and closing line, zero animation. This mirrors how every other
-story's reduced-motion fallback already works (crossfade instead of spring,
-never "just skip the content").
-
-Keyboard-only navigation: `ArrowRight`/`space` already advance stories
-globally (`player.tsx`'s `onKey`) — while `BuiltSwipe` is active, remap
-those two keys locally to "mark used, next card" / "not yet, next card"
-(a local `onKeyDown` on the swipe container, `e.stopPropagation()` so the
-global handler doesn't ALSO advance the story), so desktop visitors get the
-same interaction without a pointer.
-
-### 3.4 Haptics and feel
-
-`vibrate(10)` on every commit (light tick), matching the existing haptic
-vocabulary (`vibrate(8)` on cold-open cuts, `vibrate([12, 40, 12])` on the
-club flip) — a swipe-commit sits between those two in weight, which `10`
-reflects. Drag physics: `dragElastic={0.6}` (loose, not sticky — a flick
-should feel like it wants to leave), `SWIPE_THRESHOLD = 90px` (roughly a
-thumb's-width flick on a 390px-wide phone, not a full swipe-across-the-
-screen — err toward easy commitment, this is a texture beat, not a
-skill test).
-
-### 3.5 Timing budget
-
-`03-built.tsx`'s registry entry (`lib/stories.ts`) grows to accommodate the
-new beat: current `revealMs: 9000` covers only the table cycle. Add a
-**fixed** 6000ms for the swipe beat (five cards × ~1.1s average interaction
-+ the closing line's hold) — new `revealMs: 15000`. This is a specified
-value, not a placeholder: five decisions at even a rushed ~800ms each is
-4000ms, plus the closing line needs to actually be readable (per build3
-§4's now-law "things must sit long enough to be taken in" rule) at ~2000ms,
-totaling the 6000ms addition. Per the existing §10.0 80%-rule, verify the
-real interaction (which varies by how fast the visitor actually swipes,
-unlike a scripted animation) doesn't systematically blow past 15000ms in
-practice — this is the one beat in the whole deck where completion time is
-visitor-paced rather than choreographed, so the 80% rule applies
-differently: it's a ceiling on the AUTO-ADVANCE after all five decisions
-land, not on the interaction itself, which is allowed to take as long as
-the visitor wants (same principle as hold-to-pause elsewhere — a real
-interaction is never rushed by a timer).
-
-### 3.6 Verification
-
-Real-device drag test (iOS Safari + Android Chrome — `PanInfo`-based drag
-has historically had touch-action quirks worth confirming don't regress
-`TapZones`' own gesture layer sitting beneath this story; `BuiltSwipe`'s
-drag must not leak a swipe gesture through to `TapZones`' hold-to-pause/
-tap-to-advance handlers — set `touch-action: none` on the card stack
-container, matching `TapZones`' own existing pattern). Confirm the closing
-line hits every one of the four count buckets in a manual pass (0, 2, 4, 5
-used). Confirm reduced-motion's tap-list fallback reaches the same four
-closing lines. Confirm `usedCount` resets if the visitor replays the story
-(`onReplay`, already wired app-wide) rather than persisting stale state
-across a rewatch.
-
----
-
-## 4. What's deliberately NOT specified here
-
-Two things from the reference were considered and rejected, not overlooked:
-
-1. **The newspaper-collage "top song" treatment** (torn newsprint texture
-   behind the album art on the reference's song reveal) — we have no
-   per-visitor "top song," and forcing a collage treatment onto something
-   that isn't there would be decoration without content. `02-moments.tsx`'s
-   existing `photo-frame-torn` clip-path (already shipped, parallel to this
-   investigation) already covers the "torn paper" texture language where we
-   DO have real photos to put it on.
-2. **A second full-bleed dot-pattern texture** beyond the four already-
-   shipped `pattern-{grid,waves,halftone,diagonals}` classes (build.md
-   §9.8) — the reference uses red-dots-on-cream and black-dots-on-cream as
-   generic full-screen filler between content beats we don't have an
-   equivalent empty beat for; every screen in our deck already carries
-   real content or one of the four existing patterns tied to a specific
-   club. Adding a fifth pattern with no assigned meaning would be
-   decoration for its own sake — the one thing build.md §1's prime
-   directive rules out.
-
-If either of these turns out to be wanted after seeing §1–3 built, that's a
-new decision to make with the owner then, not a gap in this document.
-
----
-
-## 5. Sequencing
-
-Each its own commit, in this order (later items depend on earlier ones
-existing to look correct against):
-
-1. `feat(engine): the signature passage motif on chapter-boundary
-   transitions` (§1) — lowest risk, touches only `player.tsx` +
-   `globals.css` + one new component, no story content changes.
-2. `feat(type): full-frame scribble lines on the cold open and club card`
-   (§2) — one new component, three call sites, all additive.
-3. `feat(stories): swipe-rate mini-game closing out What We Built` (§3) —
-   the largest single addition: one new component, one `lib/stories.ts`
-   duration change, one new `copy.ts` block, real drag-gesture interaction
-   with its own reduced-motion and keyboard fallback.
-
-Device checks before calling this pass done: the passage rings' timing
-against a real whip transition (not just the numbers on paper — confirm it
-FEELS like a beat, not a glitch), the scribble lines read as texture on a
-real phone screen at real viewing distance (390px-wide test renders can
-make faint elements read differently than a hand actually holds a phone),
-and the swipe beat's drag gesture on both iOS Safari and Android Chrome
-specifically (the one new touch-input surface in this whole document).
+- No new share-card work, no pipeline/data changes, no new snapshot
+  fields — the guess game runs on chapter facts with one TBD-confirm.
+- No per-story music stingers (build2 §12.2's one-bed rule stands).
+- Moments and your-club keep their existing choreography cores — they
+  were built to their own metaphors (scrapbook, foil ritual) and already
+  satisfy law 1; §9.1 dresses the club card, it does not re-choreograph
+  it.
+- The reference's swipe-driven navigation is TikTok's video player, not
+  Wrapped's own chrome — our tap/hold/grid engine (build.md §6) stands.
