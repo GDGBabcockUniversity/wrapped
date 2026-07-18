@@ -41,7 +41,8 @@ html,
 body {
   background: var(--color-ink);
   color: var(--color-cream);
-  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100vw;
 }
 
 /* ---------- Type scale (§3.2) ---------- */

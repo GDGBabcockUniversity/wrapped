@@ -42,7 +42,7 @@ export default function RootLayout({
       lang="en"
       className={`${googleSans.variable} ${bricolage.variable}`}
     >
-      <body>
+      <body className="overflow-x-hidden w-full">
         <SvgFilters />
         {children}
         <Grain />

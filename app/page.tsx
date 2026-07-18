@@ -101,7 +101,7 @@ export default function LandingPage() {
   const [showEmail, setShowEmail] = useState(false);
 
   return (
-    <main className="min-h-dvh bg-ink text-cream relative overflow-hidden flex flex-col items-center justify-center px-6 py-16">
+    <main className="min-h-dvh bg-ink text-cream relative overflow-hidden flex flex-col items-center justify-center px-6 py-8 md:py-12">
       {/* Backdrop wordmark strip — parked in the empty top band so it never
           collides with the copy column (it used to sit mid-screen, straight
           through the subtitle). */}
@@ -128,13 +128,13 @@ export default function LandingPage() {
               fits a 390px phone inside the px-6 gutters. 22vw clipped. */}
           <h1
             className="text-outline-base text-outline-cream leading-none"
-            style={{ fontSize: "clamp(3.25rem, 17vw, 8rem)" }}
+            style={{ fontSize: "clamp(3.25rem, min(17vw, 16vh), 8rem)" }}
           >
             {copy.landing.title}
           </h1>
           <p
             className="t-display text-gdg-blue kinetic kinetic-breathe"
-            style={{ fontSize: "clamp(1.6rem, 8.8vw, 3.6rem)" }}
+            style={{ fontSize: "clamp(1.6rem, min(8.8vw, 8vh), 3.6rem)" }}
           >
             {copy.landing.year}
           </p>
