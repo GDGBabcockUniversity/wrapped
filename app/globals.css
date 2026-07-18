@@ -45,44 +45,55 @@ body {
   max-width: 100vw;
 }
 
-/* ---------- Type scale (§3.2) ---------- */
-.t-display {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 0.95;
-  font-size: clamp(3rem, 17.5cqw, 6.5rem);
-  text-box: trim-both cap alphabetic;
-}
-.t-monument {
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 0.85;
-  font-size: clamp(9rem, 62cqw, 22rem);
-  text-box: trim-both cap alphabetic;
-}
-.t-stat {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1;
-  font-size: clamp(2.75rem, 15cqw, 5.5rem);
-}
-.t-body {
-  font-weight: 500;
-  line-height: 1.35;
-  font-size: clamp(1rem, 4.6cqw, 1.25rem);
-}
-.t-label {
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  font-size: clamp(0.625rem, 2.9cqw, 0.75rem);
-}
-.t-editorial {
-  font-family: var(--font-bricolage), serif;
-  font-style: italic;
-  font-weight: 500;
-  line-height: 1.25;
-  font-size: clamp(1.375rem, 6.5cqw, 2rem);
+/* ---------- Type scale (§3.2) ----------
+   Wrapped in @layer components: Tailwind's utilities live in a layer that
+   is, by the CSS cascade-layers spec, always LOWER priority than any
+   unlayered CSS — regardless of specificity or source order. Plain
+   `.t-label { font-size: ... }` below was therefore silently beating every
+   `text-[0.55rem]` (or any other Tailwind override) applied alongside it
+   anywhere in the app: a real, confirmed bug (`text-[0.55rem]` measured
+   11.7px in production, not 8.8px), not a hypothetical. Declaring these in
+   @layer components restores the expected override order: base type scale
+   here, per-instance Tailwind utilities win when present. */
+@layer components {
+  .t-display {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
+    font-size: clamp(3rem, 17.5cqw, 6.5rem);
+    text-box: trim-both cap alphabetic;
+  }
+  .t-monument {
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.85;
+    font-size: clamp(9rem, 62cqw, 22rem);
+    text-box: trim-both cap alphabetic;
+  }
+  .t-stat {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-size: clamp(2.75rem, 15cqw, 5.5rem);
+  }
+  .t-body {
+    font-weight: 500;
+    line-height: 1.35;
+    font-size: clamp(1rem, 4.6cqw, 1.25rem);
+  }
+  .t-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: clamp(0.625rem, 2.9cqw, 0.75rem);
+  }
+  .t-editorial {
+    font-family: var(--font-bricolage), serif;
+    font-style: italic;
+    font-weight: 500;
+    line-height: 1.25;
+    font-size: clamp(1.375rem, 6.5cqw, 2rem);
+  }
 }
 
 /* ---------- Kinetic variable weight (§3.8) ---------- */
