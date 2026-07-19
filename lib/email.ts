@@ -65,6 +65,16 @@ export async function sendMagicLinkEmail(email: string, token: string): Promise<
     subject: copy.email.subject,
     html: magicLinkEmailHtml(link),
     text: magicLinkEmailText(link),
+  }).then((result) => {
+    // Resend's SDK resolves (doesn't reject) on API-level failures — the
+    // error lands in `result.error`, not a thrown exception. Log it or a
+    // misconfigured sender/unverified domain fails 100% of the time with
+    // zero visible signal anywhere (§11.1 ops — same principle as the
+    // request route's named config-error surfacing).
+    if (result.error) {
+      console.error("[wrapped] Resend send failed:", result.error);
+    }
+    return result;
   });
 
   // Cap at 3s — the email usually lands regardless; the UI already says
@@ -72,7 +82,7 @@ export async function sendMagicLinkEmail(email: string, token: string): Promise<
   await Promise.race([
     send,
     new Promise((resolve) => setTimeout(resolve, 3000)),
-  ]).catch(() => {
-    // non-fatal — never block on email delivery
+  ]).catch((err) => {
+    console.error("[wrapped] Resend send threw:", err);
   });
 }
