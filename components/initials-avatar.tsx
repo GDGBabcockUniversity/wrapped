@@ -12,11 +12,15 @@ export function InitialsAvatar({
   index = 0,
   sizePx = 40,
   className,
+  square = false,
 }: {
   name: string;
   index?: number;
   sizePx?: number;
   className?: string;
+  /** Rounded-rect instead of a circle — the credits' photo-tile fallback
+      (build5 §6.2), rendered square at the tile's width. */
+  square?: boolean;
 }) {
   const bg = ACCENTS[index % ACCENTS.length];
   return (
@@ -25,7 +29,7 @@ export function InitialsAvatar({
       style={{
         width: sizePx,
         height: sizePx,
-        borderRadius: "9999px",
+        borderRadius: square ? "0.5rem" : "9999px",
         background: bg,
         color: "#0f0f0f",
         display: "flex",
