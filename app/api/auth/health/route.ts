@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { countSnapshots } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,11 @@ async function checkDbReachable(): Promise<boolean> {
 
 export async function GET(req: NextRequest) {
   const dbReachable = await checkDbReachable();
+  // How many personal wrappeds exist. This is the single most useful signal:
+  // null = table missing (migration not applied) or DB down; 0 = migrated but
+  // the pipeline hasn't run, so every magic link lands on the guest view;
+  // >0 = data is live. (The "my link doesn't work" report was really this = 0.)
+  const snapshots = dbReachable ? await countSnapshots() : null;
   return NextResponse.json({
     session_secret: !!process.env.WRAPPED_SESSION_SECRET,
     resend_key: !!process.env.RESEND_API_KEY,
@@ -33,5 +39,6 @@ export async function GET(req: NextRequest) {
     email_from: process.env.EMAIL_FROM ?? "GDG Wrapped <wrapped@gdgbabcock.com>",
     site_url: process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin,
     db_reachable: dbReachable,
+    snapshots,
   });
 }
