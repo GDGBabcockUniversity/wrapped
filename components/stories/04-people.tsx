@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { PEOPLE, type Person } from "@/lib/content/chapter";
 import { InitialsAvatar } from "@/components/initials-avatar";
 import { PopLetters } from "@/components/pop-letters";
+import { SlamStat } from "@/components/slam-stat";
 import { copy } from "@/lib/copy";
 import { useGlQualityContext } from "@/components/gl/quality-context";
 import { QuarterRingsFigure } from "@/components/gl/static-figure";
@@ -112,14 +113,17 @@ const CHAPTERS: Chapter[] = [
     transition: copy.people.transitions.sponsors,
     people: PEOPLE.filter((p) => p.section === "SPONSORS"),
   },
-  {
-    id: "special",
+  // build4 §10B.3 item 5: Dr. Ernest and Emmanuel Oladosu each get their OWN
+  // slide (photo, name, editorial line ONLY on the second) rather than one
+  // shared card — two full chapters, not two people crammed into one.
+  ...PEOPLE.filter((p) => p.section === "SPECIAL_THANKS").map((p, i, arr) => ({
+    id: `special-${i}`,
     title: "SPECIAL THANKS",
     accent: "yellow" as const,
     kind: "special" as const,
-    transition: copy.people.transitions.specialThanks,
-    people: PEOPLE.filter((p) => p.section === "SPECIAL_THANKS"),
-  },
+    transition: i === arr.length - 1 ? copy.people.transitions.specialThanks : "",
+    people: [p],
+  })),
 ];
 
 // Cadence (build4 §10B): one combined chapter card (title + its editorial
@@ -159,7 +163,9 @@ function Avatar({ person, size, index, ringHex }: { person: Person; size: number
   );
 }
 
-/** Title + the chapter's editorial line as ONE beat — accent panel, skew-in. */
+/** Title + the chapter's editorial line as ONE beat — accent panel, skew-in.
+    The title slams (build4 §10B.3 item 3) now that SlamStat exists — cast-
+    grid labels keep PopLetters. */
 function ChapterCard({ chapter }: { chapter: Chapter }) {
   return (
     <motion.div
@@ -168,55 +174,93 @@ function ChapterCard({ chapter }: { chapter: Chapter }) {
       animate={{ skewY: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
     >
-      <p className="t-display text-center" style={{ fontSize: "clamp(2rem, 11cqw, 3.5rem)" }}>
-        <PopLetters text={chapter.title} />
-      </p>
-      <motion.p
-        className="t-editorial text-center opacity-80"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 0.8, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.45 }}
-      >
-        {chapter.transition}
-      </motion.p>
+      <SlamStat
+        value={chapter.title}
+        className="t-display text-center"
+        style={{ fontSize: "clamp(2rem, 11cqw, 3.5rem)" }}
+      />
+      {chapter.transition && (
+        <motion.p
+          className="t-editorial text-center opacity-80"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 0.8, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.45 }}
+        >
+          {chapter.transition}
+        </motion.p>
+      )}
     </motion.div>
   );
 }
 
+/** One person's avatar + name, the shared unit of every cast grid. */
+function PersonTile({ person, index, accent }: { person: Person; index: number; accent: Accent }) {
+  return (
+    <motion.div
+      className="flex flex-col items-center gap-1"
+      style={{ width: person.isLead ? 84 : 70 }}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1, y: [0, Math.sin(((index % 6) / 6) * Math.PI) * -6, 0] }}
+      transition={{
+        opacity: { type: "spring", stiffness: 400, damping: 20, delay: index * 0.09 },
+        scale: { type: "spring", stiffness: 400, damping: 20, delay: index * 0.09 },
+        y: { duration: 1.8, delay: index * 0.09 },
+      }}
+    >
+      <Avatar
+        person={person}
+        size={person.isLead ? 68 : 54}
+        index={index}
+        ringHex={person.isLead ? RING_HEX[accent] : undefined}
+      />
+      <p
+        className="font-bold text-ink/75 text-center leading-tight line-clamp-2"
+        style={{ fontSize: "0.5rem" }}
+      >
+        {person.name}
+      </p>
+    </motion.div>
+  );
+}
+
+// build4 §10B.3 item 1: subteam headers inside the MEDIA grid only, and only
+// for its multi-member subteams that still fit the stage — RADAR, Video
+// Editors, Graphic Designers. Photographers/Content Creators stay unlabeled
+// (a chip per lone-ish face is noise); DEV stays flat entirely (§10B.3).
+const LABELED_MEDIA_SUBTEAMS = new Set(["RADAR", "Video Editors", "Graphic Designers"]);
+
 function CastMoment({ chapter }: { chapter: Chapter }) {
   const glQuality = useGlQualityContext();
+  const isMedia = chapter.id === "media";
+  // A subteam header shows once, on the first person of a new labeled
+  // subteam — derived by comparing each person to the previous one, no
+  // mutable scan variable.
+  const headerFlags = chapter.people.map((p, i) => {
+    if (!isMedia || !p.subteam || !LABELED_MEDIA_SUBTEAMS.has(p.subteam)) return false;
+    return chapter.people[i - 1]?.subteam !== p.subteam;
+  });
+
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-4 gap-4">
       {/* Static stand-in for the shader's quarter-rings figure (build4 §2.3). */}
       {glQuality === "off" && <QuarterRingsFigure />}
       <StickerChip className="t-label">{chapter.title}</StickerChip>
-      <div className="flex flex-wrap items-end justify-center gap-x-2.5 gap-y-3 max-w-md">
+      <div
+        className={`flex flex-wrap items-end justify-center gap-x-2.5 gap-y-3 ${
+          // §10B.3 item 2: the 16-person MEDIA grid collides with the
+          // quarter-rings figure's bottom-left anchor at max-w-md.
+          isMedia ? "max-w-sm" : "max-w-md"
+        }`}
+      >
         {chapter.people.map((p, i) => (
-          <motion.div
-            key={p.name}
-            className="flex flex-col items-center gap-1"
-            style={{ width: p.isLead ? 84 : 70 }}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1, y: [0, Math.sin(((i % 6) / 6) * Math.PI) * -6, 0] }}
-            transition={{
-              opacity: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.09 },
-              scale: { type: "spring", stiffness: 400, damping: 20, delay: i * 0.09 },
-              y: { duration: 1.8, delay: i * 0.09 },
-            }}
-          >
-            <Avatar
-              person={p}
-              size={p.isLead ? 68 : 54}
-              index={i}
-              ringHex={p.isLead ? RING_HEX[chapter.accent] : undefined}
-            />
-            <p
-              className="font-bold text-ink/75 text-center leading-tight line-clamp-2"
-              style={{ fontSize: "0.5rem" }}
-            >
-              {p.name}
-            </p>
-          </motion.div>
+          <div key={p.name} className="contents">
+            {headerFlags[i] && (
+              <div className="basis-full flex justify-center">
+                <StickerChip className="t-label text-[0.55rem]">{p.subteam!.toUpperCase()}</StickerChip>
+              </div>
+            )}
+            <PersonTile person={p} index={i} accent={chapter.accent} />
+          </div>
         ))}
       </div>
     </div>
@@ -249,7 +293,7 @@ function SpecialCard({ chapter }: { chapter: Chapter }) {
           </motion.div>
         ))}
       </div>
-      <p className="t-editorial text-ink/70 text-center">{chapter.transition}</p>
+      {chapter.transition && <p className="t-editorial text-ink/70 text-center">{chapter.transition}</p>}
     </motion.div>
   );
 }

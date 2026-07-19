@@ -24,14 +24,17 @@ export function SlamStat({
   className,
   style,
 }: {
-  value: number;
+  /** A number gets locale formatting + `suffix`; a string (e.g. a chapter
+      title) passes through verbatim — same slice-assemble treatment either
+      way (build4 §10B.3: the credits' chapter-card slam). */
+  value: number | string;
   suffix?: string;
   className?: string;
   style?: CSSProperties;
 }) {
   const reduceMotion = useReducedMotion();
   const fired = useRef(false);
-  const text = value.toLocaleString("en-US") + suffix;
+  const text = typeof value === "number" ? value.toLocaleString("en-US") + suffix : value;
 
   useEffect(() => {
     if (fired.current || reduceMotion) return;

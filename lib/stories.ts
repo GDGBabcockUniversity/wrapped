@@ -47,7 +47,11 @@ export const STORIES: StoryDef[] = [
   // §8.2) plus its mandatory 2400ms post-answer hold, which DOES need the
   // rule's headroom: (9000 + 6000 + 2400) / 0.8 = 21750, rounded up.
   { id: "built", index: 2, personal: false, accent: "blue", field: "ink", setupMs: 3200, revealMs: 22000, label: "What We Built" },
-  { id: "people", index: 3, personal: false, accent: "yellow", field: "cream", setupMs: 3500, revealMs: 60000, label: "The People" },
+  // revealMs 60000 → 64000 (build4 §10B.3 item 5): splitting special thanks
+  // into two full chapters adds one card (1600ms) + one content beat
+  // (2400ms) to the schedule — 46.45+4 = 50.5s against the 80% rule's new
+  // ceiling of 51.2s (64000 × 0.8).
+  { id: "people", index: 3, personal: false, accent: "yellow", field: "cream", setupMs: 3500, revealMs: 64000, label: "The People" },
   { id: "your-events", index: 4, personal: true, accent: "blue", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Events" },
   { id: "standing", index: 5, personal: true, accent: "red", field: "cream", setupMs: 3200, revealMs: 8500, label: "Your Standing" },
   { id: "your-chapter", index: 6, personal: true, accent: "green", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Chapter" },
