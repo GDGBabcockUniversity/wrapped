@@ -104,6 +104,11 @@ export function ProgressBar({
   const track = field === "ink" ? "bg-cream/20" : "bg-ink/15";
   const fill = field === "ink" ? "bg-cream" : "bg-ink";
   const text = field === "ink" ? "text-cream" : "text-ink";
+  // build6 §2.8: a soft scrim behind the corner chrome — it sat unreadable
+  // over a busy ambient layer (the group-chat stripe band). Darkens behind
+  // light (cream) icons on ink fields, lightens behind dark (ink) icons on
+  // cream fields — same "whisper, never invisible" contract either way.
+  const scrimRgb = field === "ink" ? "15 15 15" : "255 246 224";
 
   return (
     <>
@@ -145,7 +150,12 @@ export function ProgressBar({
           a viewer who wants orientation opens the grid. */}
       <div
         className={`absolute right-3 z-20 flex items-center gap-3 ${text}`}
-        style={{ top: "max(12px, calc(env(safe-area-inset-top) + 4px))" }}
+        style={{
+          top: "max(12px, calc(env(safe-area-inset-top) + 4px))",
+          background: `radial-gradient(closest-side, rgb(${scrimRgb} / 0.35), transparent)`,
+          borderRadius: "9999px",
+          padding: "2px 6px",
+        }}
       >
         <div className="flex items-center gap-3" style={railStyle}>
           {shareSlot}

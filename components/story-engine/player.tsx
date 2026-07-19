@@ -345,8 +345,13 @@ export function Player() {
         }
       />
 
-      {state.paused && !state.gridOpen && (
-        <div className="toast absolute bottom-20 left-1/2 -translate-x-1/2 z-20 rounded-full bg-ink/70 text-cream px-3 py-1">
+      {/* build6 §2.4: never on summary — revealMs 0 means there's no timer
+          to pause, so the toast was pure noise sitting on top of the
+          card's own CTAs there. Moved to bottom-28 (clear of every
+          story's own bottom-24 CTA band) and pointer-events-none
+          everywhere else. */}
+      {state.paused && !state.gridOpen && def.id !== "summary" && (
+        <div className="toast absolute bottom-28 left-1/2 -translate-x-1/2 z-20 rounded-full bg-ink/70 text-cream px-3 py-1 pointer-events-none">
           <span className="t-label">PAUSED</span>
         </div>
       )}
