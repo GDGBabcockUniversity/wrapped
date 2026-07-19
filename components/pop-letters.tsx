@@ -2,6 +2,7 @@
 
 import { Fragment } from "react";
 import { motion, useReducedMotion } from "motion/react";
+import { popLettersStaggerMs } from "@/lib/text-timing";
 
 /**
  * The "site feels alive" primitive (§11.7 build2.md) — bubbly per-letter
@@ -30,7 +31,9 @@ export function PopLetters({
   wave?: boolean;
 }) {
   const reduceMotion = useReducedMotion();
-  const staggerMs = profile === "fast" ? 24 : 45;
+  // build7 §1: clamp the stagger for long strings so a headline can never
+  // typewriter past its own beat and render half before the swap.
+  const staggerMs = popLettersStaggerMs(text, profile);
   const words = text.split(" ");
 
   if (reduceMotion) {
