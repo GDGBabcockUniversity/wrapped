@@ -20,6 +20,7 @@ export type StoryId =
   | "the-year"
   | "moments"
   | "built"
+  | "group-chat"
   | "people"
   | "your-events"
   | "standing"
@@ -51,20 +52,47 @@ export const STORIES: StoryDef[] = [
   // (34500 + 6000 + 2400) / 0.8 = 53625, rounded up. Null-skipped TBDs only
   // ever shorten the actual run.
   { id: "built", index: 2, personal: false, accent: "blue", field: "ink", setupMs: 3200, revealMs: 54000, label: "What We Built" },
+  // revealMs 29000 (build5 §4.4): scripted worst case (all 9 beats,
+  // including the topSubgroup beat) = 22,800ms; 22800/0.8 = 28,500, rounded
+  // up. topSubgroup is null today, so the actual run is ~20,400ms — still
+  // within the 80% rule against 29000 (20400 <= 23200).
+  { id: "group-chat", index: 3, personal: false, accent: "green", field: "ink", setupMs: 3200, revealMs: 29000, label: "The Group Chat" },
   // revealMs 60000 → 64000 (build4 §10B.3 item 5): splitting special thanks
   // into two full chapters adds one card (1600ms) + one content beat
   // (2400ms) to the schedule — 46.45+4 = 50.5s against the 80% rule's new
   // ceiling of 51.2s (64000 × 0.8).
-  { id: "people", index: 3, personal: false, accent: "yellow", field: "cream", setupMs: 3500, revealMs: 64000, label: "The People" },
-  { id: "your-events", index: 4, personal: true, accent: "blue", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Events" },
-  { id: "standing", index: 5, personal: true, accent: "red", field: "cream", setupMs: 3200, revealMs: 8500, label: "Your Standing" },
-  { id: "your-chapter", index: 6, personal: true, accent: "green", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Chapter" },
-  { id: "your-club", index: 7, personal: true, accent: "club", field: "ink", setupMs: 3500, revealMs: 10000, label: "Your Club" },
-  { id: "whats-next", index: 8, personal: false, accent: "green", field: "cream", setupMs: 3000, revealMs: 8000, label: "What's Next" },
-  { id: "summary", index: 9, personal: true, accent: "green", field: "ink", setupMs: 0, revealMs: 0, label: "Your Card" },
+  { id: "people", index: 4, personal: false, accent: "yellow", field: "cream", setupMs: 3500, revealMs: 64000, label: "The People" },
+  { id: "your-events", index: 5, personal: true, accent: "blue", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Events" },
+  { id: "standing", index: 6, personal: true, accent: "red", field: "cream", setupMs: 3200, revealMs: 8500, label: "Your Standing" },
+  { id: "your-chapter", index: 7, personal: true, accent: "green", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Chapter" },
+  { id: "your-club", index: 8, personal: true, accent: "club", field: "ink", setupMs: 3500, revealMs: 10000, label: "Your Club" },
+  { id: "whats-next", index: 9, personal: false, accent: "green", field: "cream", setupMs: 3000, revealMs: 8000, label: "What's Next" },
+  { id: "summary", index: 10, personal: true, accent: "green", field: "ink", setupMs: 0, revealMs: 0, label: "Your Card" },
 ];
 
 export function getGuestStoryIndexes(): number[] {
-  // Guests see: 0,1,2,3 public, 4 (guest variant), skip 5/6, 7 (guest variant), 8, 9 (guest variant)
-  return [0, 1, 2, 3, 4, 7, 8, 9];
+  // Guests see: 0,1,2,3 public (the-year/moments/built/group-chat), 4
+  // (people, public), 5 (your-events guest variant), skip 6/7 (standing,
+  // your-chapter — members only), 8 (your-club guest variant), 9, 10
+  // (summary guest variant).
+  return [0, 1, 2, 3, 4, 5, 8, 9, 10];
 }
+
+// Shader figure branch per story (build5 §4.4) — branches live in
+// components/gl/shaders.ts and keep their historical numbering (the
+// overture's warp field is branch 10; player.tsx overrides to it for
+// the-year's setup window). group-chat rides the-year's diagonal stripe
+// band (branch 0) — its green accent walks the same runner, no new GLSL.
+export const SHADER_STORY: Record<StoryId, number> = {
+  "the-year": 0,
+  moments: 1,
+  built: 2,
+  "group-chat": 0,
+  people: 3,
+  "your-events": 4,
+  standing: 5,
+  "your-chapter": 6,
+  "your-club": 7,
+  "whats-next": 8,
+  summary: 9,
+};

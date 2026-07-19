@@ -282,40 +282,44 @@ What We Built and The People.
 ### 4.1 The data (`lib/content/chapter.ts`) — REAL numbers, computed 2026-07-19
 
 Computed from the real `main_chat.txt` export (iOS dialect, 13,433 raw
-lines → 10,201 parsed messages, 392 unique senders, 2025-09-09 →
-2026-07-18). **The export is missing roughly three months** (October and
-November 2025 entirely; September is 3 messages) — every number is a
-floor, and the copy owns that out loud. Add:
+lines → 10,097 counted messages after excluding 104 deleted-message bodies,
+389 unique senders, 2025-09-09 → 2026-07-18). **The export is missing
+roughly three months** (October and November 2025 entirely; September is
+3 messages) — every number is a floor, and the copy owns that out loud.
+The numbers below are the pipeline's (build5 §5.1's `computeGroupChatStats`)
+own output, run against the real export — not a one-off script; a re-run
+on a fuller export reprints this exact block, ready to paste. Add:
 
 ```ts
-// Main-group-chat fun stats (build5 §4) — computed from the real export,
-// 2026-07-19. The export is PARTIAL (missing ~3 months), so these are
-// floors; the copy says so. Re-run the pipeline (§5) on a fuller export
-// and paste the reprinted block here. Display names are the raw WhatsApp
-// display names — TBD-review: the owner may remap any of them before
-// freeze (e.g. "Habibi" -> a preferred name).
+// Main-group-chat fun stats (build5 §4) — computed by the pipeline's
+// group-stats.ts from the real export, 2026-07-19. The export is PARTIAL
+// (missing ~3 months), so these are floors; the copy says so. Re-run the
+// pipeline (§5) on a fuller export and paste the reprinted block here.
+// Display names are the raw WhatsApp display names — TBD-review: the
+// owner may remap any of them before freeze (e.g. "Habibi" -> a preferred
+// name).
 export const GROUP_CHAT = {
-  messages: 10201,
-  senders: 392,
+  messages: 10097,
+  senders: 389,
   monthsMissing: 3,
   topYappers: [
-    { name: "Habibi", count: 1610 },
+    { name: "Habibi", count: 1606 },
     { name: "Ekundayo", count: 982 },
     { name: "Chido Offor", count: 667 },
-    { name: "Timi Adedayo", count: 511 },
-    { name: "Ayomide Agunbiade", count: 453 },
+    { name: "Timi Adedayo", count: 510 },
+    { name: "Ayomide Agunbiade", count: 452 },
   ],
-  busiestDay: { label: "FEB 22", count: 1140, line: "One game night went completely off the rails." },
-  peakHourLabel: "9PM", // 2,427 messages between 21:00–22:00
-  afterMidnight: 761,   // messages 00:00–05:00
+  busiestDay: { label: "FEB 22", count: 1133, line: "One game night went completely off the rails." },
+  peakHourLabel: "9PM", // the 21:00-22:00 bucket
+  afterMidnight: 757,   // messages 00:00–04:59
   stickers: 1017,
-  deleted: 100,
-  laughs: 781, // 😂 + 💀 + 🤣 across the year
+  deleted: 104,
+  laughs: 765, // 😂 + 💀 + 🤣 across the year
   dialect: [
-    { word: "sha", count: 118 },
+    { word: "sha", count: 114 },
     { word: "dey", count: 91 },
-    { word: "abeg", count: 46 },
-    { word: "una", count: 41 },
+    { word: "abeg", count: 45 },
+    { word: "una", count: 38 },
     { word: "omo", count: 37 },
   ],
   streakDays: 29, // consecutive days with messages, starting Jun 8
@@ -326,7 +330,11 @@ export const GROUP_CHAT = {
 (Provenance, for the curious: the busiest-day line is earned — the Feb 22
 transcript is a points-scored game night; "9pm guys" is in it. Unsaved
 contacts — senders whose display name starts with "~" — are excluded from
-the yapper leaderboard; two of them would otherwise chart.)
+the yapper leaderboard; two of them would otherwise chart. The `deleted`
+count only became accurate once §5.1's `cleanBody` fix landed — the
+original exact-string match missed WhatsApp's real "This message was
+deleted." trailing period and its admin-deletion variant entirely, which
+also nudged `messages` down from an earlier rough estimate.)
 
 ### 4.2 Copy (`lib/copy.ts`)
 

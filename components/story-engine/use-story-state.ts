@@ -16,7 +16,8 @@ export type Phase = "setup" | "reveal";
 const CANVAS_PATH: [number, number][] = [
   [0, 1], // the-year -> moments        down
   [1, 0], // moments -> built           across
-  [1, 1], // built -> people            diagonal ↘
+  [1, 1], // built -> group-chat        diagonal ↘
+  [-1, 1], // group-chat -> people      diagonal ↙ (build5 §5: new boundary)
   [0, 1], // people -> your-events      down
   [1, 0], // your-events -> standing    across
   [-1, 1], // standing -> your-chapter  diagonal ↙

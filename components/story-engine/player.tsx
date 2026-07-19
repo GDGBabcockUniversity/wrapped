@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { track } from "@vercel/analytics";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { STORIES, TIMING } from "@/lib/stories";
+import { STORIES, TIMING, SHADER_STORY } from "@/lib/stories";
 import { STORY_COMPONENTS } from "@/components/stories";
 import { CLUBS } from "@/lib/clubs";
 import { ACCENT_HEX } from "@/components/gl/shaders";
@@ -243,8 +243,11 @@ export function Player() {
   // The-year's setup swaps in the overture warp field (shader story 10,
   // build4 §2.2) instead of its own story-0 treatment; refined to a
   // sub-beat window once the drive-through timing lands (build4 §4).
+  // Otherwise the shader branch is looked up by story id (build5 §4.4,
+  // SHADER_STORY) — raw storyIndex no longer maps 1:1 to a shader branch
+  // once group-chat sits between built and people.
   const shaderStory =
-    state.storyIndex === 0 && state.phase === "setup" && setupWarpActive ? 10 : state.storyIndex;
+    state.storyIndex === 0 && state.phase === "setup" && setupWarpActive ? 10 : SHADER_STORY[def.id];
 
   return (
     <StoryFrame

@@ -151,6 +151,42 @@ export const CREWS: Record<string, string[]> = {
   "BABCOCK 100": [],
 };
 
+// Main-group-chat fun stats (build5 §4) — computed by the pipeline's
+// group-stats.ts from the real main-chat export, 2026-07-19. The export is
+// PARTIAL (missing ~3 months: October and November 2025 entirely,
+// September nearly so), so these are floors; the copy says so. Re-run the
+// pipeline (build5 §5) on a fuller export and paste the reprinted block
+// here. Display names are the raw WhatsApp display names — TBD-review: the
+// owner may remap any of them before freeze (e.g. "Habibi" -> a preferred
+// name).
+export const GROUP_CHAT = {
+  messages: 10097,
+  senders: 389,
+  monthsMissing: 3,
+  topYappers: [
+    { name: "Habibi", count: 1606 },
+    { name: "Ekundayo", count: 982 },
+    { name: "Chido Offor", count: 667 },
+    { name: "Timi Adedayo", count: 510 },
+    { name: "Ayomide Agunbiade", count: 452 },
+  ],
+  busiestDay: { label: "FEB 22", count: 1133, line: "One game night went completely off the rails." },
+  peakHourLabel: "9PM", // 21:00-22:00
+  afterMidnight: 757, // messages 00:00-04:59
+  stickers: 1017,
+  deleted: 104,
+  laughs: 765, // 😂 + 💀 + 🤣 across the year
+  dialect: [
+    { word: "sha", count: 114 },
+    { word: "dey", count: 91 },
+    { word: "abeg", count: 45 },
+    { word: "una", count: 38 },
+    { word: "omo", count: 37 },
+  ],
+  streakDays: 29, // consecutive days with messages, starting Jun 8
+  topSubgroup: null as { name: string; messages: number } | null, // TBD — build5 §5.2, awaiting subgroup exports
+} as const;
+
 export interface Person {
   name: string;
   role: string;
