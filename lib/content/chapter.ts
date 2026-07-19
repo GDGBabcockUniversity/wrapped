@@ -31,12 +31,11 @@ export const MOMENTS: Moment[] = [
     images: ["/moments/orbit/01.jpg", "/moments/orbit/02.jpg", "/moments/orbit/03.jpg"],
   },
   {
-    // DevFest was attended, not organized — the caption owns that honestly
-    // (it stays a Moment because the photos are real chapter memories, but
-    // it must never read as one of OUR events).
+    // build7 §3.3: DevFest is the continent's largest developer gathering —
+    // showing up in force IS the flex, not a disclaimer.
     id: "devfest",
     title: "DEVFEST",
-    caption: "Not ours. We showed up anyway.",
+    caption: "The continent's biggest. We showed up in force.",
     images: ["/moments/devfest/01.jpg", "/moments/devfest/02.jpg"],
   },
   {
@@ -97,7 +96,7 @@ export const PRODUCT_SAGA = {
     careerFair: null as SagaStat | null, // TBD { value, label: "AT THE CAREER FAIR" }
     summit: null as SagaStat | null, // TBD { value, label: "AT THE SUMMIT" }
     speakers: { value: 12, label: "SPEAKERS ON STAGE", detail: "and 2 moderators keeping them honest" } as SagaStat, // VERIFIED
-    tickets: { value: 547, label: "TICKETS ISSUED", detail: "252 checked in" } as SagaStat, // VERIFIED
+    tickets: { value: 547, label: "TICKETS ISSUED" } as SagaStat, // VERIFIED (build7 §3.1: check-in detail dropped)
     sponsors: { value: 23, label: "SPONSORS & PARTNERS" } as SagaStat, // VERIFIED
     headlineTease: "And one led the charge.",
     headline: { value: "MONIEPOINT", label: "HEADLINE SPONSOR" } as SagaStat, // VERIFIED
@@ -219,22 +218,24 @@ export interface GroupTopics {
 // from the same merged main-chat export as GROUP_CHAT above.
 // Re-run: npx tsx scripts/pipeline/run-group-stats.ts
 export const GROUP_TOPICS: GroupTopics = {
+  // build7 §3.2: re-run through the junk filter (no consonant-only fragments
+  // like pts/gdg, no sub-4-char non-slang like don/ohh). Owner curates before
+  // freeze — e.g. "tejiri" is a member's name that slipped the roster stops.
   wordsOfYear: [
-    { word: "pts", count: 145 },
     { word: "sha", count: 143 },
-    { word: "don", count: 142 },
     { word: "people", count: 134 },
     { word: "first", count: 118 },
     { word: "happy", count: 115 },
-    { word: "new", count: 109 },
     { word: "dey", count: 106 },
-    { word: "gdg", count: 96 },
     { word: "tejiri", count: 95 },
-    { word: "use", count: 95 },
     { word: "even", count: 94 },
-    { word: "ohh", count: 94 },
-    { word: "bro", count: 93 },
     { word: "babcock", count: 92 },
+    { word: "real", count: 90 },
+    { word: "give", count: 89 },
+    { word: "points", count: 81 },
+    { word: "image", count: 79 },
+    { word: "question", count: 79 },
+    { word: "nothing", count: 72 },
   ],
   emojiLeaderboard: [
     { emoji: "😂", count: 736 },

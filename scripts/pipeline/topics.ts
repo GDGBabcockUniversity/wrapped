@@ -63,6 +63,27 @@ export const STOPWORDS = new Set([
   "guys", "please", "okay", "yeah", "will", "thanks", "media", "omitted",
 ]);
 
+// build7 §3.2: pidgin/slang worth keeping even though it's short — without
+// this, the <4-char and no-vowel junk filters below would eat real chapter
+// vocabulary. Owner can extend before freeze.
+export const SLANG_WHITELIST = new Set([
+  "sha", "dey", "omo", "una", "abeg", "abi", "sef", "wey", "gan", "nau",
+  "haba", "ehn", "oya", "fam", "wahala",
+]);
+
+const RE_HAS_VOWEL = /[aeiou]/;
+
+/** True for tokens that are noise, not vocabulary — the owner's "tf is pts?"
+    A word of the year should be a word a human recognises: at least 4 chars
+    (unless it's known slang) and not a consonant-only fragment like `pts`,
+    `pvt`, `gdg`. */
+export function isJunkWord(word: string): boolean {
+  if (SLANG_WHITELIST.has(word)) return false;
+  if (word.length < 4) return true;
+  if (!RE_HAS_VOWEL.test(word)) return true;
+  return false;
+}
+
 // Curated topic buckets (build6 §6.2.3) — whole-word/whole-phrase,
 // case-insensitive. Plain data, exported so the owner can re-curate any
 // list before freeze without touching the engine.
@@ -150,7 +171,7 @@ function wordsOfYear(messages: ClassifiedMessage[], nameStops: Set<string>): Wor
     const matches = withoutLinks.toLowerCase().match(RE_WORD);
     if (!matches) continue;
     for (const w of matches) {
-      if (STOPWORDS.has(w) || nameStops.has(w)) continue;
+      if (STOPWORDS.has(w) || nameStops.has(w) || isJunkWord(w)) continue;
       counts.set(w, (counts.get(w) ?? 0) + 1);
     }
   }

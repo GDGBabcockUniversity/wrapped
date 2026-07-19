@@ -1,10 +1,39 @@
 import { describe, it, expect } from "vitest";
-import { computeGroupTopics, TOPIC_BUCKETS, STOPWORDS } from "./topics";
+import { computeGroupTopics, TOPIC_BUCKETS, STOPWORDS, isJunkWord } from "./topics";
 
 const YEAR_START = new Date("2025-09-01T00:00:00Z");
 const YEAR_END = new Date("2026-08-01T00:00:00Z");
 
+describe("isJunkWord — 'tf is pts?'", () => {
+  it("drops consonant-only fragments", () => {
+    expect(isJunkWord("pts")).toBe(true);
+    expect(isJunkWord("pvt")).toBe(true);
+    expect(isJunkWord("gdg")).toBe(true);
+  });
+  it("drops sub-4-char tokens that aren't known slang", () => {
+    expect(isJunkWord("don")).toBe(true);
+    expect(isJunkWord("ohh")).toBe(true);
+  });
+  it("keeps real words and whitelisted slang", () => {
+    expect(isJunkWord("babcock")).toBe(false);
+    expect(isJunkWord("people")).toBe(false);
+    expect(isJunkWord("sha")).toBe(false);
+    expect(isJunkWord("abeg")).toBe(false);
+  });
+});
+
 describe("computeGroupTopics — words of the year", () => {
+  it("excludes junk tokens like 'pts' from the vocabulary", () => {
+    const text = [
+      "01/10/2025, 09:00 - Ada Lovelace: pts pts pts wonderful",
+      "01/10/2025, 09:05 - Chido: wonderful wonderful",
+    ].join("\n");
+    const { wordsOfYear } = computeGroupTopics(text, YEAR_START, YEAR_END);
+    expect(wordsOfYear.find((w) => w.word === "pts")).toBeUndefined();
+    expect(wordsOfYear[0]).toEqual({ word: "wonderful", count: 3 });
+  });
+
+
   it("counts tokens >=3 chars, excluding stopwords and roster names", () => {
     const text = [
       "01/10/2025, 09:00 - Ada Lovelace: zephyr zephyr wobble",
