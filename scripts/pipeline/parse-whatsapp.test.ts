@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseWhatsAppExports } from "./parse-whatsapp";
+import { parseWhatsAppExports, detectDateOrder } from "./parse-whatsapp";
 
 const YEAR_START = new Date("2025-09-01T00:00:00Z");
 const YEAR_END = new Date("2026-08-01T00:00:00Z");
@@ -117,6 +117,52 @@ describe("parseWhatsAppExports", () => {
     const file1 = `01/10/2025, 09:43 - Ada Lovelace: hello`;
     const file2 = `02/10/2025, 09:43 - Ada Lovelace: hello again`;
     const stats = parseWhatsAppExports([file1, file2], YEAR_START, YEAR_END);
+    expect(stats.get("Ada Lovelace")?.messageCount).toBe(2);
+  });
+});
+
+describe("detectDateOrder — the US month-first dialect (2026-07-19 data drop)", () => {
+  it("detects month-first from a second slot > 12", () => {
+    const content = [
+      "[7/13/26, 10:50:57 PM] Ada Lovelace: month-first, 13 can't be a month",
+      "[9/9/25, 1:00:54 AM] Ada Lovelace: ambiguous alone",
+    ].join("\n");
+    expect(detectDateOrder(content)).toBe("mdy");
+  });
+
+  it("detects day-first from a first slot > 12", () => {
+    const content = "27/10/2025, 21:39 - Ada Lovelace: day-first";
+    expect(detectDateOrder(content)).toBe("dmy");
+  });
+
+  it("defaults to day-first when no line is decisive", () => {
+    expect(detectDateOrder("[9/9/25, 1:00:54 AM] Ada Lovelace: hi")).toBe("dmy");
+  });
+
+  it("parses a month-first file into the correct months", () => {
+    // 10/3/25 is OCTOBER 3 in a month-first file — the old day-first
+    // assumption read it as March 10 and smeared whole months around.
+    const content = [
+      "[10/3/25, 9:00:00 AM] Ada Lovelace: october message",
+      "[10/19/25, 10:25:30 PM] Ada Lovelace: decisive line (19 can't be a month)",
+    ].join("\n");
+    const stats = parseWhatsAppExports([content], YEAR_START, YEAR_END);
+    const entry = stats.get("Ada Lovelace");
+    expect(entry?.messageCount).toBe(2);
+    expect(Object.keys(entry!.monthlyCounts)).toEqual(["2025-10"]);
+  });
+
+  it("keeps month-first slot2 > 12 dates inside the right year (no Date rollover)", () => {
+    const content = "[7/13/26, 10:50:57 PM] Ada Lovelace: july 13 2026";
+    const stats = parseWhatsAppExports([content], YEAR_START, YEAR_END);
+    expect(Object.keys(stats.get("Ada Lovelace")!.monthlyCounts)).toEqual(["2026-07"]);
+  });
+
+  it("detects order per file, not per batch", () => {
+    const dayFirst = "27/10/2025, 21:39 - Ada Lovelace: dmy file";
+    const monthFirst = "[10/19/25, 10:25:30 PM] Ada Lovelace: mdy file";
+    const stats = parseWhatsAppExports([dayFirst, monthFirst], YEAR_START, YEAR_END);
+    expect(Object.keys(stats.get("Ada Lovelace")!.monthlyCounts).sort()).toEqual(["2025-10"]);
     expect(stats.get("Ada Lovelace")?.messageCount).toBe(2);
   });
 });

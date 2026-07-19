@@ -1,4 +1,4 @@
-import { parseLine, cleanBody, normalizeSenderKey } from "./parse-whatsapp";
+import { parseLine, cleanBody, normalizeSenderKey, detectDateOrder } from "./parse-whatsapp";
 
 /**
  * Computes the Group Chat story's fun stats (build5 §4-§5) from raw
@@ -68,9 +68,10 @@ interface ClassifiedMessage {
     to count them (build5 §5.1's `deleted` stat). */
 function classifyExport(content: string, yearStart: Date, yearEnd: Date): ClassifiedMessage[] {
   const out: ClassifiedMessage[] = [];
+  const order = detectDateOrder(content);
   for (const rawLine of content.split(/\r?\n/)) {
     if (rawLine.trim() === "") continue;
-    const parsed = parseLine(rawLine);
+    const parsed = parseLine(rawLine, order);
     if (parsed === "system" || parsed === null) continue;
 
     const { date, senderRaw, body } = parsed;

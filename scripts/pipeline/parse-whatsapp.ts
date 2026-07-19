@@ -23,6 +23,39 @@ const RE_IOS_SYSTEM =
 
 const BIDI_MARKS = /[‎‏‪-‮]/g;
 
+/**
+ * WhatsApp writes dates in the PHONE's locale — the 2026-07-19 full data
+ * drop mixed day-first files (`27/10/2025, 21:39 -`, `[09/09/2025,
+ * 01:03:22]`) with US month-first files (`[7/13/26, 10:50:57 PM]`) in the
+ * same batch. Day-first parsing of a month-first file silently smears
+ * messages into wrong months (10/3 → March 10) and even wrong YEARS
+ * (slot2 > 12 rolls the JS Date over), so the order must be detected per
+ * file, never assumed.
+ */
+export type DateOrder = "dmy" | "mdy";
+
+const RE_ANY_TIMESTAMP = /^\[?(\d{1,2})\/(\d{1,2})\/(\d{2,4}), \d{1,2}:\d{2}/;
+
+/** Scans a whole export and votes: a first slot > 12 is day-first
+    evidence, a second slot > 12 is month-first evidence. Real exports span
+    weeks, so decisive lines always exist; undecided files (possible only
+    for tiny fixtures whose dates all sit ≤ 12/12) fall back to day-first,
+    the community's norm. */
+export function detectDateOrder(content: string): DateOrder {
+  let dmy = 0;
+  let mdy = 0;
+  for (const rawLine of content.split(/\r?\n/)) {
+    const m = stripBidi(rawLine).match(RE_ANY_TIMESTAMP);
+    if (!m) continue;
+    const slot1 = +m[1]!;
+    const slot2 = +m[2]!;
+    if (slot1 > 12) dmy += 1;
+    if (slot2 > 12) mdy += 1;
+  }
+  if (mdy > dmy) return "mdy";
+  return "dmy";
+}
+
 // Prefix match, not exact — the real WhatsApp export format (verified
 // against the 2026-07-19 main-chat export, build5 §5.1) has a trailing
 // period ("This message was deleted.") and an admin-deletion variant
@@ -90,13 +123,16 @@ export interface ParsedLine {
 }
 
 /** Exported for group-stats.ts (build5 §5.1) to reuse the dialect-parsing
-    logic instead of duplicating the Android/iOS regexes. */
-export function parseLine(rawLine: string): ParsedLine | "system" | null {
+    logic instead of duplicating the Android/iOS regexes. `order` comes from
+    detectDateOrder() run once over the whole file — slot meaning flips per
+    export, never per line. */
+export function parseLine(rawLine: string, order: DateOrder = "dmy"): ParsedLine | "system" | null {
   const line = stripBidi(rawLine);
 
   const android = line.match(RE_ANDROID_MESSAGE);
   if (android) {
-    const [, d, mo, y, h, mi, ampm, sender, body] = android;
+    const [, s1, s2, y, h, mi, ampm, sender, body] = android;
+    const [d, mo] = order === "mdy" ? [s2, s1] : [s1, s2];
     return {
       date: buildDate(+d!, +mo!, +y!, +h!, +mi!, 0, ampm),
       senderRaw: sender!,
@@ -106,7 +142,8 @@ export function parseLine(rawLine: string): ParsedLine | "system" | null {
 
   const ios = line.match(RE_IOS_MESSAGE);
   if (ios) {
-    const [, d, mo, y, h, mi, s, ampm, sender, body] = ios;
+    const [, s1, s2, y, h, mi, s, ampm, sender, body] = ios;
+    const [d, mo] = order === "mdy" ? [s2, s1] : [s1, s2];
     return {
       date: buildDate(+d!, +mo!, +y!, +h!, +mi!, s ? +s : 0, ampm),
       senderRaw: sender!,
@@ -134,11 +171,12 @@ export function parseWhatsAppExports(
   const stats = new Map<string, SenderStats>();
 
   for (const content of fileContents) {
+    const order = detectDateOrder(content);
     const lines = content.split(/\r?\n/);
 
     for (const rawLine of lines) {
       if (rawLine.trim() === "") continue;
-      const parsed = parseLine(rawLine);
+      const parsed = parseLine(rawLine, order);
 
       // System lines and continuation lines never increment any count.
       if (parsed === "system" || parsed === null) continue;
