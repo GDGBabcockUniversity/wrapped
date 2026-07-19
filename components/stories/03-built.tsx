@@ -12,6 +12,8 @@ import { StripeCircleFigure } from "@/components/gl/static-figure";
 import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { StickerChip } from "@/components/sticker-chip";
 import { SlamStat } from "@/components/slam-stat";
+import { IdleFloat } from "@/components/idle-float";
+import { vibrate } from "@/lib/haptics";
 import { useBuiltGuess } from "./built-guess";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
@@ -54,22 +56,69 @@ const WEBSITE_COLOR = colorFor("GDG WEBSITE");
 const B100_COLOR = colorFor("BABCOCK 100");
 
 const SCATTER_ROTATIONS = [-3, 2, -1, 3, -2];
+const LOGO_STAMP_MS = 260;
 
-/** A sticker chip with a per-item resting rotation, for scattered clusters
-    of names (build5 §3.2: the ORBIT company chips). */
-function ScatterChip({ children, index }: { children: ReactNode; index: number }) {
+/** The ORBIT company beat, upgraded from named chips to faces (build6
+    §2.5 — owner: "instead of naming the 5 companies, use their logos and
+    add proper motion"). Logos need a light field on this ink story, so
+    each sits on its own paper chip; a missing/failed file falls back to
+    the name in the SAME chip — never a broken image, never a blank. */
+const COMPANY_LOGOS: Record<string, string> = {
+  PAYSTACK: "/logos/companies/paystack.png",
+  "DIGITAL ENCODE": "/logos/companies/digital-encode.png",
+  RISE: "/logos/companies/rise.png",
+  NITHUB: "/logos/companies/nithub.png",
+  CUBBES: "/logos/companies/cubbes.png",
+};
+
+function LogoChip({ name, index }: { name: string; index: number }) {
   const reduceMotion = useReducedMotion();
+  const [failed, setFailed] = useState(false);
   const rot = SCATTER_ROTATIONS[index % SCATTER_ROTATIONS.length]!;
+  const src = COMPANY_LOGOS[name];
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const id = setTimeout(() => vibrate(6), index * LOGO_STAMP_MS);
+    return () => clearTimeout(id);
+  }, [reduceMotion, index]);
+
   return (
-    <motion.span
-      className="sticker-chip t-label"
-      style={{ rotate: 0, fontSize: "0.6rem" }}
-      initial={reduceMotion ? { rotate: rot } : { scale: 1.25, rotate: rot * 4, opacity: 0 }}
+    <motion.div
+      className="bg-paper rounded-md px-3 py-2 flex items-center justify-center h-10 sm:h-12"
+      style={{ rotate: 0 }}
+      initial={reduceMotion ? { rotate: rot } : { scale: 1.3, rotate: -6, opacity: 0 }}
       animate={{ scale: 1, rotate: rot, opacity: 1 }}
-      transition={reduceMotion ? { duration: 0.01 } : { ...SPRING.stamp, delay: index * 0.09 }}
+      transition={
+        reduceMotion ? { duration: 0.01 } : { ...SPRING.stamp, delay: (index * LOGO_STAMP_MS) / 1000 }
+      }
     >
-      {children}
-    </motion.span>
+      {src && !failed ? (
+        <img
+          src={src}
+          alt={name}
+          className="h-full w-auto object-contain"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span className="t-label text-ink" style={{ fontSize: "0.6rem" }}>
+          {name}
+        </span>
+      )}
+    </motion.div>
+  );
+}
+
+/** Once every chip has stamped in, the whole wall drifts as one group
+    (law 10 — the 4000ms hold stays alive). */
+function LogoWall({ names }: { names: readonly string[] }) {
+  const landedS = (names.length * LOGO_STAMP_MS) / 1000 + 0.4;
+  return (
+    <IdleFloat y={-3} duration={4} delay={landedS} className="flex flex-wrap justify-center gap-2 max-w-xs">
+      {names.map((n, i) => (
+        <LogoChip key={n} name={n} index={i} />
+      ))}
+    </IdleFloat>
   );
 }
 
@@ -183,6 +232,15 @@ interface SagaBeat {
   node: ReactNode;
 }
 
+// Law 12's hard floors (build6 §2.5): a connective line beat holds
+// LINE_BEAT_MS, a stat lands and holds STAT_BEAT_MS, and a beat with its
+// own continuous motion (marquee, logo wall) holds COMPOUND_BEAT_MS —
+// "moves too fast" and "lasts too long" both traced back to beats that
+// hadn't earned their hold.
+const LINE_BEAT_MS = 2200;
+const STAT_BEAT_MS = 3200;
+const COMPOUND_BEAT_MS = 4000;
+
 /** Every beat the saga can show, in order, with null-skipped TBDs already
     resolved out (build5 §3.1-3.2). Built once from static content — no
     hooks, no per-render recomputation. */
@@ -195,7 +253,7 @@ function buildSagaBeats(): SagaBeat[] {
   if (PRODUCT_SAGA.radar.articles) {
     beats.push({
       header: radarHeader,
-      ms: 1800,
+      ms: STAT_BEAT_MS,
       node: <StatBeat stat={PRODUCT_SAGA.radar.articles} color={RADAR_COLOR} />,
     });
   }
@@ -203,7 +261,7 @@ function buildSagaBeats(): SagaBeat[] {
     const mostRead = PRODUCT_SAGA.radar.mostRead;
     beats.push({
       header: radarHeader,
-      ms: 1800,
+      ms: STAT_BEAT_MS,
       node: (
         <div className="flex flex-col items-center gap-2">
           <StickerChip className="t-editorial">{String(mostRead.value)}</StickerChip>
@@ -214,7 +272,7 @@ function buildSagaBeats(): SagaBeat[] {
   }
   beats.push({
     header: radarHeader,
-    ms: 1800,
+    ms: COMPOUND_BEAT_MS,
     node: (
       <div className="flex flex-col items-center gap-3 w-full max-w-xs">
         <StatBeat stat={PRODUCT_SAGA.radar.games} color={RADAR_COLOR} />
@@ -229,61 +287,55 @@ function buildSagaBeats(): SagaBeat[] {
     if (PRODUCT_SAGA.votes.elections) {
       beats.push({
         header: votesHeader,
-        ms: 1800,
+        ms: STAT_BEAT_MS,
         node: <StatBeat stat={PRODUCT_SAGA.votes.elections} color={VOTES_COLOR} />,
       });
     }
     if (PRODUCT_SAGA.votes.votesCast) {
       beats.push({
         header: votesHeader,
-        ms: 1600,
+        ms: STAT_BEAT_MS,
         node: <StatBeat stat={PRODUCT_SAGA.votes.votesCast} color={VOTES_COLOR} />,
       });
     }
   } else {
     beats.push({
       header: votesHeader,
-      ms: 1800,
+      ms: LINE_BEAT_MS,
       node: <LineBeat text={PRODUCT_SAGA.votes.fallbackLine} />,
     });
   }
 
   // ORBIT — the centerpiece. Every VERIFIED beat always renders.
   const orbitHeader: ChapterHeader = { label: "ORBIT", color: ORBIT_COLOR };
-  beats.push({ header: orbitHeader, ms: 1400, node: <LineBeat text={PRODUCT_SAGA.orbit.intro} fast /> });
+  beats.push({ header: orbitHeader, ms: LINE_BEAT_MS, node: <LineBeat text={PRODUCT_SAGA.orbit.intro} fast /> });
   beats.push({
     header: orbitHeader,
-    ms: 2200,
+    ms: COMPOUND_BEAT_MS,
     node: (
       <div className="flex flex-col items-center gap-3">
         <StatBeat stat={PRODUCT_SAGA.orbit.companies} color={ORBIT_COLOR} />
-        <div className="flex flex-wrap justify-center gap-2 max-w-xs">
-          {PRODUCT_SAGA.orbit.companyNames.map((n, i) => (
-            <ScatterChip key={n} index={i}>
-              {n}
-            </ScatterChip>
-          ))}
-        </div>
+        <LogoWall names={PRODUCT_SAGA.orbit.companyNames} />
       </div>
     ),
   });
   if (PRODUCT_SAGA.orbit.lagos) {
     beats.push({
       header: orbitHeader,
-      ms: 1800,
+      ms: STAT_BEAT_MS,
       node: <StatBeat stat={PRODUCT_SAGA.orbit.lagos} color={ORBIT_COLOR} />,
     });
   }
   if (PRODUCT_SAGA.orbit.careerFair) {
     beats.push({
       header: orbitHeader,
-      ms: 1800,
+      ms: STAT_BEAT_MS,
       node: <StatBeat stat={PRODUCT_SAGA.orbit.careerFair} color={ORBIT_COLOR} />,
     });
   }
   beats.push({
     header: orbitHeader,
-    ms: 2400,
+    ms: STAT_BEAT_MS,
     node: (
       <DualStatBeat
         primary={PRODUCT_SAGA.orbit.summit ?? PRODUCT_SAGA.orbit.speakers}
@@ -294,18 +346,21 @@ function buildSagaBeats(): SagaBeat[] {
   });
   beats.push({
     header: orbitHeader,
-    ms: 1600,
+    ms: STAT_BEAT_MS,
     node: <StatBeat stat={PRODUCT_SAGA.orbit.tickets} color={ORBIT_COLOR} />,
   });
   beats.push({
     header: orbitHeader,
-    ms: 1600,
+    ms: STAT_BEAT_MS,
     node: <StatBeat stat={PRODUCT_SAGA.orbit.sponsors} color={ORBIT_COLOR} />,
   });
-  beats.push({ header: orbitHeader, ms: 1400, node: <LineBeat text={PRODUCT_SAGA.orbit.headlineTease} /> });
+  beats.push({ header: orbitHeader, ms: LINE_BEAT_MS, node: <LineBeat text={PRODUCT_SAGA.orbit.headlineTease} /> });
   beats.push({
     header: orbitHeader,
-    ms: 1800,
+    // The held-breath headline reveal (law 12): SlamStat's own
+    // slice-assemble lands in ~0.32s, so STAT_BEAT_MS still leaves it a
+    // ≥2600ms hold after the slam settles.
+    ms: STAT_BEAT_MS,
     node: (
       <div className="flex flex-col items-center gap-3">
         {/* "t-monument sizing" per build5 §3.2 — the raw clamp(9rem,62cqw,
@@ -326,14 +381,14 @@ function buildSagaBeats(): SagaBeat[] {
   if (PRODUCT_SAGA.website) {
     beats.push({
       header: { label: "GDG WEBSITE", color: WEBSITE_COLOR },
-      ms: 2600,
+      ms: STAT_BEAT_MS,
       node: <StatBeat stat={PRODUCT_SAGA.website} color={WEBSITE_COLOR} />,
     });
   }
   if (PRODUCT_SAGA.babcock100) {
     beats.push({
       header: { label: "BABCOCK 100", color: B100_COLOR },
-      ms: 2600,
+      ms: STAT_BEAT_MS,
       node: <StatBeat stat={PRODUCT_SAGA.babcock100} color={B100_COLOR} />,
     });
   }
