@@ -228,7 +228,29 @@ function FoilCard({
         <div
           className={`h-[34%] rounded-lg mt-4 relative ${PATTERN_CLASS[club.pattern]}`}
           style={{ color: club.hex, opacity: 0.25, backgroundColor: "#0f0f0f" }}
-        />
+        >
+          {/* Newsprint/xerox collage texture (build4 §9.1) — the pattern
+              panel treated like the reference's top-song album art: a
+              halftone overlay plus two stripe fragments bleeding off the
+              corners, one carrying the accent runner. */}
+          <div aria-hidden className="absolute inset-0 pattern-halftone" style={{ color: "#0f0f0f", opacity: 0.5 }} />
+          <div
+            aria-hidden
+            className="collage-runner absolute h-3 w-24 -top-1.5 -right-3 rotate-[4deg]"
+            style={{
+              backgroundImage: "repeating-linear-gradient(90deg, #fff6e0 0 8px, #0f0f0f 8px 16px)",
+            }}
+          >
+            <span style={{ color: club.hex }} />
+          </div>
+          <div
+            aria-hidden
+            className="absolute h-3 w-16 -bottom-1.5 -left-3 rotate-[-3deg]"
+            style={{
+              backgroundImage: "repeating-linear-gradient(90deg, #fff6e0 0 8px, #0f0f0f 8px 16px)",
+            }}
+          />
+        </div>
 
         <p
           className="t-display mt-4 relative"

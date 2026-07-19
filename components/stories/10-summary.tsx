@@ -48,6 +48,19 @@ export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-6 pt-20 pb-16 gap-5">
       <AmbientScribbles field="ink" />
+      {/* The bookend (build4 §9.2): the overture opens with red numerals
+          driving through; the summary parks a cropped green pair under the
+          card — open loud, close settled, same voice. */}
+      <motion.p
+        aria-hidden
+        className="absolute -bottom-[6%] -left-[8%] -z-10 t-monument text-gdg-green pointer-events-none"
+        style={{ rotate: -6 }}
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={reduceMotion ? { duration: 0.15 } : { ...SPRING.default, delay: 0.6 }}
+      >
+        25/26
+      </motion.p>
       <IdleFloat y={-4} duration={5} delay={1.2}>
       <motion.div
         initial={{ y: 24, opacity: 0 }}

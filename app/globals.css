@@ -279,6 +279,30 @@ body {
   );
 }
 
+/* ---------- Club card collage: the stripe fragment's accent runner
+   (build4 §9.1) — a real child span, not a literal ::after, so the sweep
+   animates `transform` (compositor-friendly) instead of `left`. ---------- */
+.collage-runner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.collage-runner > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -8px;
+  width: 8px;
+  background: currentColor;
+  animation: collage-runner-sweep 2.6s linear infinite;
+}
+@keyframes collage-runner-sweep {
+  to {
+    transform: translateX(112px);
+  }
+}
+
 /* ---------- Toast entrance (§3.8) ---------- */
 .toast {
   transition:
