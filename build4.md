@@ -530,6 +530,66 @@ open loud, close settled, same voice.
   shear → none; guess game → fill+check, fully playable; three-beat
   layering → kept (opacity only). Nothing is ever an empty region.
 
+## 10A. Product receipts — real platform stats in What We Built
+
+Added after the second data drop (2026-07-19). The owner: ORBIT, Babcock
+Votes, and Radar all have real usage stats, and "itd be nice if all of
+these were displayed." This section puts them in the one story that is
+about the products — `03-built.tsx` — as the payoff layer the reference's
+stat screens taught us (§law 3): each product's number slams in when its
+row takes focus.
+
+### 10A.1 The data (already in place — `lib/content/chapter.ts`)
+
+`PRODUCT_STATS: Record<name, ProductStat | null>` with
+`ProductStat = { value: number; label: string; detail?: string }`. Static
+content, NOT a DB read — the public story path keeps its zero-database
+guarantee (build.md architecture); the pipeline report prints platform
+totals (Radar's reads + plays come from the auth DB's radar tables) and a
+lead copies final numbers in before copy freeze.
+
+Current state: ORBIT confirmed real (`547 TICKETS ISSUED`, detail
+"252 checked in" — read off the ORBIT admin dashboard 2026-07-19; the
+site has no CSV export UI yet, the per-guest export follows later). The
+other four are `null` (TBD-confirm: BabcockVotes total votes cast, Radar
+reads + plays via the pipeline report, website analytics, Babcock 100).
+
+### 10A.2 Step-by-step display spec
+
+1. **Row anatomy** (`03-built.tsx`): under each product row's name bar, a
+   stat line slot, height reserved only when that product's stat is
+   non-null (a null stat renders NOTHING — no blank, no "0", per the
+   §15 build.md rule).
+2. **The beat**: the existing active-row cycle (`ACTIVE_CYCLE_MS = 1800`)
+   already walks the five rows. When a row with a stat becomes active:
+   - the stat line mounts: `SlamStat` (§5.1) at `t-stat` sized
+     `clamp(1.1rem, 5cqw, 1.6rem)`, tabular-nums, in the product's accent
+     (`text-gdg-{color}`), followed by the `label` in `t-label
+     text-cream/60`, and `detail` (when present) in `t-body text-cream/45
+     text-xs` right-aligned on the same line.
+   - haptic none (five slams in nine seconds would cheapen the club
+     flip's haptic — the visual slam is enough here).
+   - when the cycle moves on, the stat line collapses (`opacity 0, height
+     0`, 200ms) — one stat on screen at a time, law 1.
+3. **Reduced motion**: stat renders statically with its row, always
+   visible for stat-carrying rows, no slam, no collapse.
+4. **The guess game handoff** (§8): the stats cycle completes one full
+   pass BEFORE the game morph (the game's 9000ms trigger already equals
+   one full cycle — unchanged). During the game, stat lines stay hidden
+   (the outlined-card morph replaces the bars entirely) — the guess is
+   about history, not the numbers just shown.
+5. **Share card**: `BuiltCard` (`components/share/card-layouts.tsx`) adds
+   the same stat under each product row it lists, same null-renders-
+   nothing rule — satori layout, plain text, no animation.
+
+### 10A.3 Verification
+
+With only ORBIT filled: exactly one row ever shows a stat, the other four
+cycle without empty space (measure row heights — stat-less rows must not
+reserve the slot). Fill a second fake stat locally and confirm two-stat
+cycling; revert before commit. Reduced-motion pass shows ORBIT's stat
+statically. `BuiltCard` renders unchanged for stat-less products.
+
 ## 11. Sequencing
 
 Each its own commit, this order (every step leaves the app shippable):
@@ -549,9 +609,12 @@ Each its own commit, this order (every step leaves the app shippable):
    §7.
 7. `feat(stories): the guess game` — §8 (GUESS_GAME content + built-guess
    + registry built revealMs 15000 + onComplete wiring).
-8. `feat(stories): club collage and summary bookend` — §9.
+8. `feat(stories): product stat slams in What We Built` — §10A (depends
+   on §5's SlamStat; the PRODUCT_STATS content block already shipped
+   with the data-drop commits).
+9. `feat(stories): club collage and summary bookend` — §9.
 
-Verification gates (run after 2, 5, and 8): `tsc`, `eslint`, `vitest`,
+Verification gates (run after 2, 5, and 9): `tsc`, `eslint`, `vitest`,
 production build, then a real-device pass on one iPhone + one Android
 checking, in order: the overture reads as spectacle-then-breath (not two
 unrelated screens); every screen has exactly one thing visibly alive
@@ -563,8 +626,10 @@ is exempt per §8.2.
 
 ## 12. What this pass deliberately does not do
 
-- No new share-card work, no pipeline/data changes, no new snapshot
-  fields — the guess game runs on chapter facts with one TBD-confirm.
+- No new snapshot fields and no DB reads on the public path — the guess
+  game and the §10A product stats both run on static chapter facts
+  (§10A.2 step 5's BuiltCard tweak is the one piece of share-card work
+  in this pass, and it's layout-only).
 - No per-story music stingers (build2 §12.2's one-bed rule stands).
 - Moments and your-club keep their existing choreography cores — they
   were built to their own metaphors (scrapbook, foil ritual) and already

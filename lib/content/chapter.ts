@@ -5,7 +5,12 @@ export const CHAPTER = {
   // since inception, of whom 504 are active 25/26 track members per the
   // membership form. The receipt renders this with a "+" suffix.
   members: 1600,
-  eventsRun: 23, // TBD-confirm
+  // Confirmed floor from real exports so far: 7 dated events (info session,
+  // two monthly meetups, Allstars, two DevFest-weekend tracks, the Feb
+  // workshop) + ORBIT 1.0. The old 23 was wrong (owner, 2026-07-19: "i dont
+  // think we had up to 15" — and DevFest itself was attended, not organized,
+  // so it never counts here). Remaining exports may nudge this up.
+  eventsRun: 8,
   productsShipped: 5,
   totalCheckins: 1400, // TBD-confirm (pipeline report will supply the real value)
   messagesParsed: 13000, // TBD-confirm (pipeline report will supply the real value)
@@ -26,9 +31,12 @@ export const MOMENTS: Moment[] = [
     images: ["/moments/orbit/01.jpg", "/moments/orbit/02.jpg", "/moments/orbit/03.jpg"],
   },
   {
+    // DevFest was attended, not organized — the caption owns that honestly
+    // (it stays a Moment because the photos are real chapter memories, but
+    // it must never read as one of OUR events).
     id: "devfest",
     title: "DEVFEST",
-    caption: "The big one. Babcock showed up.",
+    caption: "Not ours. We showed up anyway.",
     images: ["/moments/devfest/01.jpg", "/moments/devfest/02.jpg"],
   },
   {
@@ -52,6 +60,27 @@ export const PRODUCTS = [
   { num: "04", name: "ORBIT", color: "red", url: "orbit.gdgbabcock.com" },
   { num: "05", name: "BABCOCK 100", color: "yellow", url: "babcock100.com" },
 ] as const;
+
+// Per-product headline stats for the What We Built story (build4 §13) —
+// static content, keyed by PRODUCTS[].name, because the public story path
+// has ZERO database dependency (build.md architecture): the pipeline report
+// prints platform totals and a lead copies them here before copy freeze.
+// null = no stat yet; the row renders without one (never a blank or a "0").
+export interface ProductStat {
+  value: number; // the slam numeral
+  label: string; // small-caps label beside/under it
+  detail?: string; // optional second line, e.g. check-in count
+}
+export const PRODUCT_STATS: Record<(typeof PRODUCTS)[number]["name"], ProductStat | null> = {
+  "GDG WEBSITE": null, // TBD-confirm (site analytics)
+  "BABCOCKVOTES": null, // TBD-confirm — owner: stats exist; number pending
+  "RADAR": null, // TBD-confirm — pipeline report will total reads + plays
+  // Confirmed 2026-07-19 from the ORBIT admin dashboard (no CSV export UI
+  // yet — owner exports the per-guest data later; these headline numbers
+  // are real today).
+  "ORBIT": { value: 547, label: "TICKETS ISSUED", detail: "252 checked in" },
+  "BABCOCK 100": null, // TBD-confirm
+};
 
 // The Builders board (§11.6 build2.md, Story 4's "THE BUILDERS" chapter) —
 // per-product crew names, keyed by PRODUCTS[].name. TBD-confirm: empty until

@@ -54,8 +54,15 @@ committing). Any nesting is allowed; every `*.csv` under it is read.
 3. **Luma**: each event → Guests → Export CSV (contains `approval_status`,
    `registered_at`, `checked_in_at`). Name it `YYYY-MM-DD-event-name.csv`
    under `data/sources/luma/`.
-4. **ORBIT sheets**: export each sheet as CSV with at least an Email column
-   and a "Checked In" (Yes/No) column, under `data/sources/orbit/`.
+4. **ORBIT registrations**: the data lives in ORBIT's own admin
+   (orbit.gdgbabcock.com) which has NO CSV export UI yet — the owner will
+   export it later (build an export or copy the table out). When it lands,
+   drop it under `data/sources/orbit/` with an Email column and a check-in
+   column/timestamp. Until then the confirmed headline numbers (read off
+   the admin dashboard 2026-07-19: 547 tickets issued, 252 checked in for
+   ORBIT 1.0) live in `PRODUCT_STATS` (chapter.ts) for display — but
+   per-member ORBIT activity stays out of the stats until the real export
+   exists.
 5. **Membership form** (added after the first real uploads, 2026-07-18): the
    Google Forms "GDG Babcock Membership Form (25/26 session)" responses CSV,
    saved under `data/sources/forms/` with "member" in the filename (that's
