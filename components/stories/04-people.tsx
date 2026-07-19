@@ -13,6 +13,7 @@ import { useGlQualityContext } from "@/components/gl/quality-context";
 import { QuarterRingsFigure } from "@/components/gl/static-figure";
 import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { StickerChip } from "@/components/sticker-chip";
+import { playSfx } from "@/lib/sfx";
 import type { StoryProps } from "./types";
 
 /**
@@ -671,6 +672,7 @@ export function PeopleStory({ phase, active, paused, onComplete }: StoryProps) {
       const chapter = CHAPTERS[idx]!;
       setChapterIdx(idx);
       setShowCard(true);
+      playSfx("tick");
       timers.push(
         setTimeout(() => {
           if (cancelled) return;

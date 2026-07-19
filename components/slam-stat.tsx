@@ -4,6 +4,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { SPRING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
+import { playSfx } from "@/lib/sfx";
 
 /**
  * The slice-assemble monument numeral (build4 §5.1) — replaces count-up
@@ -40,6 +41,7 @@ export function SlamStat({
     if (fired.current || reduceMotion) return;
     fired.current = true;
     vibrate(10);
+    playSfx("thud");
   }, [reduceMotion]);
 
   if (reduceMotion) {

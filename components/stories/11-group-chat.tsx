@@ -11,6 +11,7 @@ import { SPRING } from "@/lib/stories";
 import { useGlQualityContext } from "@/components/gl/quality-context";
 import { StripeBandFigure } from "@/components/gl/static-figure";
 import { ACCENT_HEX } from "@/components/gl/shaders";
+import { playSfx } from "@/lib/sfx";
 import type { StoryProps } from "./types";
 
 /**
@@ -245,7 +246,10 @@ export function GroupChatStory({ phase, active, paused }: StoryProps) {
     if (phase !== "reveal" || !active || paused) return;
     const ms = BEAT_MS[beatIdx] ?? 2200;
     if (beatIdx >= BEATS.length - 1) return; // hold on the final beat
-    const id = setTimeout(() => setBeatIdx((i) => i + 1), ms);
+    const id = setTimeout(() => {
+      setBeatIdx((i) => i + 1);
+      playSfx("tick");
+    }, ms);
     return () => clearTimeout(id);
   }, [phase, active, paused, beatIdx]);
 

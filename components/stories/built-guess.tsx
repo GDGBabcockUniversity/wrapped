@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { GUESS_GAME, PRODUCTS } from "@/lib/content/chapter";
 import { fmt } from "@/lib/copy";
 import { vibrate } from "@/lib/haptics";
+import { playSfx } from "@/lib/sfx";
 
 /**
  * The tap-to-guess reactive beat's state machine (build4 §8) — game state
@@ -43,6 +44,7 @@ export function useBuiltGuess(active: boolean, onComplete?: () => void) {
     const correct = i === GUESS_GAME.answerIndex;
     setAnswer({ index: i, correct });
     vibrate(correct ? 10 : [8, 30, 8]);
+    playSfx(correct ? "blip-up" : "blip-down");
     setTimeout(() => onComplete?.(), HOLD_MS);
   }
 

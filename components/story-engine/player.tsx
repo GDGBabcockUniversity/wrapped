@@ -15,6 +15,7 @@ import { TapZones } from "./tap-zones";
 import { preloadStoryAssets } from "./preloader";
 import { useStoryEngine } from "./use-story-state";
 import { startAudio } from "@/lib/audio";
+import { initSfx, playSfx } from "@/lib/sfx";
 import type { Snapshot } from "@/lib/snapshot";
 import { copy } from "@/lib/copy";
 import { ShareButton } from "@/components/share/share-button";
@@ -192,6 +193,15 @@ export function Player() {
     track("story_view", { id: STORIES[state.storyIndex]!.id });
   }, [state.storyIndex]);
 
+  // build6 §5.1: the camera whip gets a whoosh — every genuine index
+  // change, not the initial mount (prevIndexRef starts equal to the first
+  // render's index, so the first effect run is a no-op).
+  const prevIndexRef = useRef(state.storyIndex);
+  useEffect(() => {
+    if (prevIndexRef.current !== state.storyIndex) playSfx("whoosh");
+    prevIndexRef.current = state.storyIndex;
+  }, [state.storyIndex]);
+
   useEffect(() => {
     if (!dbDegraded) return;
     const timeout = setTimeout(() => setDbDegraded(false), 5000);
@@ -202,14 +212,19 @@ export function Player() {
     preloadStoryAssets(state.storyIndex);
   }, [state.storyIndex]);
 
-  // The ambient loop can only start from a user gesture (autoplay policy) —
-  // arm one-shot listeners for the first tap or keypress inside the player.
+  // The ambient loop and the SFX engine can only start from a user gesture
+  // (autoplay policy) — arm one-shot listeners for the first tap or
+  // keypress inside the player.
   useEffect(() => {
-    window.addEventListener("pointerdown", startAudio, { once: true, capture: true });
-    window.addEventListener("keydown", startAudio, { once: true, capture: true });
+    function unlock() {
+      startAudio();
+      initSfx();
+    }
+    window.addEventListener("pointerdown", unlock, { once: true, capture: true });
+    window.addEventListener("keydown", unlock, { once: true, capture: true });
     return () => {
-      window.removeEventListener("pointerdown", startAudio, { capture: true });
-      window.removeEventListener("keydown", startAudio, { capture: true });
+      window.removeEventListener("pointerdown", unlock, { capture: true });
+      window.removeEventListener("keydown", unlock, { capture: true });
     };
   }, []);
 

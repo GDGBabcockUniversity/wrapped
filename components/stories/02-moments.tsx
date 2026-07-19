@@ -9,6 +9,7 @@ import { MOMENTS, GROUP_CHAT } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
+import { playSfx } from "@/lib/sfx";
 import type { StoryProps } from "./types";
 
 interface Scene {
@@ -389,6 +390,7 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
         setTimeout(() => {
           if (cancelled) return;
           setWiping(true);
+          playSfx("tick");
           timers.push(
             setTimeout(() => {
               if (cancelled) return;

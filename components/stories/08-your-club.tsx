@@ -8,6 +8,7 @@ import { KineticWords } from "@/components/kinetic-words";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
+import { playSfx } from "@/lib/sfx";
 import type { StoryProps } from "./types";
 import type { ClubId } from "@/lib/snapshot";
 
@@ -162,6 +163,7 @@ function FoilCard({
 
   useEffect(() => {
     vibrate([12, 40, 12]); // the flip lands like a physical card
+    playSfx("shimmer");
   }, []);
 
   function onPointerMove(e: React.PointerEvent) {
