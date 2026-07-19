@@ -42,7 +42,11 @@ export interface StoryDef {
 
 export const STORIES: StoryDef[] = [
   { id: "the-year", index: 0, personal: false, accent: "blue", field: "ink", setupMs: 5600, revealMs: 8000, label: "The Year" },
-  { id: "moments", index: 1, personal: false, accent: "red", field: "cream", setupMs: 3000, revealMs: 13000, label: "The Moments" },
+  // revealMs 13000 → 15000 (build5 §7.4): SCENE_MS 4300 → 4800, scripted
+  // 3 × 4800 = 14,400ms; the last scene holds statically (no interaction
+  // to protect), so this story's existing modest-headroom precedent
+  // applies, not the strict 80% rule used elsewhere.
+  { id: "moments", index: 1, personal: false, accent: "red", field: "cream", setupMs: 3000, revealMs: 15000, label: "The Moments" },
   // revealMs covers the product saga's fully-filled worst case (build5 §3.2):
   // rollcall 4500 + RADAR-full 5400 + VOTES-full 3400 + ORBIT-full 16000
   // (1400+2200+1800+1800+2400+1600+1600+1400+1800) + quick beats 5200 =

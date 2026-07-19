@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { PopLetters } from "@/components/pop-letters";
-import { MOMENTS } from "@/lib/content/chapter";
+import { StickerChip } from "@/components/sticker-chip";
+import { MOMENTS, GROUP_CHAT } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import type { StoryProps } from "./types";
@@ -14,33 +15,46 @@ interface Scene {
   title: string;
   caption: string;
   photos: string[];
+  /** One stat stinger, pinned to the scene's first supporting photo
+      (build5 §7.2) — the connective tissue back to the group chat's own
+      numbers. Omitted entirely when there's nothing verified to say. */
+  stat?: string;
 }
 
 const SCENES: Scene[] = [
-  { id: "orbit", title: MOMENTS[0]!.title, caption: MOMENTS[0]!.caption, photos: MOMENTS[0]!.images },
+  {
+    id: "orbit",
+    title: MOMENTS[0]!.title,
+    caption: MOMENTS[0]!.caption,
+    photos: MOMENTS[0]!.images,
+    stat: "547 TICKETS", // VERIFIED — build5 §3.1, ORBIT admin dashboard
+  },
   { id: "devfest", title: MOMENTS[1]!.title, caption: MOMENTS[1]!.caption, photos: MOMENTS[1]!.images },
   {
     id: "games-spaces",
     title: "GAMES & SPACES",
     caption: "Loud nights, longer talks.",
     photos: [...MOMENTS[2]!.images, ...MOMENTS[3]!.images].slice(0, 4),
+    stat: `${GROUP_CHAT.busiestDay.count.toLocaleString("en-US")} MESSAGES IN ONE NIGHT`,
   },
 ];
 
-const SCENE_MS = 4300;
+const SCENE_MS = 4800;
 const WIPE_MS = 280;
 
-// Varied scrapbook positions depending on photo index
+// Varied scrapbook positions depending on photo index. The hero (index 0)
+// grows to 82cqw/320 and carries the scene title on its own corner (build5
+// §7.1); supporting photos scale up 1.2x from their build2 sizes.
 const GET_PHOTO_STYLE = (index: number, total: number) => {
   const styles = [
     // Hero photo
-    { x: "0%", y: "-5%", r: -4, w: "65cqw", maxW: 240, frame: "polaroid", enter: { y: "-100%", x: "0%" }, tape: true },
+    { x: "0%", y: "-5%", r: -4, w: "82cqw", maxW: 320, frame: "polaroid", enter: { y: "-100%", x: "0%" }, tape: true },
     // Supporting photo 1
-    { x: "-15%", y: "15%", r: -12, w: "45cqw", maxW: 160, frame: "torn", enter: { x: "-100%", y: "20%" }, tape: false },
+    { x: "-15%", y: "15%", r: -12, w: "54cqw", maxW: 190, frame: "torn", enter: { x: "-100%", y: "20%" }, tape: false },
     // Supporting photo 2
-    { x: "20%", y: "25%", r: 15, w: "42cqw", maxW: 150, frame: "polaroid", enter: { x: "100%", y: "20%" }, tape: true },
+    { x: "20%", y: "25%", r: 15, w: "50cqw", maxW: 180, frame: "polaroid", enter: { x: "100%", y: "20%" }, tape: true },
     // Supporting photo 3
-    { x: "5%", y: "-35%", r: 8, w: "38cqw", maxW: 140, frame: "torn", enter: { y: "-150%", x: "20%" }, tape: false },
+    { x: "5%", y: "-35%", r: 8, w: "46cqw", maxW: 168, frame: "torn", enter: { y: "-150%", x: "20%" }, tape: false },
   ];
   return styles[index % styles.length]!;
 };
@@ -156,6 +170,7 @@ function ScenePhoto({
   index,
   total,
   title,
+  stat,
   failed,
   onError,
 }: {
@@ -163,14 +178,17 @@ function ScenePhoto({
   index: number;
   total: number;
   title: string;
+  /** Only ever shown on the first supporting photo (index 1) — build5 §7.2. */
+  stat?: string;
   failed: boolean;
   onError: () => void;
 }) {
   const reduceMotion = useReducedMotion();
   const [landed, setLanded] = useState(false);
-  
+
   const style = GET_PHOTO_STYLE(index, total);
   const enterDelay = index * 0.15;
+  const isHero = index === 0;
 
   return (
     <motion.div
@@ -209,6 +227,31 @@ function ScenePhoto({
           transition={{ duration: 0.18, delay: enterDelay + 0.1 }}
         />
       )}
+      {/* The scene title, slapped onto the hero photo's corner (build5
+          §7.1) — no more title marooned below an empty field. */}
+      {isHero && (
+        <motion.p
+          className="sticker-chip t-display absolute -bottom-4 -left-3 z-20 whitespace-nowrap"
+          style={{ rotate: 0, fontSize: "clamp(1.3rem, 7cqw, 2rem)" }}
+          initial={reduceMotion ? { rotate: -3, opacity: 1 } : { scale: 1.25, rotate: -8, opacity: 0 }}
+          animate={landed || reduceMotion ? { scale: 1, rotate: -3, opacity: 1 } : {}}
+          transition={reduceMotion ? { duration: 0 } : SPRING.stamp}
+        >
+          {title}
+        </motion.p>
+      )}
+      {/* One stat stinger per scene, pinned to the first supporting photo's
+          corner (build5 §7.2), landing 400ms after this photo does. */}
+      {index === 1 && stat && (
+        <motion.div
+          className="absolute -top-2 -right-2 z-20"
+          initial={{ scale: 1.25, rotate: -6, opacity: 0 }}
+          animate={landed || reduceMotion ? { scale: 1, rotate: -1.5, opacity: 1 } : {}}
+          transition={reduceMotion ? { duration: 0 } : { ...SPRING.stamp, delay: 0.4 }}
+        >
+          <StickerChip className="t-label text-[0.55rem] whitespace-nowrap">{stat}</StickerChip>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
@@ -231,6 +274,7 @@ function SceneView({ scene }: { scene: Scene }) {
           index={i}
           total={scene.photos.length}
           title={scene.title}
+          stat={scene.stat}
           failed={failedKeys.has(src)}
           onError={() => setFailedKeys((prev) => new Set(prev).add(src))}
         />
@@ -314,7 +358,9 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
       <AnimatePresence mode="wait">
         <SceneView key={scene.id} scene={scene} />
       </AnimatePresence>
-      <div className="text-center mt-4 min-h-24 z-30">
+      {/* The title now rides on the hero photo itself (build5 §7.1) — this
+          block is just the caption, no longer a marooned title line. */}
+      <div className="text-center mt-4 min-h-12 z-30">
         <AnimatePresence mode="wait">
           <motion.div
             key={scene.id}
@@ -323,7 +369,6 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <p className="t-display">{scene.title}</p>
             <TypewriterCaption text={scene.caption} />
           </motion.div>
         </AnimatePresence>

@@ -773,7 +773,12 @@ polaroids are literally blank placeholders). Fixes in `02-moments.tsx`:
    beats a blank-card three-scene one) — owner call, flagged in the
    report.
 4. `SCENE_MS 4300 → 4800` (bigger compositions earn the extra beat);
-   moments `revealMs 13000 → 15000` ((3 × 4800 + wipes) / 0.8).
+   moments `revealMs 13000 → 15000`. Scripted content is 3 × 4800 =
+   14,400ms; the last scene holds statically rather than needing a next
+   beat, so — matching this story's existing precedent (13000 against a
+   12,900ms scripted total, not the strict 80% rule used elsewhere —
+   holding on a static last scene is harmless here) — revealMs only needs
+   modest headroom past the scripted total, not the full 25% margin.
 
 ---
 
