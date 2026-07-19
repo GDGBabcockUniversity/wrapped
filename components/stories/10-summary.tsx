@@ -8,6 +8,7 @@ import { SPRING } from "@/lib/stories";
 import { ShareButton } from "@/components/share/share-button";
 import { IdleFloat } from "@/components/idle-float";
 import { AmbientScribbles } from "@/components/ambient-scribbles";
+import { StickerChip } from "@/components/sticker-chip";
 import type { StoryProps } from "./types";
 
 function nameFontSize(name: string): string {
@@ -62,7 +63,7 @@ export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
             className="w-[33px] h-[22px] object-contain"
             aria-hidden
           />
-          <span className="t-label text-ink/60">{copy.summary.title}</span>
+          <StickerChip className="t-label">{copy.summary.title}</StickerChip>
         </div>
 
         {guest || !snapshot ? (

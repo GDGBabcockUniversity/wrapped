@@ -10,6 +10,7 @@ import { copy } from "@/lib/copy";
 import { useGlQualityContext } from "@/components/gl/quality-context";
 import { QuarterRingsFigure } from "@/components/gl/static-figure";
 import { AmbientScribbles } from "@/components/ambient-scribbles";
+import { StickerChip } from "@/components/sticker-chip";
 import type { StoryProps } from "./types";
 
 /**
@@ -188,7 +189,7 @@ function CastMoment({ chapter }: { chapter: Chapter }) {
     <div className="absolute inset-0 flex flex-col items-center justify-center px-4 gap-4">
       {/* Static stand-in for the shader's quarter-rings figure (build4 §2.3). */}
       {glQuality === "off" && <QuarterRingsFigure />}
-      <p className="t-label text-ink/50">{chapter.title}</p>
+      <StickerChip className="t-label">{chapter.title}</StickerChip>
       <div className="flex flex-wrap items-end justify-center gap-x-2.5 gap-y-3 max-w-md">
         {chapter.people.map((p, i) => (
           <motion.div

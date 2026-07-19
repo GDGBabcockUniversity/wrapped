@@ -9,6 +9,7 @@ import { SPRING, TIMING } from "@/lib/stories";
 import { useGlQualityContext } from "@/components/gl/quality-context";
 import { StripeCircleFigure } from "@/components/gl/static-figure";
 import { AmbientScribbles } from "@/components/ambient-scribbles";
+import { StickerChip } from "@/components/sticker-chip";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
 
@@ -63,7 +64,9 @@ export function BuiltStory({ phase, active, paused }: StoryProps) {
       {/* Static stand-in for the shader's stripe-circle figure (build4 §2.3). */}
       {glQuality === "off" && <StripeCircleFigure accentHex={ACCENT_HEX.blue} />}
       <AmbientScribbles field="ink" />
-      <p className="t-label text-cream/55 text-center mb-6">{copy.built.revealLabel}</p>
+      <div className="flex justify-center mb-6">
+        <StickerChip className="t-label">{copy.built.revealLabel}</StickerChip>
+      </div>
       <div className="flex-1 flex flex-col justify-center gap-4">
         {PRODUCTS.map((p, i) => {
           const isActive = i === activeRow;
@@ -77,12 +80,10 @@ export function BuiltStory({ phase, active, paused }: StoryProps) {
                 // not just a zoom. Entrance rides the same x channel; after
                 // mount the nudge keyframes take over per activation.
                 x: isActive ? [0, 4, 0] : 0,
-                scale: isActive ? 1.06 : 1,
               }}
               transition={{
                 opacity: { duration: 0.3 },
                 x: { duration: 0.3, delay: (i * TIMING.staggerMs) / 1000 },
-                scale: { duration: 0.3 },
               }}
               className="flex items-center gap-4"
             >
@@ -92,25 +93,43 @@ export function BuiltStory({ phase, active, paused }: StoryProps) {
               >
                 {p.num}
               </span>
+              {/* Redacted bar (build4 §7.1): the bar IS the highlight now —
+                  it swells and flips to the product's accent while its row
+                  is active, with a subtle tilt-settle (§7.3). */}
+              <div className="flex-1">
+                <motion.span
+                  initial={{ opacity: 0, scaleX: 0.9, y: 10 }}
+                  animate={{
+                    opacity: 1,
+                    scaleX: isActive ? 1.06 : 1,
+                    y: 0,
+                    rotate: reduceMotion ? 0 : isActive ? [2, 0] : 0,
+                  }}
+                  transition={{
+                    opacity: { ...SPRING.default, delay: (i * TIMING.staggerMs) / 1000 },
+                    scaleX: { ...SPRING.default, delay: (i * TIMING.staggerMs) / 1000 },
+                    y: { ...SPRING.default, delay: (i * TIMING.staggerMs) / 1000 },
+                    rotate: SPRING.default,
+                  }}
+                  className={`inline-block rounded-[3px] px-[0.35em] py-[0.1em] t-stat origin-left ${
+                    isActive ? `${BG_CLASS[p.color]} ${CHIP_TEXT[p.color]}` : "bg-cream text-ink"
+                  }`}
+                  style={{
+                    fontSize:
+                      p.name.length > 10
+                        ? "clamp(1.1rem, 5.6cqw, 2rem)"
+                        : "clamp(1.5rem, 8cqw, 2.75rem)",
+                  }}
+                >
+                  {p.name}
+                </motion.span>
+              </div>
               <span
-                className="t-stat flex-1"
-                style={{
-                  fontSize:
-                    p.name.length > 10
-                      ? "clamp(1.1rem, 5.6cqw, 2rem)"
-                      : "clamp(1.5rem, 8cqw, 2.75rem)",
-                }}
-              >
-                {p.name}
-              </span>
-              <motion.span
-                animate={isActive ? { scale: [1, 1.15, 1] } : { scale: 1 }}
-                transition={{ duration: 0.3 }}
                 className={`rounded-full px-2.5 py-0.5 t-label ${BG_CLASS[p.color]} ${CHIP_TEXT[p.color]}`}
                 style={{ fontSize: "0.6rem" }}
               >
                 LIVE
-              </motion.span>
+              </span>
             </motion.div>
           );
         })}

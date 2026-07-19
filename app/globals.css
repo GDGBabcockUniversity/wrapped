@@ -94,6 +94,17 @@ body {
     line-height: 1.25;
     font-size: clamp(1.375rem, 6.5cqw, 2rem);
   }
+  /* Slapped-on label (build4 §7.2) — the built reveal label, people's
+     CastMoment chapter label, and the summary card's header line. */
+  .sticker-chip {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    padding: 0.35rem 0.8rem;
+    border-radius: 4px;
+    rotate: -1.5deg;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.18);
+    display: inline-block;
+  }
 }
 
 /* ---------- Kinetic variable weight (§3.8) ---------- */

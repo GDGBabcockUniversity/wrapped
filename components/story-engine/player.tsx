@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { track } from "@vercel/analytics";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { STORIES, TIMING } from "@/lib/stories";
 import { STORY_COMPONENTS } from "@/components/stories";
 import { CLUBS } from "@/lib/clubs";
@@ -52,22 +52,42 @@ function smearKeyframes(v: Vector, axis: "x" | "y"): number[] {
   return axis === dominant ? [1, 1, 1.045, 1] : [1, 1, 1, 1];
 }
 
+interface CameraCustom {
+  v: Vector;
+  reduceMotion: boolean;
+}
+
 const CAMERA_VARIANTS = {
-  enter: (v: Vector) => ({ x: pct(v[0] * 100), y: pct(v[1] * 100), scaleX: 1, scaleY: 1 }),
-  center: (v: Vector) => ({
+  enter: ({ v }: CameraCustom) => ({ x: pct(v[0] * 100), y: pct(v[1] * 100), scaleX: 1, scaleY: 1 }),
+  center: ({ v }: CameraCustom) => ({
     x: [pct(v[0] * 100), pct(v[0] * 100 + v[0] * ANTICIPATE_PCT), pct(0)],
     y: [pct(v[1] * 100), pct(v[1] * 100 + v[1] * ANTICIPATE_PCT), pct(0)],
     scaleX: smearKeyframes(v, "x"),
     scaleY: smearKeyframes(v, "y"),
     transition: { x: WHIP_TRANSITION, y: WHIP_TRANSITION, scaleX: SMEAR_TRANSITION, scaleY: SMEAR_TRANSITION },
   }),
-  exit: (v: Vector) => ({
-    x: [pct(0), pct(v[0] * ANTICIPATE_PCT), pct(-v[0] * 100)],
-    y: [pct(0), pct(v[1] * ANTICIPATE_PCT), pct(-v[1] * 100)],
-    scaleX: smearKeyframes(v, "x"),
-    scaleY: smearKeyframes(v, "y"),
-    transition: { x: WHIP_TRANSITION, y: WHIP_TRANSITION, scaleX: SMEAR_TRANSITION, scaleY: SMEAR_TRANSITION },
-  }),
+  // §7.3: the leaving screen shears on sideways-energy exits (horizontal or
+  // diagonal), holds straight on clean verticals — s = 0 for v[0] === 0
+  // zeroes the rotate keyframes out naturally, no branching needed. Only
+  // the exit variant tilts; entering screens stay untilted. Reduced motion
+  // (§10 degradation map: "tilt/shear → none") zeroes it explicitly too.
+  exit: ({ v, reduceMotion }: CameraCustom) => {
+    const s = reduceMotion ? 0 : Math.sign(v[0]);
+    return {
+      x: [pct(0), pct(v[0] * ANTICIPATE_PCT), pct(-v[0] * 100)],
+      y: [pct(0), pct(v[1] * ANTICIPATE_PCT), pct(-v[1] * 100)],
+      scaleX: smearKeyframes(v, "x"),
+      scaleY: smearKeyframes(v, "y"),
+      rotate: [0, 0.4 * s, 2.2 * s],
+      transition: {
+        x: WHIP_TRANSITION,
+        y: WHIP_TRANSITION,
+        scaleX: SMEAR_TRANSITION,
+        scaleY: SMEAR_TRANSITION,
+        rotate: WHIP_TRANSITION,
+      },
+    };
+  },
 };
 
 // Content parallax: the screen travels 100% on the whip above; its content
@@ -118,6 +138,7 @@ interface MeResponse {
 
 export function Player() {
   const { state, dispatch, progressRef, activeIndexes } = useStoryEngine();
+  const reduceMotion = useReducedMotion();
   const [me, setMe] = useState<MeResponse>({ member: false });
   const [dbDegraded, setDbDegraded] = useState(false);
   const verifiedTracked = useRef(false);
@@ -238,10 +259,10 @@ export function Player() {
           incoming screens travel together (never mode="wait"). Phase-level
           (setup→reveal) stays an in-place crossfade INSIDE the screen, so a
           story never whips for its own second beat. */}
-      <AnimatePresence initial={false} custom={state.vector}>
+      <AnimatePresence initial={false} custom={{ v: state.vector, reduceMotion: !!reduceMotion }}>
         <motion.div
           key={def.id}
-          custom={state.vector}
+          custom={{ v: state.vector, reduceMotion: !!reduceMotion }}
           variants={CAMERA_VARIANTS}
           initial="enter"
           animate="center"
