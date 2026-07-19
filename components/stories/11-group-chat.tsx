@@ -107,7 +107,13 @@ function buildBeats(): ReactNode[] {
       key="messages"
       value={GROUP_CHAT.messages}
       label={copy.groupChat.messagesLabel}
-      detail={fmt(copy.groupChat.messagesDetail, { monthsMissing: GROUP_CHAT.monthsMissing })}
+      detail={
+        // Null-skip (§15): with full-year coverage there's nothing to
+        // disclaim — "0 months missing" must never render.
+        GROUP_CHAT.monthsMissing > 0
+          ? fmt(copy.groupChat.messagesDetail, { monthsMissing: GROUP_CHAT.monthsMissing })
+          : undefined
+      }
     />
   );
 

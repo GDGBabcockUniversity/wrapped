@@ -60,7 +60,7 @@ export const copy = {
     laughsLabel: "LAUGHS ON RECORD",
     laughsSub: "😂 💀 🤣 — the year was funny.",
     streakLabel: "DAYS WITHOUT SILENCE",
-    streakSub: "Not one quiet day since June 8.",
+    streakSub: "Feb 13 to March 9. Not one quiet day.",
     subgroupTitle: "Most active subgroup.",
     subgroupSub: "{messages} messages. They never stopped.",
   },

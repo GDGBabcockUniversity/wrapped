@@ -151,40 +151,45 @@ export const CREWS: Record<string, string[]> = {
   "BABCOCK 100": [],
 };
 
-// Main-group-chat fun stats (build5 §4) — computed by the pipeline's
-// group-stats.ts from the real main-chat export, 2026-07-19. The export is
-// PARTIAL (missing ~3 months: October and November 2025 entirely,
-// September nearly so), so these are floors; the copy says so. Re-run the
-// pipeline (build5 §5) on a fuller export and paste the reprinted block
-// here. Display names are the raw WhatsApp display names — TBD-review: the
-// owner may remap any of them before freeze (e.g. "Habibi" -> a preferred
-// name).
+// Main-group-chat fun stats (build5 §4) — recomputed 2026-07-19 from the
+// FULL export drop (main chat + four track subgroups) after the date-order
+// parser fix: the earlier "3 missing months" were an artifact of parsing
+// the US month-first export day-first — October (791 msgs) and November
+// (1,024) were there all along. Coverage now spans all 11 months of the
+// chapter year (Sept 2025 has only 2 messages because the group was
+// created Sept 9 and only warmed up in October — real, not missing).
+// Display names come from the EXPORTING phone's address book — TBD-review:
+// the owner may remap any of them before freeze (e.g. "Habeeb Abayomi M."
+// vs the earlier export's "Habibi" are the same person, different phone).
+// Re-run: npx tsx scripts/pipeline/run-group-stats.ts
 export const GROUP_CHAT = {
-  messages: 10097,
-  senders: 389,
-  monthsMissing: 3,
+  messages: 11771,
+  senders: 487,
+  monthsMissing: 0, // full coverage — the "months missing" detail line null-skips
   topYappers: [
-    { name: "Habibi", count: 1606 },
-    { name: "Ekundayo", count: 982 },
-    { name: "Chido Offor", count: 667 },
-    { name: "Timi Adedayo", count: 510 },
-    { name: "Ayomide Agunbiade", count: 452 },
+    { name: "Habeeb Abayomi M.", count: 1821 },
+    { name: "Emma", count: 1154 },
+    { name: "Dozie", count: 781 },
+    { name: "YE", count: 760 },
+    { name: "Neku", count: 635 },
   ],
-  busiestDay: { label: "FEB 22", count: 1133, line: "One game night went completely off the rails." },
+  busiestDay: { label: "FEB 22", count: 1053, line: "One game night went completely off the rails." },
   peakHourLabel: "9PM", // 21:00-22:00
-  afterMidnight: 757, // messages 00:00-04:59
-  stickers: 1017,
-  deleted: 104,
-  laughs: 765, // 😂 + 💀 + 🤣 across the year
+  afterMidnight: 804, // messages 00:00-04:59
+  stickers: 1258,
+  deleted: 119,
+  laughs: 879, // 😂 + 💀 + 🤣 across the year
   dialect: [
-    { word: "sha", count: 114 },
-    { word: "dey", count: 91 },
-    { word: "abeg", count: 45 },
-    { word: "una", count: 38 },
-    { word: "omo", count: 37 },
+    { word: "sha", count: 143 },
+    { word: "dey", count: 106 },
+    { word: "abeg", count: 48 },
+    { word: "una", count: 39 },
+    { word: "omo", count: 39 },
   ],
-  streakDays: 29, // consecutive days with messages, starting Jun 8
-  topSubgroup: null as { name: string; messages: number } | null, // TBD — build5 §5.2, awaiting subgroup exports
+  streakDays: 25, // consecutive days with messages, Feb 13 → Mar 9 2026
+  // Real subgroup exports landed (build5 §5.2 un-skips): Data & AI leads at
+  // 3,882, ahead of software (1,015), infra (696), design (440).
+  topSubgroup: { name: "DATA & AI", messages: 3882 } as { name: string; messages: number } | null,
 } as const;
 
 export interface Person {
