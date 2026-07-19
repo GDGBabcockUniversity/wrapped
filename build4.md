@@ -662,6 +662,22 @@ two) — holding 1600ms, then the cast grid for
    §5.1 slam treatment (slice-assemble) instead of PopLetters once
    SlamStat exists — PopLetters stays for cast-grid labels. One-line swap,
    listed here so it isn't forgotten when commit 4 lands.
+4. **Real sponsors** (owner, 2026-07-19): the sponsor names/logos live in
+   the ORBIT repo (orbit.gdgbabcock.com's codebase) — NOT currently in
+   this session's repo scope; add it (`add_repo`) or paste the list to
+   fill the two `SPONSORS` placeholder entries in `PEOPLE` with real
+   names + logo images under `public/people/`. Logos render in the
+   existing Avatar slot (square-ish logos read fine in the circle mask;
+   if a logo needs a white field, give it `bg-paper` padding).
+5. **Special thanks, one slide each**: Dr. Ernest and Emmanuel Oladosu
+   each get their OWN SpecialCard beat (photo 96px, name in t-display,
+   the shared editorial line on the second card only) — two chapters of
+   ~2400ms content instead of one shared card. Needs their two photos
+   (owner-supplied; initials render until then). Schedule impact:
+   +1600ms card +2400ms content ≈ +4s — recompute the §10B.2 total and
+   bump revealMs only if the 80% rule breaks (46.45+4 = 50.5s vs the
+   48s budget — it breaks: revealMs 60000 → 64000 lands 50.5 ≤ 51.2 ✓;
+   make that registry change in the same commit).
 
 ## 11. Sequencing
 
