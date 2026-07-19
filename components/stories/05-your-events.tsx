@@ -2,11 +2,12 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
+import { SlamStat } from "@/components/slam-stat";
 import { IdleFloat } from "@/components/idle-float";
 import { KineticWords } from "@/components/kinetic-words";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
-import { SPRING, TIMING } from "@/lib/stories";
+import { TIMING } from "@/lib/stories";
 import type { StoryProps } from "./types";
 
 function AdmitOneTicket() {
@@ -59,8 +60,6 @@ function AdmitOneTicket() {
 }
 
 export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
-  const reduceMotion = useReducedMotion();
-
   if (phase === "setup") {
     return (
       <div className="absolute inset-0 flex items-center justify-center text-cream px-6 pt-20 pb-16">
@@ -114,18 +113,21 @@ export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4 text-center">
       <IdleFloat y={-2} scale={1.02} duration={3} delay={1.2}>
-        <motion.p
-          initial={{ scale: 1.4, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={reduceMotion ? { duration: 0.01 } : SPRING.stamp}
+        {/* The monument slams (build4 §5.1) — a till prints, this is not a till. */}
+        <SlamStat
+          value={events.checkins}
           className="t-monument text-outline-base text-outline-blue leading-none"
           style={{ fontSize: "clamp(6rem, 45cqw, 16rem)" }}
-        >
-          {events.checkins}
-        </motion.p>
+        />
       </IdleFloat>
 
-      <div>
+      {/* The three-beat payoff (build4 §5.2): stat at 0ms, caption at
+          +1100ms, share affordance at +2200ms (ProgressBar's shareSlot). */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 1.1 }}
+      >
         <p className="t-body">
           {isOne
             ? copy.yourEvents.revealOne
@@ -136,7 +138,7 @@ export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
             ? copy.yourEvents.subPerfect
             : fmt(copy.yourEvents.sub, { registrations: events.registrations })}
         </p>
-      </div>
+      </motion.div>
 
       {events.titles.length > 0 && (
         <div className="flex flex-col gap-2 mt-2 w-full max-w-xs">

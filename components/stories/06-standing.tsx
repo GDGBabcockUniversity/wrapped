@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Counter } from "@/components/counter";
+import { SlamStat } from "@/components/slam-stat";
 import { KineticWords } from "@/components/kinetic-words";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
@@ -145,19 +145,26 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
         <div className={`flex ${matched ? "gap-8" : ""} items-center justify-center`}>
           {matched && (
             <div>
-              <Counter value={snapshot.messages.count} className="t-stat" active />
+              <SlamStat value={snapshot.messages.count} className="t-stat" />
               <p className="t-label text-ink/45 mt-1">{copy.standing.statMessages}</p>
             </div>
           )}
           <div>
-            <Counter value={snapshot.events.checkins} className="t-stat" active />
+            <SlamStat value={snapshot.events.checkins} className="t-stat" />
             <p className="t-label text-ink/45 mt-1">{copy.standing.statEvents}</p>
           </div>
         </div>
       )}
-      <p className="t-body text-ink/65">
+      {/* The three-beat payoff (build4 §5.2): stats slam at 0ms (SlamStat's
+          own animation), this closing line at +1100ms. */}
+      <motion.p
+        className="t-body text-ink/65"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 1.1 }}
+      >
         {showLow ? copy.standing.lowSub : copy.standing.revealStatsSub}
-      </p>
+      </motion.p>
     </div>
   );
 }

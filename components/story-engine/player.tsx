@@ -314,7 +314,9 @@ export function Player() {
         onOpenGrid={() => dispatch({ type: "OPEN_GRID" })}
         shareSlot={
           showShareChip ? (
-            <ShareButton storyId={def.id} variant="chip" snapshot={me.snapshot} />
+            <div key={def.id} className="share-chip-enter">
+              <ShareButton storyId={def.id} variant="chip" snapshot={me.snapshot} />
+            </div>
           ) : undefined
         }
       />

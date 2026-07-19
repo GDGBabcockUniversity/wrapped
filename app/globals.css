@@ -279,6 +279,15 @@ body {
   }
 }
 
+/* ---------- Header share chip: three-beat delayed entrance (build4 §5.2) --
+   fresh key-based node per story re-triggers @starting-style on each reveal. */
+.share-chip-enter {
+  transition: opacity 0.3s 2.2s;
+  @starting-style {
+    opacity: 0;
+  }
+}
+
 /* ---------- Cross-document view transition (§3.8) ---------- */
 @view-transition {
   navigation: auto;
