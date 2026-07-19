@@ -8,6 +8,7 @@ import { StickerChip } from "@/components/sticker-chip";
 import { MOMENTS, GROUP_CHAT } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
+import { vibrate } from "@/lib/haptics";
 import type { StoryProps } from "./types";
 
 interface Scene {
@@ -41,23 +42,32 @@ const SCENES: Scene[] = [
 
 const SCENE_MS = 4800;
 const WIPE_MS = 280;
+// The deal (build6 §2.3): photos land 260ms apart, not 150ms — the pile
+// assembling IS the screen's motion for its first ~1.2s (law 10).
+const DEAL_STAGGER_S = 0.26;
+// The flick fires this long before the scene ends, so the reveal has time
+// to breathe before the wipe (build6 §2.3).
+const FLICK_BEFORE_END_MS = 1400;
 
-// Varied scrapbook positions depending on photo index. The hero (index 0)
-// grows to 82cqw/320 and carries the scene title on its own corner (build5
-// §7.1); supporting photos scale up 1.2x from their build2 sizes.
-const GET_PHOTO_STYLE = (index: number, total: number) => {
-  const styles = [
-    // Hero photo
-    { x: "0%", y: "-5%", r: -4, w: "82cqw", maxW: 320, frame: "polaroid", enter: { y: "-100%", x: "0%" }, tape: true },
-    // Supporting photo 1
-    { x: "-15%", y: "15%", r: -12, w: "54cqw", maxW: 190, frame: "torn", enter: { x: "-100%", y: "20%" }, tape: false },
-    // Supporting photo 2
-    { x: "20%", y: "25%", r: 15, w: "50cqw", maxW: 180, frame: "polaroid", enter: { x: "100%", y: "20%" }, tape: true },
-    // Supporting photo 3
-    { x: "5%", y: "-35%", r: 8, w: "46cqw", maxW: 168, frame: "torn", enter: { y: "-150%", x: "20%" }, tape: false },
-  ];
-  return styles[index % styles.length]!;
-};
+// Scrapbook positions, CONTAINER-relative (build6 §2.3) — each slot is a
+// left/top percentage of the stage plus a self-centering translate, not a
+// percentage of the photo's own tiny width. The old transform-percentage
+// offsets moved supporting photos by a few px of their own size, which
+// combined with an inverted z-stack left them fully eclipsed under the
+// hero — "why am I seeing only one picture." The hero enters FIRST and
+// sits lowest (z 1); supports land ON TOP of its edges (z 2,3,4), a pile
+// by design, not an eclipse.
+const PHOTO_SLOTS = [
+  // Hero — carries the scene title on its own corner (build5 §7.1).
+  { left: "50%", top: "42%", r: -4, w: "74cqw", maxW: 300, frame: "polaroid", enterDX: 0, enterDY: -100, tape: true },
+  { left: "24%", top: "64%", r: -12, w: "46cqw", maxW: 170, frame: "torn", enterDX: -100, enterDY: 20, tape: false },
+  { left: "78%", top: "60%", r: 15, w: "42cqw", maxW: 155, frame: "polaroid", enterDX: 100, enterDY: 20, tape: true },
+  { left: "70%", top: "18%", r: 8, w: "38cqw", maxW: 140, frame: "torn", enterDX: 20, enterDY: -150, tape: false },
+];
+
+function getPhotoSlot(index: number) {
+  return PHOTO_SLOTS[index % PHOTO_SLOTS.length]!;
+}
 
 function Doodle({ type, delay }: { type: 'star' | 'arrow' | 'squiggle' | 'circle', delay: number }) {
   const reduceMotion = useReducedMotion();
@@ -168,42 +178,60 @@ function TypewriterCaption({ text }: { text: string }) {
 function ScenePhoto({
   src,
   index,
-  total,
   title,
   stat,
+  flicked,
   failed,
   onError,
 }: {
   src: string;
   index: number;
-  total: number;
   title: string;
   /** Only ever shown on the first supporting photo (index 1) — build5 §7.2. */
   stat?: string;
+  /** The flick (build6 §2.3): the last-dealt photo flings away near the
+      scene's end, revealing what it covered. */
+  flicked?: boolean;
   failed: boolean;
   onError: () => void;
 }) {
   const reduceMotion = useReducedMotion();
   const [landed, setLanded] = useState(false);
 
-  const style = GET_PHOTO_STYLE(index, total);
-  const enterDelay = index * 0.15;
+  const slot = getPhotoSlot(index);
+  const enterDelay = index * DEAL_STAGGER_S;
   const isHero = index === 0;
+  // Resting position is a self-centering -50%/-50% (the slot's left/top
+  // anchor the photo's CENTER on the stage); the entrance adds an extra
+  // percentage-of-self offset on top for the "flying in" start, composed
+  // on the same x/y channel Motion already owns.
+  const restX = -50;
+  const restY = -50;
 
   return (
     <motion.div
-      className={`absolute bg-paper shadow-lg flex flex-col ${style.frame === 'polaroid' ? 'p-2 pb-6 rounded-sm' : 'p-0 photo-frame-torn'}`}
-      style={{ width: style.w, maxWidth: style.maxW, zIndex: 10 - index }}
+      className={`absolute bg-paper shadow-lg flex flex-col ${slot.frame === 'polaroid' ? 'p-2 pb-6 rounded-sm' : 'p-0 photo-frame-torn'}`}
+      style={{ left: slot.left, top: slot.top, width: slot.w, maxWidth: slot.maxW, zIndex: index + 1 }}
       initial={
         reduceMotion
-          ? { x: style.x, y: style.y, rotate: style.r, opacity: 1 }
-          : { x: style.enter.x, y: style.enter.y, rotate: style.r * 2, opacity: 0 }
+          ? { x: `${restX}%`, y: `${restY}%`, rotate: slot.r, opacity: 1 }
+          : { x: `${restX + slot.enterDX}%`, y: `${restY + slot.enterDY}%`, rotate: slot.r * 2, opacity: 0 }
       }
-      animate={{ x: style.x, y: style.y, rotate: style.r, opacity: 1 }}
-      transition={reduceMotion ? { duration: 0 } : { ...SPRING.photo, delay: enterDelay }}
+      animate={
+        flicked
+          ? { x: `${restX + 140}%`, y: `${restY}%`, rotate: slot.r + 30, opacity: 0 }
+          : { x: `${restX}%`, y: `${restY}%`, rotate: slot.r, opacity: 1 }
+      }
+      transition={
+        flicked
+          ? { type: "spring", stiffness: 180, damping: 20 }
+          : reduceMotion
+            ? { duration: 0 }
+            : { ...SPRING.photo, delay: enterDelay }
+      }
       onAnimationComplete={() => setLanded(true)}
     >
-      <div className={`relative w-full aspect-square bg-cream-deep overflow-hidden flex items-center justify-center ${style.frame === 'torn' ? 'aspect-[4/5]' : ''}`}>
+      <div className={`relative w-full aspect-square bg-cream-deep overflow-hidden flex items-center justify-center ${slot.frame === 'torn' ? 'aspect-[4/5]' : ''}`}>
         {failed ? (
           <span className="t-label text-ink/40 px-4 text-center">{title}</span>
         ) : (
@@ -217,7 +245,7 @@ function ScenePhoto({
           />
         )}
       </div>
-      {style.tape && (
+      {slot.tape && (
         <motion.div
           aria-hidden
           className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-6 bg-cream shadow-sm opacity-80"
@@ -228,10 +256,15 @@ function ScenePhoto({
         />
       )}
       {/* The scene title, slapped onto the hero photo's corner (build5
-          §7.1) — no more title marooned below an empty field. */}
+          §7.1) — no more title marooned below an empty field. Top-left,
+          not bottom-left (build6 §2.3 fix): every support slot (24/64,
+          78/60, 70/18) lands across the hero's bottom and right edges —
+          a title on the bottom-left corner got buried under the pile the
+          moment a support photo landed on top of it. Top-left is the one
+          corner none of the four slots ever reach. */}
       {isHero && (
         <motion.p
-          className="sticker-chip t-display absolute -bottom-4 -left-3 z-20 whitespace-nowrap"
+          className="sticker-chip t-display absolute -top-4 -left-3 z-20 whitespace-nowrap"
           style={{ rotate: 0, fontSize: "clamp(1.3rem, 7cqw, 2rem)" }}
           initial={reduceMotion ? { rotate: -3, opacity: 1 } : { scale: 1.25, rotate: -8, opacity: 0 }}
           animate={landed || reduceMotion ? { scale: 1, rotate: -3, opacity: 1 } : {}}
@@ -259,6 +292,20 @@ function ScenePhoto({
 function SceneView({ scene }: { scene: Scene }) {
   const reduceMotion = useReducedMotion();
   const [failedKeys, setFailedKeys] = useState<Set<string>>(new Set());
+  const [flicked, setFlicked] = useState(false);
+  // The flick needs a photo underneath it to reveal — below 3 photos
+  // there's nothing to uncover, so it's skipped (build6 §2.3).
+  const canFlick = scene.photos.length >= 3;
+  const flickIndex = scene.photos.length - 1;
+
+  useEffect(() => {
+    if (!canFlick || reduceMotion) return;
+    const t = setTimeout(() => {
+      setFlicked(true);
+      vibrate(6);
+    }, SCENE_MS - FLICK_BEFORE_END_MS);
+    return () => clearTimeout(t);
+  }, [canFlick, reduceMotion]);
 
   return (
     <motion.div
@@ -272,9 +319,9 @@ function SceneView({ scene }: { scene: Scene }) {
           key={`${scene.id}-${i}`}
           src={src}
           index={i}
-          total={scene.photos.length}
           title={scene.title}
           stat={scene.stat}
+          flicked={canFlick && i === flickIndex && flicked}
           failed={failedKeys.has(src)}
           onError={() => setFailedKeys((prev) => new Set(prev).add(src))}
         />
@@ -283,6 +330,45 @@ function SceneView({ scene }: { scene: Scene }) {
       <Doodle type="arrow" delay={0.6} />
       <Doodle type="squiggle" delay={0.8} />
       <Doodle type="circle" delay={0.5} />
+    </motion.div>
+  );
+}
+
+/** The setup tease (build6 §2.3): a real photo being taped down, not a
+    lone red rectangle that read as a broken image. Same entrance timing
+    the old swatch used; the red tape strip is its own unchanged size and
+    rotation, just now sitting on top of something. */
+function SetupTease() {
+  const [failed, setFailed] = useState(false);
+  const photo = SCENES[0]!.photos[0]!;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 0.9, y: 0 }}
+      transition={{ duration: 0.24 }}
+      className="relative"
+      style={{ width: 96, rotate: -6 }}
+    >
+      <div className="relative bg-paper shadow-lg p-1.5 pb-4 rounded-sm">
+        <div className="relative w-full aspect-square bg-cream-deep overflow-hidden">
+          {!failed && (
+            <Image
+              src={photo}
+              alt=""
+              fill
+              sizes="96px"
+              className="object-cover opacity-90 contrast-[1.05] saturate-[85%]"
+              onError={() => setFailed(true)}
+            />
+          )}
+        </div>
+      </div>
+      <div
+        aria-hidden
+        className="absolute -top-3 left-1/2 -translate-x-1/2 w-[90px] h-7 rounded-sm bg-gdg-red"
+        style={{ transform: "translateX(-50%) rotate(-4deg)" }}
+      />
     </motion.div>
   );
 }
@@ -338,12 +424,7 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
             />
           ))}
         </div>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 0.9, y: 0, rotate: -4 }}
-          transition={{ duration: 0.24 }}
-          className="w-[90px] h-7 rounded-sm bg-gdg-red"
-        />
+        <SetupTease />
         <p className="t-editorial text-center">
           <PopLetters text={copy.moments.setup} />
         </p>
