@@ -1,4 +1,4 @@
-import { CHAPTER, PRODUCTS } from "@/lib/content/chapter";
+import { CHAPTER, PRODUCTS, PRODUCT_STATS } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
 import { CLUBS } from "@/lib/clubs";
 import type { Snapshot } from "@/lib/snapshot";
@@ -205,28 +205,50 @@ export function BuiltCard() {
           gap: 44,
         }}
       >
-        {PRODUCTS.map((p) => (
-          <div key={p.num} style={{ display: "flex", alignItems: "center", gap: 24 }}>
-            <div style={{ display: "flex", fontSize: 28, color: `${CREAM}66`, width: 60 }}>{p.num}</div>
-            <div style={{ display: "flex", flex: 1, fontSize: 56, fontWeight: 700, color: CREAM }}>
-              {p.name}
+        {PRODUCTS.map((p) => {
+          const stat = PRODUCT_STATS[p.name];
+          return (
+            <div key={p.num} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+                <div style={{ display: "flex", fontSize: 28, color: `${CREAM}66`, width: 60 }}>{p.num}</div>
+                <div style={{ display: "flex", flex: 1, fontSize: 56, fontWeight: 700, color: CREAM }}>
+                  {p.name}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    padding: "8px 20px",
+                    borderRadius: 999,
+                    background: BG_HEX[p.color],
+                    color: CHIP_TEXT[p.color],
+                    fontSize: 22,
+                    fontWeight: 700,
+                    letterSpacing: 2,
+                  }}
+                >
+                  LIVE
+                </div>
+              </div>
+              {/* build4 §10A.2 step 5: same null-renders-nothing rule as the
+                  live story — no blank line where a stat isn't confirmed yet. */}
+              {stat && (
+                <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginLeft: 84 }}>
+                  <div style={{ display: "flex", fontSize: 32, fontWeight: 700, color: BG_HEX[p.color] }}>
+                    {stat.value.toLocaleString("en-US")}
+                  </div>
+                  <div style={{ display: "flex", fontSize: 20, fontWeight: 700, letterSpacing: 2, color: `${CREAM}99` }}>
+                    {stat.label}
+                  </div>
+                  {stat.detail && (
+                    <div style={{ display: "flex", fontSize: 18, color: `${CREAM}73`, marginLeft: "auto" }}>
+                      {stat.detail}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div
-              style={{
-                display: "flex",
-                padding: "8px 20px",
-                borderRadius: 999,
-                background: BG_HEX[p.color],
-                color: CHIP_TEXT[p.color],
-                fontSize: 22,
-                fontWeight: 700,
-                letterSpacing: 2,
-              }}
-            >
-              LIVE
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div
         style={{
