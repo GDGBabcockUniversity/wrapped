@@ -82,6 +82,17 @@ export const PRODUCT_STATS: Record<(typeof PRODUCTS)[number]["name"], ProductSta
   "BABCOCK 100": null, // TBD-confirm
 };
 
+// The reactive tap-to-guess beat (build4 §8) — the final beat of What We
+// Built's reveal, after one full row cycle. Chapter data, not personal:
+// guests and members see the same beat.
+export const GUESS_GAME = {
+  question: "One of these went live first. Which?",
+  answerIndex: 0, // TBD-confirm with leads (index into PRODUCTS)
+  right: "First try. You were paying attention.",
+  wrong: "Wrong. The receipts don't lie.",
+  timeout: "No guess? It was {answer}.",
+} as const;
+
 // The Builders board (§11.6 build2.md, Story 4's "THE BUILDERS" chapter) —
 // per-product crew names, keyed by PRODUCTS[].name. TBD-confirm: empty until
 // a lead fills them in; the card renders gracefully with just the product

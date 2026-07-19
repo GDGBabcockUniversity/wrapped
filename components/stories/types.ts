@@ -8,4 +8,7 @@ export interface StoryProps {
   guest: boolean;
   paused: boolean;
   onReplay: () => void;
+  /** Optional: a story-driven auto-advance (e.g. built's guess game
+      resolving). Same wiring pattern as onReplay. */
+  onComplete?: () => void;
 }

@@ -308,6 +308,7 @@ export function Player() {
                   guest={!me.member}
                   paused={state.paused || state.gridOpen}
                   onReplay={() => dispatch({ type: "GOTO", index: 0 })}
+                  onComplete={() => dispatch({ type: "NEXT" })}
                 />
               </motion.div>
             </AnimatePresence>
