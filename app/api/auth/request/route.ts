@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const token = await signMagicToken(email);
-    await sendMagicLinkEmail(email, token);
+    await sendMagicLinkEmail(email, token, req.nextUrl.origin);
   } catch (err) {
     console.error("[wrapped] magic link request failed:", err);
     return NextResponse.json({ error: "server_config" }, { status: 500 });

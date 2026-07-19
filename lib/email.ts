@@ -1,7 +1,13 @@
 import { Resend } from "resend";
 import { copy } from "@/lib/copy";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://wrapped.gdgbabcock.com";
+/** NEXT_PUBLIC_SITE_URL wins when set; otherwise the request's own origin
+    — never a hardcoded fallback, so a preview deployment or a domain
+    change can never mint a link that points somewhere else (build6
+    §7.3). Exported as a pure function so it's unit-testable on its own. */
+export function resolveSiteUrl(requestOrigin: string): string {
+  return process.env.NEXT_PUBLIC_SITE_URL ?? requestOrigin;
+}
 
 function magicLinkEmailHtml(link: string): string {
   return `<!doctype html>
@@ -46,14 +52,30 @@ function magicLinkEmailText(link: string): string {
 }
 
 /**
- * Sends the magic-link email. In development (or whenever RESEND_API_KEY is
- * unset), logs the link to the console instead of sending — this is the
- * dev-fallback flow so the whole auth loop is testable without a Resend key.
+ * Sends the magic-link email. `requestOrigin` is the deployment's own
+ * origin (the route's `req.nextUrl.origin`) — the link falls back to it
+ * whenever NEXT_PUBLIC_SITE_URL isn't set (build6 §7.3).
+ *
+ * In local development (RESEND_API_KEY unset, not a deployed environment),
+ * logs the link to the console instead of sending — the dev-fallback flow
+ * that makes the whole auth loop testable without a Resend key. In any
+ * deployed environment (`process.env.VERCEL` set), a missing key is a real
+ * misconfiguration, not a dev convenience — it now throws instead of
+ * silently no-op'ing behind a "check your inbox" response that never
+ * sends anything (build6 §7.1: this was the actual reported bug).
  */
-export async function sendMagicLinkEmail(email: string, token: string): Promise<void> {
-  const link = `${SITE_URL}/api/auth/verify?token=${encodeURIComponent(token)}`;
+export async function sendMagicLinkEmail(
+  email: string,
+  token: string,
+  requestOrigin: string
+): Promise<void> {
+  const siteUrl = resolveSiteUrl(requestOrigin);
+  const link = `${siteUrl}/api/auth/verify?token=${encodeURIComponent(token)}`;
 
   if (!process.env.RESEND_API_KEY) {
+    if (process.env.VERCEL) {
+      throw new Error("RESEND_API_KEY is not set in a deployed environment");
+    }
     console.log(`[wrapped] dev magic link for ${email}: ${link}`);
     return;
   }
