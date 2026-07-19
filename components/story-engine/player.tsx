@@ -331,7 +331,6 @@ export function Player() {
         currentPos={currentPos}
         phase={state.phase}
         field={def.field}
-        label={def.label}
         forceVisible={state.paused || state.gridOpen}
         onOpenGrid={() => dispatch({ type: "OPEN_GRID" })}
         shareSlot={
@@ -344,7 +343,7 @@ export function Player() {
       />
 
       {state.paused && !state.gridOpen && (
-        <div className="toast absolute top-16 left-1/2 -translate-x-1/2 z-20 rounded-full bg-ink/70 text-cream px-3 py-1">
+        <div className="toast absolute bottom-20 left-1/2 -translate-x-1/2 z-20 rounded-full bg-ink/70 text-cream px-3 py-1">
           <span className="t-label">PAUSED</span>
         </div>
       )}

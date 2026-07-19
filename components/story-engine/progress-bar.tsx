@@ -9,22 +9,22 @@ import type { Phase } from "./use-story-state";
 const IDLE_MS = 1800;
 const HIDE_MS = 400;
 const SHOW_MS = 150;
+const AWAKE_OPACITY = 0.8;
+const IDLE_OPACITY = 0.35;
+const BUTTON_AWAKE_OPACITY = 0.6;
+const BUTTON_IDLE_OPACITY = 0.3;
 
 /**
- * One bar per story; setup fills 0→30%, reveal 30→100% (§6.5 sub-beats).
+ * The whisper rail (build5 §2): a thin vertical bar hugging the right edge,
+ * one segment per story. Chrome exists for the visitor's thumb, not their
+ * eyes — it dims when idle but never fully vanishes (law 8), and it never
+ * announces the current story's name; that lives in the chapter grid.
  *
- * EVERY segment's fill is painted imperatively on every frame — past bars 1,
- * future bars 0, current bar from the engine's progress ref. React never
- * writes these transforms: mixing declarative resets with imperative writes
- * leaves stale fills behind on back-navigation (React can't diff a DOM
- * mutation it didn't make).
- *
- * Chrome (bars + label + share chip) auto-hides after IDLE_MS of no touch,
- * reappearing instantly on the next pointerdown anywhere on the stage —
- * §11.2, the stage is the whole screen. The ⊞ grid button never fully
- * disappears (it's the one affordance a first-time viewer needs) — it dims
- * to 40% instead of vanishing. The rAF fill-paint loop never stops, so bars
- * are correct the instant chrome reappears.
+ * EVERY segment's fill is painted imperatively on every frame — past
+ * segments 1, future 0, current segment from the engine's progress ref.
+ * React never writes these transforms: mixing declarative resets with
+ * imperative writes leaves stale fills behind on back-navigation (React
+ * can't diff a DOM mutation it didn't make).
  */
 export function ProgressBar({
   progressRef,
@@ -32,7 +32,6 @@ export function ProgressBar({
   currentPos,
   phase,
   field,
-  label,
   forceVisible,
   onOpenGrid,
   shareSlot,
@@ -42,8 +41,7 @@ export function ProgressBar({
   currentPos: number;
   phase: Phase;
   field: "ink" | "cream";
-  label: string;
-  /** Paused / grid-open / reduced-motion — chrome must stay up. */
+  /** Paused / grid-open / reduced-motion — chrome must stay awake. */
   forceVisible?: boolean;
   onOpenGrid: () => void;
   shareSlot?: ReactNode;
@@ -69,7 +67,7 @@ export function ProgressBar({
         const node = fillRefs.current[i];
         if (!node) continue;
         const scale = i < pos ? 1 : i === pos ? beat : 0;
-        node.style.transform = `scaleX(${scale})`;
+        node.style.transform = `scaleY(${scale})`;
       }
       raf = requestAnimationFrame(paint);
     }
@@ -78,7 +76,7 @@ export function ProgressBar({
   }, [progressRef]);
 
   useEffect(() => {
-    if (reduceMotion) return; // always visible — discoverability over purity
+    if (reduceMotion) return; // always awake — discoverability over purity
     let timeout: ReturnType<typeof setTimeout> | null = null;
     function wake() {
       setIdleHidden(false);
@@ -93,60 +91,75 @@ export function ProgressBar({
     };
   }, [reduceMotion]);
 
-  const chromeVisible = !idleHidden || !!forceVisible || !!reduceMotion;
-  const fadeStyle = {
-    opacity: chromeVisible ? 1 : 0,
-    transition: `opacity ${chromeVisible ? SHOW_MS : HIDE_MS}ms ease`,
+  const chromeAwake = !idleHidden || !!forceVisible || !!reduceMotion;
+  const railStyle = {
+    opacity: chromeAwake ? AWAKE_OPACITY : IDLE_OPACITY,
+    transition: `opacity ${chromeAwake ? SHOW_MS : HIDE_MS}ms ease`,
   };
-  const buttonFadeStyle = {
-    opacity: chromeVisible ? 1 : 0.4,
-    transition: `opacity ${chromeVisible ? SHOW_MS : HIDE_MS}ms ease`,
+  const buttonStyle = {
+    opacity: chromeAwake ? BUTTON_AWAKE_OPACITY : BUTTON_IDLE_OPACITY,
+    transition: `opacity ${chromeAwake ? SHOW_MS : HIDE_MS}ms ease`,
   };
 
-  const track = field === "ink" ? "bg-cream/25" : "bg-ink/20";
+  const track = field === "ink" ? "bg-cream/20" : "bg-ink/15";
   const fill = field === "ink" ? "bg-cream" : "bg-ink";
   const text = field === "ink" ? "text-cream" : "text-ink";
 
   return (
-    <div
-      className="absolute inset-x-0 top-0 z-20 px-3"
-      style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
-    >
-      <div className="flex gap-1" style={fadeStyle}>
-        {Array.from({ length: total }).map((_, i) => (
-          <div
-            key={i}
-            className={`h-[3px] flex-1 rounded-full overflow-hidden ${track}`}
-          >
+    <>
+      {/* The rail — monochrome, no accent (law 2: accent belongs to moving
+          story elements, and law 8: this must not compete for attention). */}
+      <div
+        className="absolute right-[6px] z-20 flex flex-col"
+        style={{
+          top: "max(24px, calc(env(safe-area-inset-top) + 12px))",
+          bottom: "max(24px, calc(env(safe-area-inset-bottom) + 12px))",
+          gap: "4px",
+          ...railStyle,
+        }}
+      >
+        {Array.from({ length: total }).map((_, i) => {
+          const active = i === currentPos;
+          return (
             <div
-              ref={(node) => {
-                fillRefs.current[i] = node;
-              }}
-              className={`h-full w-full origin-left ${fill}`}
-              style={{ transform: "scaleX(0)" }}
-            />
-          </div>
-        ))}
+              key={i}
+              className={`flex-1 rounded-full overflow-hidden ${track}`}
+              style={{ width: active ? 3 : 2, marginLeft: active ? 0 : 0.5 }}
+            >
+              <div
+                ref={(node) => {
+                  fillRefs.current[i] = node;
+                }}
+                className={`w-full h-full origin-top ${fill}`}
+                style={{
+                  transform: "scaleY(0)",
+                  opacity: i < currentPos ? 0.55 : 1,
+                }}
+              />
+            </div>
+          );
+        })}
       </div>
-      <div className={`flex items-center justify-between mt-2 ${text}`}>
-        <span className="t-label opacity-90" style={fadeStyle}>
-          {label}
-        </span>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3" style={fadeStyle}>
-            {shareSlot}
-            <MuteButton />
-          </div>
-          <button
-            onClick={onOpenGrid}
-            aria-label="Story grid"
-            className="text-lg leading-none opacity-90"
-            style={buttonFadeStyle}
-          >
-            &#8862;
-          </button>
+
+      {/* Corner chrome — share chip, mute, grid. No persistent story label:
+          a viewer who wants orientation opens the grid. */}
+      <div
+        className={`absolute right-3 z-20 flex items-center gap-3 ${text}`}
+        style={{ top: "max(12px, calc(env(safe-area-inset-top) + 4px))" }}
+      >
+        <div className="flex items-center gap-3" style={railStyle}>
+          {shareSlot}
+          <MuteButton />
         </div>
+        <button
+          onClick={onOpenGrid}
+          aria-label="Story grid"
+          className="text-base leading-none"
+          style={buttonStyle}
+        >
+          &#8862;
+        </button>
       </div>
-    </div>
+    </>
   );
 }
