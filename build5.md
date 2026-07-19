@@ -642,8 +642,8 @@ stays `transitions.sponsors`): after the card, a 6400ms three-beat wall:
 2. **Beat two** (2200ms): GOLD + RAFFLE + INDUSTRY VISIT HOSTS — 9 logos
    as smaller paper chips (max-w 92px) in the §6.2 scatter treatment,
    tier labels as tiny sticker chips leading each cluster.
-3. **Beat three** (2200ms): the remaining 11 (hospitality, career fair,
-   student, media, communities), same treatment.
+3. **Beat three** (2200ms): the remaining 13 (hospitality 3, career fair 2,
+   student 2, media 2, communities 4), same treatment.
 
 Logos load with `Image` + `object-contain`; a failed load falls back to
 the sponsor's name in `t-label` on the chip (never a broken image).

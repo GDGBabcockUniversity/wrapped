@@ -57,11 +57,11 @@ export const STORIES: StoryDef[] = [
   // up. topSubgroup is null today, so the actual run is ~20,400ms — still
   // within the 80% rule against 29000 (20400 <= 23200).
   { id: "group-chat", index: 3, personal: false, accent: "green", field: "ink", setupMs: 3200, revealMs: 29000, label: "The Group Chat" },
-  // revealMs 60000 → 64000 (build4 §10B.3 item 5): splitting special thanks
-  // into two full chapters adds one card (1600ms) + one content beat
-  // (2400ms) to the schedule — 46.45+4 = 50.5s against the 80% rule's new
-  // ceiling of 51.2s (64000 × 0.8).
-  { id: "people", index: 4, personal: false, accent: "yellow", field: "cream", setupMs: 3500, revealMs: 64000, label: "The People" },
+  // revealMs 64000 → 103000 (build5 §6.7): the sponsor wall (real ORBIT
+  // data) plus the four-chapter closer arc (advisors/MVPs/special force)
+  // replace the old two-slide special thanks — cards 23,100ms + content
+  // 58,950ms = 82,050ms scripted; 82050/0.8 = 102,562.5, rounded up.
+  { id: "people", index: 4, personal: false, accent: "yellow", field: "cream", setupMs: 3500, revealMs: 103000, label: "The People" },
   { id: "your-events", index: 5, personal: true, accent: "blue", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Events" },
   { id: "standing", index: 6, personal: true, accent: "red", field: "cream", setupMs: 3200, revealMs: 8500, label: "Your Standing" },
   { id: "your-chapter", index: 7, personal: true, accent: "green", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Chapter" },

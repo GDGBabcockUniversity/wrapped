@@ -190,6 +190,8 @@ export const GROUP_CHAT = {
 export interface Person {
   name: string;
   role: string;
+  // SPONSORS and SPECIAL_THANKS are gone (build5 §6.6) — real sponsors live
+  // in SPONSOR_WALL, advisors/MVPs/special force in their own consts below.
   section:
     | "CORE"
     | "SOFTWARE"
@@ -198,9 +200,7 @@ export interface Person {
     | "DESIGN"
     | "DEV"
     | "MEDIA"
-    | "EVENTS"
-    | "SPONSORS"
-    | "SPECIAL_THANKS";
+    | "EVENTS";
   photo: string | null;
   /** Leads render first and slightly larger in their chapter. */
   isLead?: boolean;

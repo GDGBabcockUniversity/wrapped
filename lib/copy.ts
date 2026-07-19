@@ -83,7 +83,11 @@ export const copy = {
       mediaRadar: "The newsroom that never slept.",
       events: "And the hands that made it happen.",
       sponsors: "The partners who believed in us.",
-      specialThanks: "And two people who made it all possible.",
+      // The closer arc (build5 §6.6): advisors, then the MVPs, then the
+      // design special force — three separate chapter-card lines.
+      specialThanks: "The two who bet on us early.",
+      mvps: "The ones who wouldn't log off.",
+      specialForce: "The design team behind every product you just saw.",
       closer: "…and everyone who showed up."
     }
   },

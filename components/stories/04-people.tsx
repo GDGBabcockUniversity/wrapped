@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { motion } from "motion/react";
-import { PEOPLE, type Person } from "@/lib/content/chapter";
+import { motion, AnimatePresence } from "motion/react";
+import { PEOPLE, SPONSOR_WALL, ADVISORS, MVPS, SPECIAL_FORCE, type Person } from "@/lib/content/chapter";
 import { InitialsAvatar } from "@/components/initials-avatar";
 import { PopLetters } from "@/components/pop-letters";
 import { SlamStat } from "@/components/slam-stat";
 import { copy } from "@/lib/copy";
+import { SPRING } from "@/lib/stories";
 import { useGlQualityContext } from "@/components/gl/quality-context";
 import { QuarterRingsFigure } from "@/components/gl/static-figure";
 import { AmbientScribbles } from "@/components/ambient-scribbles";
@@ -99,12 +100,16 @@ interface Chapter {
   id: string;
   title: string;
   accent: Accent;
-  kind: "cast" | "special";
+  kind: "cast" | "sponsors" | "advisors" | "mvps" | "force";
   transition: string;
   people: Person[];
   /** Card-hold duration override — the five MEDIA subteam chapters compress
       to 1100ms (build5 §6.4); every other chapter keeps CARD_MS's 1600. */
   cardMs?: number;
+  /** Content-phase duration override for chapters whose content isn't a
+      plain cast grid (build5 §6.5-§6.7) — the sponsor wall and closer arc
+      each script their own internal sub-beats. */
+  contentMs?: number;
 }
 
 // CORE..DEV, then the five MEDIA subteam chapters, then EVENTS — SECTION_ORDER
@@ -133,35 +138,60 @@ const CHAPTERS: Chapter[] = [
   ...nonMediaChapters.slice(0, devPosition),
   ...mediaChapters,
   ...nonMediaChapters.slice(devPosition),
+  // The sponsor wall (build5 §6.5) — real data from the ORBIT repo, three
+  // internal beats totaling 6400ms of content (headline alone, then the
+  // gold/raffle/industry cluster, then the rest).
   {
     id: "sponsors",
     title: "SPONSORS",
     accent: "blue" as const,
-    kind: "cast" as const,
+    kind: "sponsors" as const,
     transition: copy.people.transitions.sponsors,
-    people: PEOPLE.filter((p) => p.section === "SPONSORS"),
+    people: [],
+    contentMs: 6400,
   },
-  // build4 §10B.3 item 5: Dr. Ernest and Emmanuel Oladosu each get their OWN
-  // slide (photo, name, editorial line ONLY on the second) rather than one
-  // shared card — two full chapters, not two people crammed into one.
-  ...PEOPLE.filter((p) => p.section === "SPECIAL_THANKS").map((p, i, arr) => ({
-    id: `special-${i}`,
+  // The closer arc (build5 §6.6): advisors, then the MVPs, then the design
+  // special force — four chapters, not two people crammed into one shared
+  // card.
+  {
+    id: "special-thanks",
     title: "SPECIAL THANKS",
     accent: "yellow" as const,
-    kind: "special" as const,
-    transition: i === arr.length - 1 ? copy.people.transitions.specialThanks : "",
-    people: [p],
-  })),
+    kind: "advisors" as const,
+    transition: copy.people.transitions.specialThanks,
+    people: [],
+    contentMs: 3200,
+  },
+  {
+    id: "mvps",
+    title: "THE MVPS",
+    accent: "green" as const,
+    kind: "mvps" as const,
+    transition: copy.people.transitions.mvps,
+    people: [],
+    contentMs: 8000,
+  },
+  {
+    id: "special-force",
+    title: "THE SPECIAL FORCE",
+    accent: "red" as const,
+    kind: "force" as const,
+    transition: copy.people.transitions.specialForce,
+    people: [],
+    contentMs: 3400,
+  },
 ];
 
-// Cadence (build4 §10B): one combined chapter card (title + its editorial
-// line) holds 1600ms, then the cast sits 2200ms + 130ms per face, capped at
-// 5.2s — MEDIA's sixteen people get ~4.3s, DESIGN's three ~2.6s. Total
-// schedule ≈ 46.5s against revealMs 60000 (§10.0 80% rule: 46.5 ≤ 48).
+// Cadence (build5 §6.7): one combined chapter card (title + its editorial
+// line) holds 1600ms (media subteams compress to 1100ms), then the cast
+// sits min(2400 + 150ms per face, 5600)ms — bigger tiles earn longer
+// looks. Total schedule ≈ 82,050ms against revealMs 103000 (80% rule:
+// 82050 <= 82400).
 const CARD_MS = 1600;
 
 function contentMsFor(chapter: Chapter): number {
-  return Math.min(2200 + chapter.people.length * 130, 5200);
+  if (chapter.contentMs) return chapter.contentMs;
+  return Math.min(2400 + chapter.people.length * 150, 5600);
 }
 
 // Deterministic tile widths (build5 §6.2) — chapters with more than five
@@ -197,33 +227,6 @@ function backdropPhotos(chapter: Chapter): string[] {
   return idxs
     .map((i) => chapter.people[i]?.photo)
     .filter((p): p is string => Boolean(p));
-}
-
-function Avatar({ person, size, index, ringHex }: { person: Person; size: number; index: number; ringHex?: string }) {
-  const [failed, setFailed] = useState(false);
-  const ring = ringHex ? { boxShadow: `0 0 0 2px ${ringHex}` } : undefined;
-  if (!person.photo || failed) {
-    return (
-      <div className="rounded-full" style={ring}>
-        <InitialsAvatar name={person.name} index={index} sizePx={size} />
-      </div>
-    );
-  }
-  return (
-    <div
-      className="relative rounded-full overflow-hidden flex-shrink-0"
-      style={{ width: size, height: size, ...ring }}
-    >
-      <Image
-        src={person.photo}
-        alt={person.name}
-        fill
-        className="object-cover"
-        sizes={`${size}px`}
-        onError={() => setFailed(true)}
-      />
-    </div>
-  );
 }
 
 /** Title + the chapter's editorial line as ONE beat — accent panel, skew-in,
@@ -284,18 +287,18 @@ function ChapterCard({ chapter }: { chapter: Chapter }) {
     (build5 §6.2, the owner's "pictures should be bigger"). InitialsAvatar
     fallback renders square at the tile's width when a photo is missing or
     fails to load. */
-function PhotoTile({ person, index, size }: { person: Person; index: number; size: number }) {
+function PhotoTile({ photo, name, index, size }: { photo: string | null; name: string; index: number; size: number }) {
   const [failed, setFailed] = useState(false);
   return (
     <div className="relative rounded-lg overflow-hidden flex-shrink-0 w-full aspect-[4/5] bg-ink/10">
-      {!person.photo || failed ? (
+      {!photo || failed ? (
         <div className="absolute inset-0 flex items-center justify-center">
-          <InitialsAvatar name={person.name} index={index} sizePx={size} square />
+          <InitialsAvatar name={name} index={index} sizePx={size} square />
         </div>
       ) : (
         <Image
-          src={person.photo}
-          alt={person.name}
+          src={photo}
+          alt={name}
           fill
           className="object-cover"
           sizes={`${size}px`}
@@ -324,7 +327,7 @@ function PersonTile({ person, index, chapterSize }: { person: Person; index: num
       animate={{ opacity: 1, scale: 1, rotate, y: dy }}
       transition={{ type: "spring", stiffness: 400, damping: 20, delay: index * 0.09 }}
     >
-      <PhotoTile person={person} index={index} size={size} />
+      <PhotoTile photo={person.photo} name={person.name} index={index} size={size} />
       <p
         className="font-bold text-ink/80 text-center leading-tight line-clamp-1 w-full"
         style={{ fontSize: "0.62rem" }}
@@ -343,13 +346,31 @@ function PersonTile({ person, index, chapterSize }: { person: Person; index: num
   );
 }
 
-function CastMoment({ chapter }: { chapter: Chapter }) {
-  const glQuality = useGlQualityContext();
+/** A plain name tile (photo + name, no role line) — the closer arc's MVPs
+    and special force, whose "role" is the section header itself. */
+function NamedTile({ photo, name, index, size }: { photo: string | null; name: string; index: number; size: number }) {
+  return (
+    <motion.div
+      className="flex flex-col items-center gap-1"
+      style={{ width: size }}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20, delay: index * 0.09 }}
+    >
+      <PhotoTile photo={photo} name={name} index={index} size={size} />
+      <p
+        className="font-bold text-ink/80 text-center leading-tight line-clamp-1 w-full"
+        style={{ fontSize: "0.6rem" }}
+      >
+        {name}
+      </p>
+    </motion.div>
+  );
+}
 
+function CastMoment({ chapter }: { chapter: Chapter }) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-4 gap-4">
-      {/* Static stand-in for the shader's quarter-rings figure (build4 §2.3). */}
-      {glQuality === "off" && <QuarterRingsFigure />}
       <StickerChip className="t-label">{chapter.title}</StickerChip>
       <div className="flex flex-wrap items-start justify-center gap-x-2.5 gap-y-3 max-w-md">
         {chapter.people.map((p, i) => (
@@ -360,38 +381,235 @@ function CastMoment({ chapter }: { chapter: Chapter }) {
   );
 }
 
-/** The two special-thanks names, large — the DesignersCard treatment. */
-function SpecialCard({ chapter }: { chapter: Chapter }) {
+/** A sponsor logo on a paper chip — a white field for logos that need one
+    (build5 §6.5). Falls back to the sponsor's name if the logo fails to
+    load, never a broken image. */
+function SponsorChip({ sponsor, index, big }: { sponsor: { name: string; logo: string }; index: number; big?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const rotate = big ? -2 : SCATTER_ROTATE[index % 6]!;
+  const size = big ? 160 : 84;
   return (
     <motion.div
-      className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-gdg-yellow px-6"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
+      className="relative bg-paper rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center"
+      style={{ width: size, height: size }}
+      initial={{ scale: 1.25, rotate: rotate * 3, opacity: 0 }}
+      animate={{ scale: 1, rotate, opacity: 1 }}
+      transition={{ ...SPRING.stamp, delay: index * 0.06 }}
     >
-      <p className="t-label text-ink/60">{chapter.title}</p>
-      <div className="flex gap-8">
-        {chapter.people.map((p, i) => (
-          <motion.div
-            key={p.name}
-            className="flex flex-col items-center gap-2"
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 400, damping: 20, delay: i * 0.15 }}
-          >
-            <Avatar person={p} size={84} index={i} />
-            <p className="t-display text-ink text-center" style={{ fontSize: "clamp(0.95rem, 5cqw, 1.3rem)" }}>
-              {p.name}
-            </p>
-          </motion.div>
-        ))}
-      </div>
-      {chapter.transition && <p className="t-editorial text-ink/70 text-center">{chapter.transition}</p>}
+      {failed ? (
+        <span className="t-label text-ink/70 text-center leading-tight px-1" style={{ fontSize: "0.5rem" }}>
+          {sponsor.name}
+        </span>
+      ) : (
+        <Image
+          src={sponsor.logo}
+          alt={sponsor.name}
+          fill
+          className="object-contain p-2"
+          sizes={`${size}px`}
+          onError={() => setFailed(true)}
+        />
+      )}
     </motion.div>
   );
 }
 
+// Sponsor wall beats (build5 §6.5): headline alone, then gold + raffle +
+// industry (9 logos), then everything else (hospitality + career fair +
+// student + media + associate communities — 13 logos). Tier index 0 is the
+// headline; 1-3 are beat two; 4-8 are beat three.
+const SPONSOR_BEAT_MS = [2000, 2200, 2200];
+
+function SponsorWall({ paused }: { paused: boolean }) {
+  const [beat, setBeat] = useState(0);
+
+  useEffect(() => {
+    if (paused || beat >= SPONSOR_BEAT_MS.length - 1) return;
+    const id = setTimeout(() => setBeat((b) => b + 1), SPONSOR_BEAT_MS[beat]);
+    return () => clearTimeout(id);
+  }, [paused, beat]);
+
+  const headline = SPONSOR_WALL[0]!;
+  const clusterTwo = SPONSOR_WALL.slice(1, 4);
+  const clusterThree = SPONSOR_WALL.slice(4);
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center px-6 gap-5 overflow-hidden">
+      <AnimatePresence mode="wait">
+        {beat === 0 && (
+          <motion.div
+            key="headline"
+            className="flex flex-col items-center gap-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <StickerChip className="t-label">{headline.tier}</StickerChip>
+            <SponsorChip sponsor={headline.sponsors[0]!} index={0} big />
+          </motion.div>
+        )}
+        {beat === 1 && (
+          <motion.div
+            key="cluster-two"
+            className="flex flex-col items-center gap-4 w-full max-w-xs"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            {clusterTwo.map((tier) => (
+              <div key={tier.tier} className="flex flex-col items-center gap-2">
+                <StickerChip className="t-label text-[0.55rem]">{tier.tier}</StickerChip>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {tier.sponsors.map((s, i) => (
+                    <SponsorChip key={s.name} sponsor={s} index={i} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+        {beat === 2 && (
+          <motion.div
+            key="cluster-three"
+            className="flex flex-col items-center gap-3 w-full max-w-xs"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            {clusterThree.map((tier) => (
+              <div key={tier.tier} className="flex flex-col items-center gap-2">
+                <StickerChip className="t-label text-[0.5rem]">{tier.tier}</StickerChip>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {tier.sponsors.map((s, i) => (
+                    <SponsorChip key={s.name} sponsor={s} index={i} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/** SPECIAL THANKS chapter 1's content (build5 §6.6): the two advisors, each
+    a large tile with their role on a sticker chip beneath the name. */
+function AdvisorsMoment() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center gap-6 px-6">
+      {ADVISORS.map((a, i) => (
+        <motion.div
+          key={a.name}
+          className="flex flex-col items-center gap-2"
+          style={{ width: 128 }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20, delay: i * 0.15 }}
+        >
+          <PhotoTile photo={a.photo} name={a.name} index={i} size={128} />
+          <p className="font-bold text-ink/85 text-center leading-tight" style={{ fontSize: "0.8rem" }}>
+            {a.name}
+          </p>
+          <StickerChip className="t-label text-[0.55rem]">{a.role}</StickerChip>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// The MVPs' three sub-beats (build5 §6.6): most active core team, most
+// active media team, most active track.
+const MVPS_BEAT_MS = [2800, 2800, 2400];
+
+function MvpsMoment({ paused }: { paused: boolean }) {
+  const [beat, setBeat] = useState(0);
+
+  useEffect(() => {
+    if (paused || beat >= MVPS_BEAT_MS.length - 1) return;
+    const id = setTimeout(() => setBeat((b) => b + 1), MVPS_BEAT_MS[beat]);
+    return () => clearTimeout(id);
+  }, [paused, beat]);
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center px-6 gap-4">
+      <AnimatePresence mode="wait">
+        {beat === 0 && (
+          <motion.div
+            key="core"
+            className="flex flex-col items-center gap-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <StickerChip className="t-label">MOST ACTIVE CORE TEAM</StickerChip>
+            <div className="flex flex-wrap justify-center gap-3 max-w-xs">
+              {MVPS.core.map((p, i) => (
+                <NamedTile key={p.name} photo={p.photo} name={p.name} index={i} size={104} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+        {beat === 1 && (
+          <motion.div
+            key="media"
+            className="flex flex-col items-center gap-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <StickerChip className="t-label">MOST ACTIVE MEDIA TEAM</StickerChip>
+            <div className="flex flex-wrap justify-center gap-3 max-w-xs">
+              {MVPS.media.map((p, i) => (
+                <NamedTile key={p.name} photo={p.photo} name={p.name} index={i} size={104} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+        {beat === 2 && (
+          <motion.div
+            key="track"
+            className="flex flex-col items-center gap-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <p className="t-label text-ink/60">MOST ACTIVE TRACK</p>
+            <SlamStat
+              value={MVPS.track}
+              className="t-display text-center"
+              style={{ fontSize: "clamp(1.6rem, 10cqw, 3rem)" }}
+            />
+            <p className="t-editorial text-ink/70 text-center">They never stopped talking. Or building.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/** THE SPECIAL FORCE chapter's content (build5 §6.6): the design team
+    behind every product, five named tiles. */
+function SpecialForceMoment() {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center px-4 gap-4">
+      <div className="flex flex-wrap justify-center gap-3 max-w-xs">
+        {SPECIAL_FORCE.map((p, i) => (
+          <NamedTile key={p.name} photo={p.photo} name={p.name} index={i} size={104} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function PeopleStory({ phase, active, paused }: StoryProps) {
+  const glQuality = useGlQualityContext();
   const [chapterIdx, setChapterIdx] = useState(0);
   const [showCard, setShowCard] = useState(true);
   const [finished, setFinished] = useState(false);
@@ -453,10 +671,20 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
   return (
     <div className="absolute inset-0 text-ink pt-20 pb-16 overflow-hidden">
       <AmbientScribbles field="cream" />
+      {/* Static stand-in for the shader's quarter-rings figure (build4
+          §2.3) — the story's one ambient system throughout every chapter
+          kind (law 1). */}
+      {glQuality === "off" && <QuarterRingsFigure />}
       {showCard ? (
         <ChapterCard chapter={chapter} />
-      ) : chapter.kind === "special" ? (
-        <SpecialCard chapter={chapter} />
+      ) : chapter.kind === "sponsors" ? (
+        <SponsorWall paused={paused} />
+      ) : chapter.kind === "advisors" ? (
+        <AdvisorsMoment />
+      ) : chapter.kind === "mvps" ? (
+        <MvpsMoment paused={paused} />
+      ) : chapter.kind === "force" ? (
+        <SpecialForceMoment />
       ) : (
         <CastMoment chapter={chapter} />
       )}
