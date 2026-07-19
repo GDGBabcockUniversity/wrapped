@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { PopLetters } from "@/components/pop-letters";
 import { SlamStat } from "@/components/slam-stat";
 import { StickerChip } from "@/components/sticker-chip";
-import { GROUP_CHAT } from "@/lib/content/chapter";
+import { GROUP_CHAT, GROUP_TOPICS } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { useGlQualityContext } from "@/components/gl/quality-context";
@@ -83,7 +83,17 @@ function BarRow({ label, count, maxCount, index }: { label: string; count: numbe
   );
 }
 
-function BarList({ title, rows }: { title: string; rows: { label: string; count: number }[] }) {
+function BarList({
+  title,
+  rows,
+  sub,
+}: {
+  title: string;
+  rows: { label: string; count: number }[];
+  /** An optional line beneath the list — the starters beat's "Silence
+      never stood a chance." (build6 §6.3). */
+  sub?: string;
+}) {
   const maxCount = rows[0]?.count ?? 0;
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-xs">
@@ -95,6 +105,97 @@ function BarList({ title, rows }: { title: string; rows: { label: string; count:
           <BarRow key={r.label} label={r.label} count={r.count} maxCount={maxCount} index={i} />
         ))}
       </div>
+      {sub && (
+        <motion.p
+          className="t-body text-cream/50 text-sm text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.3 + rows.length * 0.09 }}
+        >
+          {sub}
+        </motion.p>
+      )}
+    </div>
+  );
+}
+
+// build6 §6.3: the vocabulary beat — top words as scattered sticker chips,
+// each with its count beneath, stamping in one by one.
+const VOCAB_ROTATIONS = [-6, 4, -3, 6, -5, 2];
+const VOCAB_STAMP_MS = 120;
+
+function VocabChip({ word, count, index }: { word: string; count: number; index: number }) {
+  const reduceMotion = useReducedMotion();
+  const rot = VOCAB_ROTATIONS[index % VOCAB_ROTATIONS.length]!;
+  return (
+    <motion.div
+      className="flex flex-col items-center gap-0.5"
+      style={{ rotate: 0 }}
+      initial={reduceMotion ? { rotate: rot } : { scale: 1.3, rotate: rot * 2, opacity: 0 }}
+      animate={{ scale: 1, rotate: rot, opacity: 1 }}
+      transition={
+        reduceMotion ? { duration: 0.01 } : { ...SPRING.stamp, delay: (index * VOCAB_STAMP_MS) / 1000 }
+      }
+    >
+      <StickerChip className="t-editorial">{word.toUpperCase()}</StickerChip>
+      <span className="t-label text-cream/50" style={{ fontSize: "0.55rem" }}>
+        {count}
+      </span>
+    </motion.div>
+  );
+}
+
+// build6 §6.3: the emoji podium — top 3 on stepped platforms, landing in
+// ascending order (3rd, then 2nd, then 1st — the winner lands last),
+// displayed left-to-right as 2nd/1st/3rd like a real podium.
+const PODIUM_DISPLAY_ORDER = [1, 0, 2];
+const PODIUM_PLATFORM_H: Record<number, number> = { 0: 72, 1: 52, 2: 36 };
+const PODIUM_LAND_DELAY_S: Record<number, number> = { 0: 0.3, 1: 0.15, 2: 0 };
+
+function EmojiPodium() {
+  const top3 = GROUP_TOPICS.emojiLeaderboard?.slice(0, 3) ?? [];
+  const rest = GROUP_TOPICS.emojiLeaderboard?.slice(3, 8) ?? [];
+  return (
+    <div className="flex flex-col items-center gap-4 px-6 w-full">
+      <p className="t-editorial text-center">
+        <PopLetters text={copy.groupChat.emojiTitle} />
+      </p>
+      <div className="flex items-end justify-center gap-3">
+        {PODIUM_DISPLAY_ORDER.map((rank) => {
+          const item = top3[rank];
+          if (!item) return null;
+          return (
+            <motion.div
+              key={item.emoji}
+              className="flex flex-col items-center gap-1"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ ...SPRING.stamp, delay: PODIUM_LAND_DELAY_S[rank] }}
+            >
+              <span style={{ fontSize: rank === 0 ? "2.75rem" : "2rem" }}>{item.emoji}</span>
+              <span className="t-label text-cream/60">{item.count}</span>
+              <div className="w-14 rounded-t-md bg-cream/15" style={{ height: PODIUM_PLATFORM_H[rank] }} />
+            </motion.div>
+          );
+        })}
+      </div>
+      {rest.length > 0 && (
+        <motion.div
+          className="flex flex-wrap justify-center gap-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.6 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
+        >
+          {rest.map((e) => (
+            <span key={e.emoji} className="t-label flex items-center gap-1">
+              <span style={{ fontSize: "1.1rem" }}>{e.emoji}</span>
+              <span className="text-cream/50" style={{ fontSize: "0.6rem" }}>
+                {e.count}
+              </span>
+            </span>
+          ))}
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -197,6 +298,50 @@ function buildBeats(): ReactNode[] {
     />
   );
 
+  // build6 §6.3: the topics engine's four beats — inserted after dialect,
+  // before streak. Every field is null-skipped independently: a batch
+  // where one analyzer came up empty still shows the rest.
+  if (GROUP_TOPICS.topicBuckets) {
+    beats.push(
+      <BarList
+        key="topics"
+        title={copy.groupChat.topicsTitle}
+        rows={GROUP_TOPICS.topicBuckets.slice(0, 4).map((b) => ({ label: b.name, count: b.count }))}
+      />
+    );
+  }
+
+  if (GROUP_TOPICS.wordsOfYear && GROUP_TOPICS.wordsOfYear.length > 0) {
+    const top6 = GROUP_TOPICS.wordsOfYear.slice(0, 6);
+    beats.push(
+      <div key="vocab" className="flex flex-col items-center gap-4 px-6">
+        <p className="t-editorial text-center">
+          <PopLetters text={copy.groupChat.vocabTitle} />
+        </p>
+        <div className="flex flex-wrap justify-center gap-3 max-w-xs">
+          {top6.map((w, i) => (
+            <VocabChip key={w.word} word={w.word} count={w.count} index={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (GROUP_TOPICS.emojiLeaderboard && GROUP_TOPICS.emojiLeaderboard.length > 0) {
+    beats.push(<EmojiPodium key="emoji" />);
+  }
+
+  if (GROUP_TOPICS.starters && GROUP_TOPICS.starters.length > 0) {
+    beats.push(
+      <BarList
+        key="starters"
+        title={copy.groupChat.startersTitle}
+        rows={GROUP_TOPICS.starters.slice(0, 3).map((s) => ({ label: s.name, count: s.count }))}
+        sub={copy.groupChat.startersSub}
+      />
+    );
+  }
+
   // 7. laughs
   beats.push(
     <Stat key="laughs" value={GROUP_CHAT.laughs} label={copy.groupChat.laughsLabel} detail={copy.groupChat.laughsSub} />
@@ -208,8 +353,12 @@ function buildBeats(): ReactNode[] {
   );
 
   // 9. most active subgroup — null-skipped until subgroup exports land.
+  // build6 §6.3: now that the track exports are merged, allSubgroups fills
+  // for real too — a compact 4-row bar list beneath the headline, so the
+  // beat names the winner AND shows how every track stacked up.
   if (GROUP_CHAT.topSubgroup) {
     const subgroup = GROUP_CHAT.topSubgroup;
+    const allTracks = GROUP_CHAT.allSubgroups;
     beats.push(
       <div key="subgroup" className="flex flex-col items-center gap-2 px-6">
         <p className="t-editorial text-center">
@@ -228,6 +377,21 @@ function buildBeats(): ReactNode[] {
         >
           {fmt(copy.groupChat.subgroupSub, { messages: subgroup.messages })}
         </motion.p>
+        {allTracks && allTracks.length > 0 && (
+          <motion.div
+            className="w-full max-w-xs flex flex-col gap-2 mt-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.7 }}
+          >
+            <p className="t-label text-cream/50 text-center" style={{ fontSize: "0.6rem" }}>
+              {copy.groupChat.subgroupAllTitle}
+            </p>
+            {allTracks.map((t, i) => (
+              <BarRow key={t.name} label={t.name} count={t.messages} maxCount={allTracks[0]!.messages} index={i} />
+            ))}
+          </motion.div>
+        )}
       </div>
     );
   }
@@ -235,7 +399,7 @@ function buildBeats(): ReactNode[] {
   return beats;
 }
 
-const BEAT_MS = [2200, 3600, 2600, 2400, 2600, 2800, 2000, 2200, 2400];
+const BEAT_MS = [2200, 3600, 2600, 2400, 2600, 2800, 2600, 2600, 2600, 2600, 2000, 2200, 2400];
 const BEATS = buildBeats();
 
 export function GroupChatStory({ phase, active, paused }: StoryProps) {

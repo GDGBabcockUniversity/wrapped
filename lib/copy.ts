@@ -63,6 +63,13 @@ export const copy = {
     streakSub: "Feb 13 to March 9. Not one quiet day.",
     subgroupTitle: "Most active subgroup.",
     subgroupSub: "{messages} messages. They never stopped.",
+    subgroupAllTitle: "Every track, ranked.",
+    // build6 §6.3 — the topics engine's new beats.
+    topicsTitle: "So what was it about?",
+    vocabTitle: "Certified chapter vocabulary.",
+    emojiTitle: "The emoji of the year.",
+    startersTitle: "Who restarts the chat.",
+    startersSub: "Silence never stood a chance.",
   },
   people: {
     setup: "None of this happened by itself.",

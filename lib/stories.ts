@@ -56,11 +56,11 @@ export const STORIES: StoryDef[] = [
   // (34500 + 6000 + 2400) / 0.8 = 53625, rounded up. Null-skipped TBDs only
   // ever shorten the actual run.
   { id: "built", index: 2, personal: false, accent: "blue", field: "ink", setupMs: 3200, revealMs: 54000, label: "What We Built" },
-  // revealMs 29000 (build5 §4.4): scripted worst case (all 9 beats,
-  // including the topSubgroup beat) = 22,800ms; 22800/0.8 = 28,500, rounded
-  // up. topSubgroup is null today, so the actual run is ~20,400ms — still
-  // within the 80% rule against 29000 (20400 <= 23200).
-  { id: "group-chat", index: 3, personal: false, accent: "green", field: "ink", setupMs: 3200, revealMs: 29000, label: "The Group Chat" },
+  // revealMs 42000 (build6 §6.3): the topics engine adds 4 beats (topics,
+  // vocabulary, emoji podium, starters) at 2600ms each — +10,400ms over
+  // build5 §4.4's 9-beat, 22,800ms baseline = 33,200ms scripted worst
+  // case; 33200/0.8 = 41,500, rounded up.
+  { id: "group-chat", index: 3, personal: false, accent: "green", field: "ink", setupMs: 3200, revealMs: 42000, label: "The Group Chat" },
   // revealMs 64000 → 103000 (build5 §6.7): the sponsor wall (real ORBIT
   // data) plus the four-chapter closer arc (advisors/MVPs/special force)
   // replace the old two-slide special thanks — cards 23,100ms + content

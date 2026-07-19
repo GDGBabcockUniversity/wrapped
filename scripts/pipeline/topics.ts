@@ -57,6 +57,7 @@ export const STOPWORDS = new Set([
   "would", "should", "about", "into", "over", "under", "than", "there",
   "here", "its", "im", "the", "of", "to", "in", "on", "at", "is", "be",
   "or", "if", "so", "we", "us", "our", "my", "me", "get", "got", "one",
+  "all", "too", "let", "did", "more", "now", "see",
   "dont", "thats", "like", "just", "good", "know", "want", "need", "time",
   "going", "still", "make", "then", "well", "also", "really", "right",
   "guys", "please", "okay", "yeah", "will", "thanks", "media", "omitted",
@@ -107,6 +108,30 @@ function isDisplaySender(key: string): boolean {
   return !key.startsWith("~") && !/^\d+$/.test(key);
 }
 
+// WhatsApp writes member-action and admin-action notices ("X joined using
+// a group link", "X changed this group's settings to allow...") in the
+// SAME sender:body shape as a real message, with no colon-free system
+// line to catch — parse-whatsapp.ts's system-line detection can't see
+// them. They're unmistakable content-wise, though: the body repeats the
+// message's own sender name verbatim as its opening words, which a real
+// chat message essentially never does. A short list of WhatsApp's own
+// fixed banner text (not tied to any actor) catches the rest. This filter
+// only shapes topics.ts's own word/starter analysis — it does not touch
+// group-stats.ts's message counts, which stay exactly as already shipped.
+const KNOWN_SYSTEM_PHRASES = ["messages and calls are end-to-end encrypted"];
+// A sent sticker/photo/video is a real conversational contribution — it
+// counts toward GROUP_CHAT.messages same as ever — but its placeholder
+// text ("sticker omitted") isn't a word anyone typed, so it doesn't belong
+// in a word-frequency count.
+const MEDIA_PLACEHOLDER_RE = /^(sticker|image|video|gif|audio|document) omitted$/i;
+
+function isSystemNoise(senderKey: string, text: string): boolean {
+  const lower = text.toLowerCase();
+  if (MEDIA_PLACEHOLDER_RE.test(text)) return true;
+  if (KNOWN_SYSTEM_PHRASES.some((p) => lower.startsWith(p))) return true;
+  return text === senderKey || text.startsWith(`${senderKey} `);
+}
+
 function nameStopwords(extraDisplayNames: string[]): Set<string> {
   const set = new Set<string>();
   for (const name of [...PEOPLE.map((p) => p.name), ...extraDisplayNames]) {
@@ -120,7 +145,9 @@ function nameStopwords(extraDisplayNames: string[]): Set<string> {
 function wordsOfYear(messages: ClassifiedMessage[], nameStops: Set<string>): WordCount[] {
   const counts = new Map<string, number>();
   for (const m of messages) {
-    const matches = m.cleanedText.toLowerCase().match(RE_WORD);
+    // Strip URLs first — "https"/"com"/"www" are link fragments, not words.
+    const withoutLinks = m.cleanedText.replace(RE_URL, " ");
+    const matches = withoutLinks.toLowerCase().match(RE_WORD);
     if (!matches) continue;
     for (const w of matches) {
       if (STOPWORDS.has(w) || nameStops.has(w)) continue;
@@ -264,7 +291,9 @@ export function computeGroupTopics(
   yearEnd: Date,
   extraNameStopwords: string[] = []
 ): GroupTopicsResult {
-  const messages = classifyExport(text, yearStart, yearEnd).filter((m) => m.counts);
+  const messages = classifyExport(text, yearStart, yearEnd).filter(
+    (m) => m.counts && !isSystemNoise(m.senderKey, m.cleanedText)
+  );
   const nameStops = nameStopwords(extraNameStopwords);
   const links = linkStats(messages);
   return {

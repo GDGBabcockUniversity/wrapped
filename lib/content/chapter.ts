@@ -153,31 +153,33 @@ export const CREWS: Record<string, string[]> = {
 
 // Main-group-chat fun stats (build5 §4) — recomputed 2026-07-19 from the
 // FULL export drop (main chat + four track subgroups) after the date-order
-// parser fix: the earlier "3 missing months" were an artifact of parsing
-// the US month-first export day-first — October (791 msgs) and November
-// (1,024) were there all along. Coverage now spans all 11 months of the
-// chapter year (Sept 2025 has only 2 messages because the group was
-// created Sept 9 and only warmed up in October — real, not missing).
-// Display names come from the EXPORTING phone's address book — TBD-review:
-// the owner may remap any of them before freeze (e.g. "Habeeb Abayomi M."
-// vs the earlier export's "Habibi" are the same person, different phone).
+// parser fix, then recomputed again through merge-exports.ts (build6 §6.1)
+// — the dedupe pass found ~164 byte-identical duplicate lines within the
+// raw exports (a handful of overlapping-window artifacts), so these are
+// slightly lower than the pre-merge numbers and are the more accurate
+// figures. Coverage spans all 11 months of the chapter year (Sept 2025 has
+// only 2 messages because the group was created Sept 9 and only warmed up
+// in October — real, not missing). Display names come from the EXPORTING
+// phone's address book — TBD-review: the owner may remap any of them
+// before freeze (e.g. "Habeeb Abayomi M." vs the earlier export's "Habibi"
+// are the same person, different phone).
 // Re-run: npx tsx scripts/pipeline/run-group-stats.ts
 export const GROUP_CHAT = {
-  messages: 11771,
+  messages: 11607,
   senders: 487,
   monthsMissing: 0, // full coverage — the "months missing" detail line null-skips
   topYappers: [
-    { name: "Habeeb Abayomi M.", count: 1821 },
-    { name: "Emma", count: 1154 },
-    { name: "Dozie", count: 781 },
-    { name: "YE", count: 760 },
-    { name: "Neku", count: 635 },
+    { name: "Habeeb Abayomi M.", count: 1808 },
+    { name: "Emma", count: 1138 },
+    { name: "Dozie", count: 780 },
+    { name: "YE", count: 759 },
+    { name: "Neku", count: 629 },
   ],
-  busiestDay: { label: "FEB 22", count: 1053, line: "One game night went completely off the rails." },
+  busiestDay: { label: "FEB 22", count: 1036, line: "One game night went completely off the rails." },
   peakHourLabel: "9PM", // 21:00-22:00
-  afterMidnight: 804, // messages 00:00-04:59
-  stickers: 1258,
-  deleted: 119,
+  afterMidnight: 798, // messages 00:00-04:59
+  stickers: 1173,
+  deleted: 107,
   laughs: 879, // 😂 + 💀 + 🤣 across the year
   dialect: [
     { word: "sha", count: 143 },
@@ -187,9 +189,16 @@ export const GROUP_CHAT = {
     { word: "omo", count: 39 },
   ],
   streakDays: 25, // consecutive days with messages, Feb 13 → Mar 9 2026
-  // Real subgroup exports landed (build5 §5.2 un-skips): Data & AI leads at
-  // 3,882, ahead of software (1,015), infra (696), design (440).
-  topSubgroup: { name: "DATA & AI", messages: 3882 } as { name: string; messages: number } | null,
+  // Real subgroup exports landed (build5 §5.2 un-skips): Data & AI leads.
+  topSubgroup: { name: "DATA & AI", messages: 3845 } as { name: string; messages: number } | null,
+  // build6 §6.3: every track's count, for the subgroup beat's compact
+  // 4-row bar list (topSubgroup alone only tells half the story).
+  allSubgroups: [
+    { name: "DATA & AI", messages: 3845 },
+    { name: "SOFTWARE DEVELOPMENT & ENGINEERING", messages: 1010 },
+    { name: "INFRASTRUCTURE & SECURITY", messages: 693 },
+    { name: "DESIGN & MANAGEMENT", messages: 424 },
+  ] as { name: string; messages: number }[] | null,
 } as const;
 
 export interface GroupTopics {
@@ -206,21 +215,70 @@ export interface GroupTopics {
 }
 
 // build6 §6.2: the topics engine (scripts/pipeline/topics.ts) audits WHAT
-// the chat talked about, not just who/when/how much — but it hasn't run
-// against the merged real exports yet, so every field stays null (never a
-// blank array standing in for "no topics") until the operator pastes the
-// printed block here. Re-run: npx tsx scripts/pipeline/run-group-stats.ts
+// the chat talked about, not just who/when/how much. Computed 2026-07-19
+// from the same merged main-chat export as GROUP_CHAT above.
+// Re-run: npx tsx scripts/pipeline/run-group-stats.ts
 export const GROUP_TOPICS: GroupTopics = {
-  wordsOfYear: null,
-  emojiLeaderboard: null,
-  topicBuckets: null,
-  nameDrops: null,
-  linksTotal: null,
-  linkDomains: null,
-  questionsCount: null,
-  shouter: null,
-  longestMessage: null,
-  starters: null,
+  wordsOfYear: [
+    { word: "pts", count: 145 },
+    { word: "sha", count: 143 },
+    { word: "don", count: 142 },
+    { word: "people", count: 134 },
+    { word: "first", count: 118 },
+    { word: "happy", count: 115 },
+    { word: "new", count: 109 },
+    { word: "dey", count: 106 },
+    { word: "gdg", count: 96 },
+    { word: "tejiri", count: 95 },
+    { word: "use", count: 95 },
+    { word: "even", count: 94 },
+    { word: "ohh", count: 94 },
+    { word: "bro", count: 93 },
+    { word: "babcock", count: 92 },
+  ],
+  emojiLeaderboard: [
+    { emoji: "😂", count: 736 },
+    { emoji: "😭", count: 661 },
+    { emoji: "🤣", count: 104 },
+    { emoji: "👀", count: 68 },
+    { emoji: "😔", count: 53 },
+    { emoji: "💀", count: 37 },
+    { emoji: "😅", count: 37 },
+    { emoji: "🌚", count: 36 },
+  ],
+  topicBuckets: [
+    { name: "TECH", count: 231 },
+    { name: "MONEY", count: 148 },
+    { name: "EVENTS", count: 96 },
+    { name: "EXAMS & SCHOOL", count: 35 },
+    { name: "FOOTBALL", count: 28 },
+    { name: "SPIRITUAL", count: 23 },
+    { name: "LOVE & VAL", count: 22 },
+    { name: "FOOD", count: 19 },
+  ],
+  nameDrops: [
+    { name: "all", count: 5 },
+    { name: "me", count: 3 },
+    { name: "Meta", count: 1 },
+    { name: "siri", count: 1 },
+    { name: "his", count: 1 },
+  ],
+  linksTotal: 131,
+  linkDomains: [
+    { domain: "other", count: 83 },
+    { domain: "x/twitter", count: 34 },
+    { domain: "tiktok", count: 8 },
+    { domain: "youtube", count: 4 },
+    { domain: "instagram", count: 2 },
+  ],
+  questionsCount: 487,
+  shouter: { name: "Habeeb Abayomi M.", count: 13 },
+  longestMessage: { chars: 540, sender: "Neku" },
+  starters: [
+    { name: "Neku", count: 26 },
+    { name: "Habeeb Abayomi M.", count: 21 },
+    { name: "Dozie", count: 14 },
+  ],
 };
 
 export interface Person {
