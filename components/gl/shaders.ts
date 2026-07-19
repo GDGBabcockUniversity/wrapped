@@ -96,11 +96,9 @@ void main() {
     col = mix(col, INK, pat * 0.13);
     vec3 iri = 0.5 + 0.5 * cos(6.2832 * (d * 2.2 - u_time * 0.08 + vec3(0.0, 0.33, 0.67)));
     col += iri * exp(-3.5 * d) * 0.18;                 // thin-film foil chasing the pointer
-  } else if (u_story == 8) {     // WHAT'S NEXT: cream field, rising ember motes in green
-    vec2 e = fract(p * 4.0 - vec2(0.0, u_time * 0.05));
-    float m = smoothstep(0.05, 0.0, length(e - 0.5)) * step(0.72, hash(floor(p * 4.0 - vec2(0.0, u_time * 0.05))));
+  } else if (u_story == 8) {     // WHAT'S NEXT: cream field, faint grain — ambient
+    // moved to the DotField DOM layer (build4 §3, law 1: one system only).
     col -= vec3(0.02) * fbm(p * 5.0);
-    col = mix(col, u_accent, m * 0.5);
   } else if (u_story == 9) {     // SUMMARY: near-still vignette + four faint orbiting dots
     col -= smoothstep(0.5, 1.15, length(p)) * 0.08;
     for (int i = 0; i < 4; i++) {

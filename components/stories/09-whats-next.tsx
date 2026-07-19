@@ -4,6 +4,8 @@ import { motion, useReducedMotion } from "motion/react";
 import { KineticWords } from "@/components/kinetic-words";
 import { PopLetters } from "@/components/pop-letters";
 import { copy } from "@/lib/copy";
+import { DotField } from "@/components/dot-field";
+import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
 
 export function WhatsNextStory({ phase }: StoryProps) {
@@ -21,6 +23,9 @@ export function WhatsNextStory({ phase }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-6 text-center">
+      {/* Replaces the shader's ember motes as this story's one ambient
+          system (build4 §3) — the shader keeps only its grain darkening. */}
+      <DotField accent={ACCENT_HEX.green} edge="bottom" />
       {/* Filled type, not outlined — PopLetters' bubbly per-letter pop needs
           a stable glyph per letter, which an SVG outline filter can't give
           (§11.7 build2.md: never combine kinetic/pop type with outlines). */}

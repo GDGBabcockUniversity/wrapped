@@ -7,6 +7,8 @@ import { KineticWords } from "@/components/kinetic-words";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
+import { DotField } from "@/components/dot-field";
+import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
 
 const TIER_LABEL: Record<string, string> = {
@@ -45,6 +47,9 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
   if (phase === "setup") {
     return (
       <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16">
+        {/* The dot bands frame the stamp beat (build4 §3) — mounted in
+            both setup and reveal so they don't pop in mid-story. */}
+        <DotField accent={ACCENT_HEX.red} edge="both" />
         <p className="t-display text-center">
           <KineticWords text={isTier ? copy.standing.setup : copy.standing.setupQuiet} />
         </p>
@@ -58,6 +63,7 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
     const tierNum = TIER_LABEL[snapshot.standing.tier] ?? String(snapshot.standing.percentile);
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-6 text-center overflow-hidden">
+        <DotField accent={ACCENT_HEX.red} edge="both" />
         <Seal />
         <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
           {/* Beat 1: the seal ring draws in, then keeps its slow rotation. */}
@@ -133,6 +139,7 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-6 text-center">
+      <DotField accent={ACCENT_HEX.red} edge="both" />
       <p className="t-display">{copy.standing.revealStats}</p>
       {!showLow && (
         <div className={`flex ${matched ? "gap-8" : ""} items-center justify-center`}>
