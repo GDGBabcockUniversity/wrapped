@@ -10,15 +10,18 @@ const IDLE_MS = 1800;
 const HIDE_MS = 400;
 const SHOW_MS = 150;
 const AWAKE_OPACITY = 0.8;
-const IDLE_OPACITY = 0.35;
+// build6 §4.1: owner — "the bar should not always be visible tho." Overrides
+// build5 §2.2's dim-never-vanish; idle now fades chrome all the way to 0
+// (reduced-motion and forceVisible below still pin it awake).
+const IDLE_OPACITY = 0;
 const BUTTON_AWAKE_OPACITY = 0.6;
-const BUTTON_IDLE_OPACITY = 0.3;
+const BUTTON_IDLE_OPACITY = 0;
 
 /**
  * The whisper rail (build5 §2): a thin vertical bar hugging the right edge,
  * one segment per story. Chrome exists for the visitor's thumb, not their
- * eyes — it dims when idle but never fully vanishes (law 8), and it never
- * announces the current story's name; that lives in the chapter grid.
+ * eyes — it dims to nothing when idle (build6 §4.1) and never announces
+ * the current story's name; that lives in the chapter grid.
  *
  * EVERY segment's fill is painted imperatively on every frame — past
  * segments 1, future 0, current segment from the engine's progress ref.
@@ -75,6 +78,9 @@ export function ProgressBar({
     return () => cancelAnimationFrame(raf);
   }, [progressRef]);
 
+  // build6 §4.1: a pointer/key tap wakes the chrome, and so does a
+  // story/phase transition — re-running this effect on currentPos/phase
+  // calls wake() again the same way a fresh mount would.
   useEffect(() => {
     if (reduceMotion) return; // always awake — discoverability over purity
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -89,7 +95,7 @@ export function ProgressBar({
       window.removeEventListener("pointerdown", wake, { capture: true });
       if (timeout) clearTimeout(timeout);
     };
-  }, [reduceMotion]);
+  }, [reduceMotion, currentPos, phase]);
 
   const chromeAwake = !idleHidden || !!forceVisible || !!reduceMotion;
   const railStyle = {

@@ -10,6 +10,7 @@ import { CLUBS } from "@/lib/clubs";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import { StoryFrame } from "./story-frame";
 import { ProgressBar } from "./progress-bar";
+import { GestureHint } from "./gesture-hint";
 import { TapZones } from "./tap-zones";
 import { preloadStoryAssets } from "./preloader";
 import { useStoryEngine } from "./use-story-state";
@@ -344,6 +345,11 @@ export function Player() {
           ) : undefined
         }
       />
+
+      {/* build6 §4.2: the reference Wrapped's own cue that a visitor CAN
+          act even though the story auto-advances — once per session, only
+          over story 0's reveal. */}
+      <GestureHint active={state.storyIndex === 0 && state.phase === "reveal"} />
 
       {/* build6 §2.4: never on summary — revealMs 0 means there's no timer
           to pause, so the toast was pure noise sitting on top of the
