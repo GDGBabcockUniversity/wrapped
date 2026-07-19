@@ -5,6 +5,7 @@ import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { PopLetters } from "@/components/pop-letters";
 import { StickerChip } from "@/components/sticker-chip";
+import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { MOMENTS, GROUP_CHAT } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
@@ -313,7 +314,11 @@ function SceneView({ scene }: { scene: Scene }) {
       className="relative flex-1 w-full flex items-center justify-center overflow-visible"
       initial={{ scale: 1, x: "0%" }}
       animate={reduceMotion ? {} : { scale: 1.04, x: "-1%" }}
-      transition={{ duration: SCENE_MS / 1000, ease: "linear" }}
+      // build6 §8.1: a mechanical constant-velocity drift over a full
+      // scene read as exactly the "wonky" the owner kept flagging — this
+      // isn't a belt/runner/marquee, it's the scene's own hero motion, so
+      // it eases like everything else instead.
+      transition={{ duration: SCENE_MS / 1000, ease: "easeInOut" }}
     >
       {scene.photos.map((src, i) => (
         <ScenePhoto
@@ -412,7 +417,10 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
 
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-3">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-3 overflow-hidden">
+        {/* build6 §8.7: moments had no ambient layer at all — nothing to
+            fall back to if the shader canvas isn't running. */}
+        <AmbientScribbles field="cream" />
         {/* Preload moments images offscreen/hidden */}
         <div className="hidden" aria-hidden="true">
           {SCENES.flatMap((s) => s.photos).map((src) => (
@@ -438,6 +446,7 @@ export function MomentsStory({ phase, active, paused }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 overflow-hidden">
+      <AmbientScribbles field="cream" />
       <AnimatePresence mode="wait">
         <SceneView key={scene.id} scene={scene} />
       </AnimatePresence>

@@ -482,7 +482,7 @@ function SponsorWall({ paused }: { paused: boolean }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.22 }}
           >
             <StickerChip className="t-label">{headline.tier}</StickerChip>
             <SponsorChip sponsor={headline.sponsors[0]!} index={0} big />
@@ -495,7 +495,7 @@ function SponsorWall({ paused }: { paused: boolean }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.22 }}
           >
             {clusterTwo.map((tier) => (
               <div key={tier.tier} className="flex flex-col items-center gap-2">
@@ -516,7 +516,7 @@ function SponsorWall({ paused }: { paused: boolean }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.22 }}
           >
             {clusterThree.map((tier) => (
               <div key={tier.tier} className="flex flex-col items-center gap-2">
@@ -583,7 +583,7 @@ function MvpsMoment({ paused }: { paused: boolean }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.22 }}
           >
             <StickerChip className="t-label">MOST ACTIVE CORE TEAM</StickerChip>
             <div className="flex flex-wrap justify-center gap-3 max-w-xs">
@@ -600,7 +600,7 @@ function MvpsMoment({ paused }: { paused: boolean }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.22 }}
           >
             <StickerChip className="t-label">MOST ACTIVE MEDIA TEAM</StickerChip>
             <div className="flex flex-wrap justify-center gap-3 max-w-xs">
@@ -617,7 +617,7 @@ function MvpsMoment({ paused }: { paused: boolean }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.22 }}
           >
             <p className="t-label text-ink/60">MOST ACTIVE TRACK</p>
             <SlamStat

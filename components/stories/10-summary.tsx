@@ -34,7 +34,9 @@ function Barcode({ seed }: { seed: string }) {
           style={{ width: `${w}px`, height: `${8 + w * 4}px`, transformOrigin: "bottom" }}
           initial={{ scaleY: reduceMotion ? 1 : 0 }}
           animate={{ scaleY: 1 }}
-          transition={{ duration: 0.2, delay: 0.8 + i * 0.024 }}
+          // build6 §8.5: 18 bars at the old 0.024s step landed the last one
+          // at 1.208s — a hair over the 1.2s stagger cap.
+          transition={{ duration: 0.2, delay: 0.78 + i * 0.023 }}
         />
       ))}
     </div>

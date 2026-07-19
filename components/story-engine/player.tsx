@@ -310,8 +310,11 @@ export function Player() {
                 only in-story phase changes transition. Setup exits by scaling
                 TOWARD the viewer while the reveal rises from slightly beneath:
                 you pass THROUGH the tease into the payoff, not across a flat
-                fade. */}
-            <AnimatePresence mode="wait" initial={false}>
+                fade. build6 §8.4: no mode="wait" — every setup→reveal
+                crossfade must overlap (the incoming screen visible before
+                the outgoing hits opacity 0), which mode="wait"'s strictly
+                sequential exit-then-enter can never do. */}
+            <AnimatePresence initial={false}>
               <motion.div
                 key={state.phase}
                 initial={{ opacity: 0, scale: 0.97 }}

@@ -5,6 +5,7 @@ import { motion, useMotionValue, useSpring, useReducedMotion } from "motion/reac
 import { CLUBS } from "@/lib/clubs";
 import { IdleFloat } from "@/components/idle-float";
 import { KineticWords } from "@/components/kinetic-words";
+import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
@@ -302,7 +303,10 @@ function FoilCard({
 export function YourClubStory({ phase, snapshot, guest }: StoryProps) {
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-8">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-8 overflow-hidden">
+        {/* build6 §8.7: no ambient layer at all previously — nothing to
+            fall back to if the shader canvas isn't running. */}
+        <AmbientScribbles field="ink" />
         <div className="text-center">
           <p className="t-display">
             <KineticWords text={copy.yourClub.setup} />
@@ -316,7 +320,8 @@ export function YourClubStory({ phase, snapshot, guest }: StoryProps) {
 
   if (guest || !snapshot) {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4 text-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4 text-center overflow-hidden">
+        <AmbientScribbles field="ink" />
         <CardBacks />
         <p className="t-label text-cream/60 mt-2">{copy.yourClub.guestNames}</p>
         <p className="t-body text-cream/70 max-w-xs">{copy.yourClub.guestLine}</p>

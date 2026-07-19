@@ -442,7 +442,7 @@ export function GroupChatStory({ phase, active, paused }: StoryProps) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
           >
             {BEATS[beatIdx]}
           </motion.div>
