@@ -10,21 +10,30 @@ import { copy } from "@/lib/copy";
 import { SPRING, TIMING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
 import { useGlQualityContext } from "@/components/gl/quality-context";
-import { StripeBandFigure } from "@/components/gl/static-figure";
+import { StripeBandFigure, WarpFieldFigure } from "@/components/gl/static-figure";
 import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
 
-// The overture (build4 §4): a numeral drive-through over the warp field,
-// then a resolve, then a calm two-line beat — replaces the old four-cut
-// hard-switch cold open entirely.
+// The overture (build4 §4, retimed build6 §2.2): a numeral drive-through
+// over the warp field, then a resolve, then a calm two-line beat.
 const DRIVE_MS = 3400;
 const OVERLAY_APPEAR_S = 0.05;
 const OVERLAY_HOLD_MS = 1200;
 const OVERLAY_FADE_S = 0.15;
 const OVERLAY_LINE1_AT = 400;
 const OVERLAY_LINE2_AT = 1900;
-const NUMERAL_TRANSITION = { duration: DRIVE_MS / 1000, ease: "linear" as const };
+// The numeral belt (build6 §2.2, law 10): a continuous marquee replacing
+// the old two-lone-numerals crossing, which held a dead, static-looking
+// beat between "25" exiting and "26" entering. Content is duplicated so
+// the .overture-belt CSS animation's translateX(0) -> translateX(-50%)
+// loops seamlessly (same trick as 03-built.tsx's Marquee, and — unlike
+// Motion's `animate` with a percentage keyframe array, which proved stuck
+// at its initial value on this rotated element — a plain CSS @keyframes
+// loop that actually runs; duration lives in globals.css's overture-belt
+// keyframe, 7s, linear, infinite).
+const BELT_GLYPHS = ["25", "26", "25", "26", "25", "26"];
+const BELT_ITEMS = [...BELT_GLYPHS, ...BELT_GLYPHS];
 
 const subscribeNoop = () => () => {};
 /** True only after the client has mounted — React's own sanctioned tool
@@ -73,11 +82,13 @@ function DriveOverlayLine({ text, visible }: { text: string; visible: boolean })
   );
 }
 
-/** 0–3400ms: numerals "25"/"26" travel through at monument scale over the
-    warp field (shader story 10, wired in player.tsx); the logomark is the
-    pinned, static anchor the world moves around. */
+/** 0–3400ms: a continuous numeral belt travels through at monument scale
+    over the warp field (shader story 10, wired in player.tsx) — never a
+    dead frame (law 10). The logomark is the pinned, static anchor the
+    world moves around. */
 function DriveThrough() {
   const [line, setLine] = useState<0 | 1 | 2>(0);
+  const glQuality = useGlQualityContext();
 
   useEffect(() => {
     const timers = [
@@ -91,24 +102,38 @@ function DriveThrough() {
 
   return (
     <div className="absolute inset-0 overflow-hidden flex items-center justify-center px-6 text-center">
-      <motion.p
+      {/* Static stand-in for the shader's warp field on devices without a
+          live WebGL figure (build6 §2.2) — the belt is no longer the only
+          alive thing on screen when quality probes "off". */}
+      {glQuality === "off" && <WarpFieldFigure />}
+      {/* No overflow-hidden here: this wrapper is just a horizontal-
+          centering anchor. The -8deg rotation on the row below inflates
+          its bounding box well past this anchor's own auto height — the
+          outer DriveThrough root already clips everything to the story
+          frame, so a second overflow-hidden here only clipped a thin,
+          rotation-skewed sliver of the belt and hid it almost entirely. */}
+      <div
         aria-hidden
-        className="absolute t-monument text-gdg-red pointer-events-none"
-        initial={{ x: "70%", y: "-30%", rotate: -8 }}
-        animate={{ x: "-70%", y: "30%", rotate: 6 }}
-        transition={NUMERAL_TRANSITION}
+        className="absolute left-0 right-0 pointer-events-none flex justify-center"
+        style={{ top: "50%", transform: "translateY(-55%)" }}
       >
-        25
-      </motion.p>
-      <motion.p
-        aria-hidden
-        className="absolute t-monument text-gdg-red pointer-events-none"
-        initial={{ x: "-70%", y: "30%", rotate: 6 }}
-        animate={{ x: "70%", y: "-30%", rotate: -8 }}
-        transition={{ ...NUMERAL_TRANSITION, delay: 1.4 }}
-      >
-        26
-      </motion.p>
+        <div className="overture-belt flex items-center whitespace-nowrap" style={{ gap: "0.18em" }}>
+          {BELT_ITEMS.map((g, i) => (
+            <span key={`g${i}`} className="t-monument text-gdg-red">
+              {g}
+              {/* A small separator, not another glyph — sized against the
+                  monument scale it would otherwise vanish inside, or (the
+                  bug this replaces) balloon into a near-blank cell wide
+                  enough to sit dead-center of the viewport on its own. */}
+              {i < BELT_ITEMS.length - 1 && (
+                <span className="text-gdg-red/40 mx-2" style={{ fontSize: "0.16em" }}>
+                  ·
+                </span>
+              )}
+            </span>
+          ))}
+        </div>
+      </div>
       <div className="relative z-10" style={{ viewTransitionName: "wrapped-title" } as React.CSSProperties}>
         <img
           src="/Sticker Logomark.png"

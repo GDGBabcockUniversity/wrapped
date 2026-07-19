@@ -46,6 +46,29 @@ export function StripeCircleFigure({ accentHex }: { accentHex: string }) {
   );
 }
 
+/** Static stand-in for the overture's warp field (shader story 10, build4
+    §2.2) — a checker×ring approximation for devices where useGlQuality()
+    reports "off" (build6 §2.2). Without this the drive-through's belt was
+    the only thing alive over flat ink on those devices, reading as
+    "jammed" rather than a spectacle. */
+export function WarpFieldFigure() {
+  return (
+    <div
+      aria-hidden
+      className="absolute inset-0 -z-10 pointer-events-none"
+      style={{
+        opacity: 0.5,
+        backgroundColor: "#fff6e0",
+        backgroundImage: [
+          "repeating-radial-gradient(circle at 50% 42%, #0f0f0f 0 26px, transparent 26px 52px)",
+          "repeating-conic-gradient(#0f0f0f 0 25%, #fff6e0 0 50%)",
+        ].join(", "),
+        backgroundSize: "auto, 72px 72px",
+      }}
+    />
+  );
+}
+
 export function QuarterRingsFigure() {
   return (
     <div

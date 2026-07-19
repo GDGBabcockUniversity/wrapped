@@ -251,6 +251,27 @@ body {
   }
 }
 
+/* ---------- Overture numeral belt (build6 §2.2) ---------- */
+/* Plain CSS animation, not Motion's `animate` prop — a percentage x
+   keyframe array on a rotated element proved unreliable here (stuck at
+   its initial value instead of looping), the same class of issue already
+   diagnosed once this session with an opacity keyframe array. Native CSS
+   keyframes sidestep it and get the global reduced-motion rule for free
+   (that rule already forces every animation-duration to ~0 — no separate
+   JS reduced-motion branch needed for this one). */
+.overture-belt {
+  animation: overture-belt 7s linear infinite;
+  will-change: transform;
+}
+@keyframes overture-belt {
+  from {
+    transform: rotate(-8deg) translateX(0);
+  }
+  to {
+    transform: rotate(-8deg) translateX(-50%);
+  }
+}
+
 /* ---------- Club card patterns (§9.8) — accent color via currentColor ---------- */
 .pattern-grid {
   background-image:
