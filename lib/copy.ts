@@ -74,7 +74,13 @@ export const copy = {
       infrastructure: "The crew that kept us running.",
       design: "The ones who made it beautiful.",
       dev: "The ones who shipped the products.",
-      media: "The voices that told our story.",
+      // MEDIA is five subteam chapters, not one umbrella section (build5
+      // §6.4) — each gets its own editorial line.
+      mediaPhoto: "Caught every moment on sight.",
+      mediaContent: "Made the feed worth scrolling.",
+      mediaDesign: "Every flyer you saved. Them.",
+      mediaVideo: "Cut the year into highlights.",
+      mediaRadar: "The newsroom that never slept.",
       events: "And the hands that made it happen.",
       sponsors: "The partners who believed in us.",
       specialThanks: "And two people who made it all possible.",

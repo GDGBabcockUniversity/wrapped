@@ -16,14 +16,19 @@ import type { StoryProps } from "./types";
 
 /**
  * Chaptered credits, in the gdgbabcock.com/team display order (build4 §10B):
- * CORE -> the four tracks (Software Dev, Data & AI, Infra & Security,
- * Design & Mgmt) -> Dev Team -> Media Team -> Events Planning, then
- * sponsors, special thanks, and the closer. PEOPLE is already sorted by the
- * website's own algorithm (sections -> declared subteams -> leads first), so
- * render order here is simply array order. Every person appears; leads get
- * a ring and a size step. Nobody is skipped.
+ * CORE -> the four tracks (Software Development & Engineering, Data & AI,
+ * Infrastructure & Security, Design & Management) -> Dev Team -> five MEDIA
+ * subteam chapters (build5 §6.4 — MEDIA is not one page) -> Events Planning,
+ * then sponsors, special thanks, and the closer. PEOPLE is already sorted
+ * by the website's own algorithm (sections -> declared subteams -> leads
+ * first), so render order here is simply array order. Every person
+ * appears. Nobody is skipped.
  */
 
+// MEDIA is intentionally absent — it's five subteam chapters (below), not
+// one section (build5 §6.4, the owner's "the media team shouldnt all be on
+// one page"). DEV stays flat: five people across four subteams would be
+// more chips than faces.
 const SECTION_ORDER = [
   "CORE",
   "SOFTWARE",
@@ -31,20 +36,20 @@ const SECTION_ORDER = [
   "INFRASTRUCTURE",
   "DESIGN",
   "DEV",
-  "MEDIA",
   "EVENTS",
 ] as const;
 
 type Accent = "blue" | "red" | "yellow" | "green";
 
+// Full track names (build5 §6.1, the owner: "its software development and
+// engineering track... use the full track names").
 const SECTION_TITLES: Record<(typeof SECTION_ORDER)[number], string> = {
   CORE: "CORE TEAM",
-  SOFTWARE: "SOFTWARE DEV",
+  SOFTWARE: "SOFTWARE DEVELOPMENT & ENGINEERING",
   DATA: "DATA & AI",
-  INFRASTRUCTURE: "INFRA & SECURITY",
-  DESIGN: "DESIGN & MGMT",
+  INFRASTRUCTURE: "INFRASTRUCTURE & SECURITY",
+  DESIGN: "DESIGN & MANAGEMENT",
   DEV: "DEV TEAM",
-  MEDIA: "MEDIA TEAM",
   EVENTS: "EVENTS PLANNING",
 };
 const SECTION_ACCENT: Record<(typeof SECTION_ORDER)[number], Accent> = {
@@ -54,7 +59,6 @@ const SECTION_ACCENT: Record<(typeof SECTION_ORDER)[number], Accent> = {
   INFRASTRUCTURE: "green",
   DESIGN: "blue",
   DEV: "red",
-  MEDIA: "yellow",
   EVENTS: "green",
 };
 const SECTION_TRANSITION: Record<(typeof SECTION_ORDER)[number], keyof typeof copy.people.transitions> = {
@@ -64,9 +68,19 @@ const SECTION_TRANSITION: Record<(typeof SECTION_ORDER)[number], keyof typeof co
   INFRASTRUCTURE: "infrastructure",
   DESIGN: "design",
   DEV: "dev",
-  MEDIA: "media",
   EVENTS: "events",
 };
+
+// The five MEDIA subteams, in the website's declared subteam order (build5
+// §6.4) — Photographers, Content Creators, Graphic Designers, Video
+// Editors, RADAR — each its own chapter, compressed cadence (§6.7).
+const MEDIA_SUBTEAMS = [
+  { id: "media-photo", subteam: "Photographers", title: "PHOTOGRAPHERS", accent: "yellow" as const, transition: "mediaPhoto" as const },
+  { id: "media-content", subteam: "Content Creators", title: "CONTENT CREATORS", accent: "red" as const, transition: "mediaContent" as const },
+  { id: "media-design", subteam: "Graphic Designers", title: "GRAPHIC DESIGNERS", accent: "blue" as const, transition: "mediaDesign" as const },
+  { id: "media-video", subteam: "Video Editors", title: "VIDEO EDITORS", accent: "green" as const, transition: "mediaVideo" as const },
+  { id: "media-radar", subteam: "RADAR", title: "RADAR", accent: "red" as const, transition: "mediaRadar" as const },
+];
 
 const PANEL_BG: Record<Accent, string> = {
   blue: "bg-gdg-blue",
@@ -88,17 +102,37 @@ interface Chapter {
   kind: "cast" | "special";
   transition: string;
   people: Person[];
+  /** Card-hold duration override — the five MEDIA subteam chapters compress
+      to 1100ms (build5 §6.4); every other chapter keeps CARD_MS's 1600. */
+  cardMs?: number;
 }
 
+// CORE..DEV, then the five MEDIA subteam chapters, then EVENTS — SECTION_ORDER
+// itself has no MEDIA entry to splice around, so the non-MEDIA sections are
+// built once and the media chapters are spliced in after DEV's position.
+const nonMediaChapters: Chapter[] = SECTION_ORDER.map((section) => ({
+  id: section.toLowerCase(),
+  title: SECTION_TITLES[section],
+  accent: SECTION_ACCENT[section],
+  kind: "cast" as const,
+  transition: copy.people.transitions[SECTION_TRANSITION[section]],
+  people: PEOPLE.filter((p) => p.section === section),
+}));
+const devPosition = nonMediaChapters.findIndex((c) => c.id === "dev") + 1;
+const mediaChapters: Chapter[] = MEDIA_SUBTEAMS.map((m) => ({
+  id: m.id,
+  title: m.title,
+  accent: m.accent,
+  kind: "cast" as const,
+  transition: copy.people.transitions[m.transition],
+  people: PEOPLE.filter((p) => p.section === "MEDIA" && p.subteam === m.subteam),
+  cardMs: 1100,
+}));
+
 const CHAPTERS: Chapter[] = [
-  ...SECTION_ORDER.map((section) => ({
-    id: section.toLowerCase(),
-    title: SECTION_TITLES[section],
-    accent: SECTION_ACCENT[section],
-    kind: "cast" as const,
-    transition: copy.people.transitions[SECTION_TRANSITION[section]],
-    people: PEOPLE.filter((p) => p.section === section),
-  })),
+  ...nonMediaChapters.slice(0, devPosition),
+  ...mediaChapters,
+  ...nonMediaChapters.slice(devPosition),
   {
     id: "sponsors",
     title: "SPONSORS",
@@ -228,8 +262,8 @@ function ChapterCard({ chapter }: { chapter: Chapter }) {
       <div className="relative z-10 flex flex-col items-start gap-3" style={{ rotate: "2deg" }}>
         <SlamStat
           value={chapter.title}
-          className="t-display text-left"
-          style={{ fontSize: "clamp(2rem, 11cqw, 3.5rem)" }}
+          className="t-display text-left text-balance"
+          style={{ fontSize: "clamp(1.4rem, 8cqw, 2.6rem)" }}
         />
         {chapter.transition && (
           <motion.p
@@ -309,44 +343,17 @@ function PersonTile({ person, index, chapterSize }: { person: Person; index: num
   );
 }
 
-// build4 §10B.3 item 1: subteam headers inside the MEDIA grid only, and only
-// for its multi-member subteams that still fit the stage — RADAR, Video
-// Editors, Graphic Designers. Photographers/Content Creators stay unlabeled
-// (a chip per lone-ish face is noise); DEV stays flat entirely (§10B.3).
-const LABELED_MEDIA_SUBTEAMS = new Set(["RADAR", "Video Editors", "Graphic Designers"]);
-
 function CastMoment({ chapter }: { chapter: Chapter }) {
   const glQuality = useGlQualityContext();
-  const isMedia = chapter.id === "media";
-  // A subteam header shows once, on the first person of a new labeled
-  // subteam — derived by comparing each person to the previous one, no
-  // mutable scan variable.
-  const headerFlags = chapter.people.map((p, i) => {
-    if (!isMedia || !p.subteam || !LABELED_MEDIA_SUBTEAMS.has(p.subteam)) return false;
-    return chapter.people[i - 1]?.subteam !== p.subteam;
-  });
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-4 gap-4">
       {/* Static stand-in for the shader's quarter-rings figure (build4 §2.3). */}
       {glQuality === "off" && <QuarterRingsFigure />}
       <StickerChip className="t-label">{chapter.title}</StickerChip>
-      <div
-        className={`flex flex-wrap items-start justify-center gap-x-2.5 gap-y-3 ${
-          // §10B.3 item 2: the 16-person MEDIA grid collides with the
-          // quarter-rings figure's bottom-left anchor at max-w-md.
-          isMedia ? "max-w-sm" : "max-w-md"
-        }`}
-      >
+      <div className="flex flex-wrap items-start justify-center gap-x-2.5 gap-y-3 max-w-md">
         {chapter.people.map((p, i) => (
-          <div key={p.name} className="contents">
-            {headerFlags[i] && (
-              <div className="basis-full flex justify-center">
-                <StickerChip className="t-label text-[0.55rem]">{p.subteam!.toUpperCase()}</StickerChip>
-              </div>
-            )}
-            <PersonTile person={p} index={i} chapterSize={chapter.people.length} />
-          </div>
+          <PersonTile key={p.name} person={p} index={i} chapterSize={chapter.people.length} />
         ))}
       </div>
     </div>
@@ -399,6 +406,7 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
         if (!cancelled) setFinished(true);
         return;
       }
+      const chapter = CHAPTERS[idx]!;
       setChapterIdx(idx);
       setShowCard(true);
       timers.push(
@@ -409,9 +417,9 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
             setTimeout(() => {
               if (cancelled) return;
               runChapter(idx + 1);
-            }, contentMsFor(CHAPTERS[idx]!))
+            }, contentMsFor(chapter))
           );
-        }, CARD_MS)
+        }, chapter.cardMs ?? CARD_MS)
       );
     }
     runChapter(chapterIdx);
