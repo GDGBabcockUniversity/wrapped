@@ -590,6 +590,79 @@ reserve the slot). Fill a second fake stat locally and confirm two-stat
 cycling; revert before commit. Reduced-motion pass shows ORBIT's stat
 statically. `BuiltCard` renders unchanged for stat-less products.
 
+## 10B. The People story — website order, real faces, reference-grade credits
+
+Owner instruction (2026-07-19): the credits must follow gdgbabcock.com/team's
+order, use that repo's photos "entirely," and reach the reference's level.
+The data/order/photo work is BUILT (this section documents it and the
+re-sync recipe); the remaining presentation items below join the build
+order.
+
+### 10B.1 Source of truth and order contract (BUILT)
+
+- Canonical roster = the website team page's own data: served live by
+  `auth.gdgbabcock.com/team` (Postgres, `team_members`), previously
+  hardcoded in GDGWebsite `lib/team-data.ts`. The sync used the last
+  pre-migration roster from that file's git history (61 members —
+  identical content to what the endpoint serves).
+- Display order = the /team page's own algorithm, reproduced exactly:
+  `TEAM_SECTIONS` order (Core → Tracks → Dev → Media → Events) → declared
+  subteam order within a section (Tracks: Software Dev & Eng, Data & AI,
+  Infra & Security, Design & Mgmt; Dev: Frontend, Backend, Product
+  Design, Product Management; Media: Photographers, Content Creators,
+  Graphic Designers, Video Editors, RADAR) → **leads first** within each
+  group → raw roster order. `PEOPLE` in `lib/content/chapter.ts` is
+  stored ALREADY SORTED this way; render order is array order, nothing
+  re-sorts downstream.
+- Wrapped section mapping: core→CORE; the four track subteams→SOFTWARE /
+  DATA / INFRASTRUCTURE / DESIGN; dev→DEV (new section); media→MEDIA;
+  events→EVENTS. SPONSORS and SPECIAL_THANKS remain wrapped-only
+  trailing chapters (lead-supplied placeholders).
+- `Person` gained `isLead?: boolean` and `subteam?: string`. Leads render
+  first (already, via order), larger (68px vs 54px avatar), with a 2px
+  accent ring.
+- Photos: all 61 headshots copied from GDGWebsite `public/team/**` into
+  `public/people/` (flattened kebab names, `-lead`/`-organizer` suffixes
+  stripped); 26 orphaned generic photos deleted. 100% coverage — the
+  InitialsAvatar fallback now exists only for the 4 sponsor/thanks
+  placeholders.
+- **Re-sync recipe** (when the roster changes): fetch
+  `https://auth.gdgbabcock.com/team` (or re-extract `lib/team-data.ts`
+  from the GDGWebsite history), re-run the ordering algorithm above,
+  regenerate the `PEOPLE` literal, re-copy photos. The one-off generator
+  lives in the session scratchpad pattern — 60 lines, documented here so
+  it can be rewritten from this contract alone.
+
+### 10B.2 Cadence (BUILT — supersedes build2 §12.1's people numbers)
+
+Ten chapters (8 cast + sponsors + special), each: ONE combined chapter
+card — accent panel, PopLetters title, the section's editorial line from
+`copy.people.transitions` beneath (title and transition are one beat, not
+two) — holding 1600ms, then the cast grid for
+`min(2200 + 130 × count, 5200)`ms. Exact schedule: cards 16000 + content
+30450 = **46,450ms**; registry `peopleMs`/`revealMs` 45000 → **60000**
+(§10.0 80% rule: 46.45s ≤ 48s). The closer line renders in the
+`finished` state for the remainder.
+
+### 10B.3 Remaining presentation items (NOT built — join the build order)
+
+1. **Subteam sticker chips** (§7.2's `.sticker-chip`) as group headers
+   inside the MEDIA cast grid only — RADAR (7), VIDEO EDITORS (5),
+   GRAPHIC DESIGNERS (2); the two single-member subteams stay unlabeled
+   (a chip per lone face is noise, and the full labeled layout measured
+   ~702px against a ~700px stage — it does NOT fit with every subteam
+   labeled). DEV stays flat: five people across four subteams means the
+   chips would outnumber the faces.
+2. **The quarter-rings figure** (§2.1, story 3) with the yellow runner is
+   the story's ambient layer — verify the cream cast grids stay legible
+   over it at the figure's bottom-left anchor; if faces collide with
+   rings on the 16-person MEDIA grid, cap that chapter's grid at
+   `max-w-sm` (its current `max-w-md` is the widest).
+3. **Chapter-card slam**: the combined card's title should land with the
+   §5.1 slam treatment (slice-assemble) instead of PopLetters once
+   SlamStat exists — PopLetters stays for cast-grid labels. One-line swap,
+   listed here so it isn't forgotten when commit 4 lands.
+
 ## 11. Sequencing
 
 Each its own commit, this order (every step leaves the app shippable):
@@ -612,9 +685,12 @@ Each its own commit, this order (every step leaves the app shippable):
 8. `feat(stories): product stat slams in What We Built` — §10A (depends
    on §5's SlamStat; the PRODUCT_STATS content block already shipped
    with the data-drop commits).
-9. `feat(stories): club collage and summary bookend` — §9.
+9. `feat(stories): credits polish — media subteam chips, rings-figure
+   legibility, chapter-card slam` — §10B.3 (depends on §2's figure, §5's
+   SlamStat, §7.2's sticker chips; §10B.1–.2 already shipped).
+10. `feat(stories): club collage and summary bookend` — §9.
 
-Verification gates (run after 2, 5, and 9): `tsc`, `eslint`, `vitest`,
+Verification gates (run after 2, 5, and 10): `tsc`, `eslint`, `vitest`,
 production build, then a real-device pass on one iPhone + one Android
 checking, in order: the overture reads as spectacle-then-breath (not two
 unrelated screens); every screen has exactly one thing visibly alive

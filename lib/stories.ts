@@ -3,7 +3,7 @@ export const TIMING = {
   revealMs: 10000, // public reveal duration
   personalRevealMs: 11000, // personal reveal duration
   momentsMs: 13000, // story 2 reveal
-  peopleMs: 45000, // story 4 reveal
+  peopleMs: 60000, // story 4 reveal — 46.5s credit schedule / 0.8 (build4 §10B)
   storyFadeMs: 240, // crossfade between stories/phases
   countUpMs: 1200, // number roll-up
   staggerMs: 120, // list item stagger
@@ -43,7 +43,7 @@ export const STORIES: StoryDef[] = [
   { id: "the-year", index: 0, personal: false, accent: "blue", field: "ink", setupMs: 4200, revealMs: 8000, label: "The Year" },
   { id: "moments", index: 1, personal: false, accent: "red", field: "cream", setupMs: 3000, revealMs: 13000, label: "The Moments" },
   { id: "built", index: 2, personal: false, accent: "blue", field: "ink", setupMs: 3200, revealMs: 9000, label: "What We Built" },
-  { id: "people", index: 3, personal: false, accent: "yellow", field: "cream", setupMs: 3500, revealMs: 45000, label: "The People" },
+  { id: "people", index: 3, personal: false, accent: "yellow", field: "cream", setupMs: 3500, revealMs: 60000, label: "The People" },
   { id: "your-events", index: 4, personal: true, accent: "blue", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Events" },
   { id: "standing", index: 5, personal: true, accent: "red", field: "cream", setupMs: 3200, revealMs: 8500, label: "Your Standing" },
   { id: "your-chapter", index: 6, personal: true, accent: "green", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Chapter" },

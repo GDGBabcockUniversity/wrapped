@@ -54,6 +54,7 @@ export const copy = {
       data: "The minds that found the patterns.",
       infrastructure: "The crew that kept us running.",
       design: "The ones who made it beautiful.",
+      dev: "The ones who shipped the products.",
       media: "The voices that told our story.",
       events: "And the hands that made it happen.",
       sponsors: "The partners who believed in us.",
