@@ -82,6 +82,51 @@ export const PRODUCT_STATS: Record<(typeof PRODUCTS)[number]["name"], ProductSta
   "BABCOCK 100": null, // TBD-confirm
 };
 
+// Product saga beats (build5 §3) — the What We Built story walks each
+// product with receipts instead of a flat stat cycle. Every `null` beat is
+// SKIPPED at render (no blank, no zero). VERIFIED values were read directly
+// from the ORBIT repo (src/lib/constants.ts) and the Radar repo
+// (app/lib/games.ts) on 2026-07-19; everything else is a pipeline-pending
+// TBD — the pipeline report (build5 §5.3) prints this whole block with real
+// values filled where it can, for paste-back before copy freeze.
+export interface SagaStat {
+  value: number | string; // slam numeral or string (e.g. "MONIEPOINT")
+  label: string; // small-caps label
+  detail?: string; // optional second line
+}
+export const PRODUCT_SAGA = {
+  radar: {
+    articles: null as SagaStat | null, // TBD { value, label: "ARTICLES PUBLISHED" }
+    mostRead: null as SagaStat | null, // TBD { value: "<title>", label: "MOST READ" }
+    reads: null as SagaStat | null, // TBD { value, label: "TOTAL READS" }
+    games: { value: 7, label: "GAMES SHIPPED" } as SagaStat, // VERIFIED (radar repo)
+    gameNames: [
+      "SIGNAL", "CROSSLINKS", "CRYPTIC", "RAPID FIRE",
+      "NEW YEAR, NEW LIES", "VALENTINE'S MATCH", "FIND YOUR TRACK",
+    ],
+  },
+  votes: {
+    elections: null as SagaStat | null, // TBD { value, label: "ELECTIONS RUN" }
+    votesCast: null as SagaStat | null, // TBD { value, label: "VOTES CAST" }
+    fallbackLine: "Democracy, but make it digital.", // shown only if BOTH null
+  },
+  orbit: {
+    intro: "ONE FLAGSHIP. THREE DAYS.",
+    companies: { value: 5, label: "COMPANIES VISITED" } as SagaStat, // VERIFIED
+    companyNames: ["PAYSTACK", "DIGITAL ENCODE", "RISE", "NITHUB", "CUBBES"],
+    lagos: null as SagaStat | null, // TBD { value, label: "STUDENTS TO LAGOS" }
+    careerFair: null as SagaStat | null, // TBD { value, label: "AT THE CAREER FAIR" }
+    summit: null as SagaStat | null, // TBD { value, label: "AT THE SUMMIT" }
+    speakers: { value: 12, label: "SPEAKERS ON STAGE", detail: "and 2 moderators keeping them honest" } as SagaStat, // VERIFIED
+    tickets: { value: 547, label: "TICKETS ISSUED", detail: "252 checked in" } as SagaStat, // VERIFIED
+    sponsors: { value: 23, label: "SPONSORS & PARTNERS" } as SagaStat, // VERIFIED
+    headlineTease: "And one led the charge.",
+    headline: { value: "MONIEPOINT", label: "HEADLINE SPONSOR" } as SagaStat, // VERIFIED
+  },
+  website: null as SagaStat | null, // TBD (site analytics)
+  babcock100: null as SagaStat | null, // TBD
+} as const;
+
 // The reactive tap-to-guess beat (build4 §8) — the final beat of What We
 // Built's reveal, after one full row cycle. Chapter data, not personal:
 // guests and members see the same beat.
@@ -195,14 +240,126 @@ export const PEOPLE: Person[] = [
   { name: "Akanni Temitope", role: "Member", section: "EVENTS", photo: "/people/akanni-temitope.jpg" },
   { name: "Iretomiwa Akande", role: "Member", section: "EVENTS", photo: "/people/iretomiwa-akande.jpeg" },
   { name: "Offiong Ryan", role: "Member", section: "EVENTS", photo: "/people/offiog-ryan.jpg" },
-  // Sponsors + special thanks stay lead-supplied (placeholders until then).
-  { name: "Partner 1", role: "Sponsor", section: "SPONSORS", photo: "/people/partner-1.jpg" },
-  { name: "Partner 2", role: "Sponsor", section: "SPONSORS", photo: "/people/partner-2.jpg" },
-  { name: "Dr. Ernest", role: "", section: "SPECIAL_THANKS", photo: "/people/dr-ernest.jpg" },
-  { name: "Emmanuel Oladosu", role: "", section: "SPECIAL_THANKS", photo: "/people/emmanuel-oladosu.jpg" },
+  // Sponsors and special thanks moved out to SPONSOR_WALL / ADVISORS / MVPS /
+  // SPECIAL_FORCE below (build5 §6.5-6.6) — the old placeholder rows are gone.
 ];
+
+// The sponsor wall (build5 §6.5) — transcribed VERIFIED from the ORBIT repo
+// (src/lib/constants.ts SPONSOR_TIERS, 2026-07-19). Logos copied into
+// /public/sponsors from the ORBIT repo's public/images/sponsors/*.
+export interface SponsorTier {
+  tier: string;
+  sponsors: { name: string; logo: string }[];
+}
+export const SPONSOR_WALL: SponsorTier[] = [
+  { tier: "HEADLINE SPONSOR", sponsors: [{ name: "Moniepoint", logo: "/sponsors/moniepoint.jpeg" }] },
+  {
+    tier: "GOLD SPONSORS",
+    sponsors: [
+      { name: "AICL", logo: "/sponsors/aicl.webp" },
+      { name: "Patron Luxury Apartment", logo: "/sponsors/patron.webp" },
+    ],
+  },
+  {
+    tier: "RAFFLE DRAW SPONSOR",
+    sponsors: [
+      { name: "Gadget Cartel", logo: "/sponsors/gadget-cartel.webp" },
+      { name: "Glass Finance Ltd", logo: "/sponsors/glass.webp" },
+    ],
+  },
+  {
+    tier: "INDUSTRY VISIT HOSTS",
+    sponsors: [
+      { name: "Paystack", logo: "/sponsors/paystack.png" },
+      { name: "Digital Encode Limited", logo: "/sponsors/digital-encode.jpg" },
+      { name: "Rise", logo: "/sponsors/risevest.jpg" },
+      { name: "Nithub", logo: "/sponsors/nithub.jpg" },
+      { name: "Cubbes", logo: "/sponsors/cubbes.png" },
+    ],
+  },
+  {
+    tier: "HOSPITALITY SPONSORS",
+    sponsors: [
+      { name: "His Grace", logo: "/sponsors/his-grace.webp" },
+      { name: "Eben Nuts", logo: "/sponsors/eben-nuts.png" },
+      { name: "Waffledom", logo: "/sponsors/waffledom.jpg" },
+    ],
+  },
+  {
+    tier: "CAREER FAIR PARTNERS",
+    sponsors: [
+      { name: "Stanbic IBTC", logo: "/sponsors/stanbic-ibtc.png" },
+      { name: "GTB", logo: "/sponsors/gtbank.png" },
+    ],
+  },
+  {
+    tier: "STUDENT SPONSORS",
+    sponsors: [
+      { name: "Postra", logo: "/sponsors/postra.webp" },
+      { name: "Jules Luxury", logo: "/sponsors/jules-luxury.webp" },
+    ],
+  },
+  {
+    tier: "MEDIA PARTNERS",
+    sponsors: [
+      { name: "Rahkindstudios", logo: "/sponsors/rahmon.webp" },
+      { name: "Sorethegrapher", logo: "/sponsors/sorefunmi.webp" },
+    ],
+  },
+  {
+    tier: "ASSOCIATE COMMUNITIES",
+    sponsors: [
+      { name: "GDG on Campus Caleb", logo: "/sponsors/gdg-caleb.jpg" },
+      { name: "GDG on Campus OOU", logo: "/sponsors/gdg-oou.jpg" },
+      { name: "GDG on Campus Lautech", logo: "/sponsors/gdg-lautech.webp" },
+      { name: "GDG on Campus UI", logo: "/sponsors/gdg-ui.jpg" },
+    ],
+  },
+];
+
+// Special thanks arc (build5 §6.6) — the two advisors, then the MVPs, then
+// the design special force. Owner-declared 2026-07-19.
+export const ADVISORS = [
+  { name: "Emmanuel Oladosu", role: "ALUMNI SPONSOR", photo: "/people/emmanuel-oladosu.webp" },
+  { name: "Dr. Ernest Onuiri", role: "CAMPUS ADVISOR", photo: "/people/dr-ernest.jpg" }, // TBD-owner: real headshot pending, initials render until then
+] as const;
+
+// Owner-declared, 2026-07-19. Photos resolve from the existing PEOPLE
+// roster by name — do not re-add these people to PEOPLE.
+export const MVPS = {
+  core: [
+    { name: "Lawal Sharon", photo: "/people/sharon-lawal.jpg" },
+    { name: "Habeeb Muhammed", photo: "/people/habeeb-abayomi.jpg" },
+    { name: "Victor Ibironke", photo: "/people/victor-ibironke.jpg" },
+    { name: "Efegherimoni Oghenetejiri", photo: "/people/efegherimoni-oghenetejiri.jpeg" },
+  ],
+  media: [
+    { name: "Olamide Fatunase", photo: "/people/olamide-fatunase.jpeg" },
+    { name: "Oyebajo Olaimide", photo: "/people/oyebajo-olaimide.jpg" },
+    { name: "Agunbiade Ayomide Obanijesu", photo: "/people/agunbiade-ayomide-obanijesu.jpeg" },
+    { name: "Umaru Victor Oshioke", photo: "/people/umaru-victor-oshioke.jpeg" },
+  ],
+  track: "DATA & AI",
+} as const;
+
+// The design special force behind the products (owner-declared). Photos
+// TBD-owner except Xavier's and Daddy D's (already in /public/people —
+// "Daddy D the Designer" is Oluwadayomisi Osisanya, the Design & Mgmt Track
+// Lead already in PEOPLE; reuse his existing photo path here rather than
+// re-adding him to PEOPLE — this is a second, nickname appearance).
+export const SPECIAL_FORCE = [
+  { name: "Alli Akinpelu", photo: null },
+  { name: "Bassey Saviour", photo: null },
+  { name: "Okpalannajiaku Xavier", photo: "/people/xavier-okpalannajiaku.png" },
+  { name: "Deborah Onabanjo", photo: null },
+  { name: "Daddy D the Designer", photo: "/people/oluwadayomisi-osisanya.jpg" },
+] as const;
 
 export const ASSET_MANIFEST: Partial<Record<StoryId, string[]>> = {
   moments: MOMENTS.flatMap((m) => m.images),
-  people: PEOPLE.map((p) => p.photo).filter((p): p is string => Boolean(p)),
+  people: [
+    ...PEOPLE.map((p) => p.photo).filter((p): p is string => Boolean(p)),
+    ...SPONSOR_WALL.flatMap((tier) => tier.sponsors.map((s) => s.logo)),
+    ...ADVISORS.map((a) => a.photo),
+  ],
 };
