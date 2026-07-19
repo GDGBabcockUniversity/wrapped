@@ -11,6 +11,7 @@ import { SPRING, TIMING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
 import { useGlQualityContext } from "@/components/gl/quality-context";
 import { StripeBandFigure } from "@/components/gl/static-figure";
+import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
 
@@ -217,6 +218,7 @@ export function TheYearStory({ phase }: StoryProps) {
       {/* Static stand-in for the shader's diagonal stripe band on devices
           without a live WebGL figure (build4 §2.3). */}
       {glQuality === "off" && <StripeBandFigure accentHex={ACCENT_HEX.blue} />}
+      <AmbientScribbles field="ink" />
       <IdleFloat y={-3} duration={6} delay={1.4} className="w-full">
       <motion.div
         initial={{ y: 40, rotate: -1.5, opacity: 0 }}

@@ -7,6 +7,7 @@ import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { ShareButton } from "@/components/share/share-button";
 import { IdleFloat } from "@/components/idle-float";
+import { AmbientScribbles } from "@/components/ambient-scribbles";
 import type { StoryProps } from "./types";
 
 function nameFontSize(name: string): string {
@@ -45,6 +46,7 @@ export function SummaryStory({ snapshot, guest, onReplay }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center px-6 pt-20 pb-16 gap-5">
+      <AmbientScribbles field="ink" />
       <IdleFloat y={-4} duration={5} delay={1.2}>
       <motion.div
         initial={{ y: 24, opacity: 0 }}

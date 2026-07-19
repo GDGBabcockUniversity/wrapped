@@ -5,10 +5,18 @@ import { Counter } from "@/components/counter";
 import { SlamStat } from "@/components/slam-stat";
 import { IdleFloat } from "@/components/idle-float";
 import { KineticWords } from "@/components/kinetic-words";
+import { AmbientScribbles } from "@/components/ambient-scribbles";
+import { SubjectDoodle } from "@/components/subject-doodle";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
 import { TIMING } from "@/lib/stories";
 import type { StoryProps } from "./types";
+
+// build4 §6.2: a hand-drawn ticket outline, the setup illustration.
+const TICKET_DOODLE = [
+  "M100,80 h200 a0,0 0 0 1 0,60 v40 a0,0 0 0 1 0,60 h-200 a0,0 0 0 0 0,-60 v-40 a0,0 0 0 0 0,-60 z",
+  "M200,80 v220",
+];
 
 function AdmitOneTicket() {
   const reduceMotion = useReducedMotion();
@@ -62,7 +70,8 @@ function AdmitOneTicket() {
 export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex items-center justify-center text-cream px-6 pt-20 pb-16">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4">
+        <SubjectDoodle paths={TICKET_DOODLE} className="w-28 h-28" />
         <p className="t-display text-center">
           <KineticWords text={guest ? copy.yourEvents.guestSetup : copy.yourEvents.setup} />
         </p>
@@ -73,6 +82,7 @@ export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
   if (guest) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4 text-center">
+        <AmbientScribbles field="ink" />
         <p className="t-display">{copy.yourEvents.guestReveal}</p>
         <p className="t-body text-cream/55">{copy.yourEvents.guestSub}</p>
         <a
@@ -94,6 +104,7 @@ export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
     const [zeroPrefix, zeroSuffix] = copy.yourEvents.zeroReveal.split("{eventsRun}");
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-6 text-center">
+        <AmbientScribbles field="ink" />
         <AdmitOneTicket />
         <div>
           <p className="t-display">
@@ -112,6 +123,7 @@ export function YourEventsStory({ phase, snapshot, guest }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4 text-center">
+      <AmbientScribbles field="ink" />
       <IdleFloat y={-2} scale={1.02} duration={3} delay={1.2}>
         {/* The monument slams (build4 §5.1) — a till prints, this is not a till. */}
         <SlamStat

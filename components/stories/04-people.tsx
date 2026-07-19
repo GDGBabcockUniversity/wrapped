@@ -9,6 +9,7 @@ import { PopLetters } from "@/components/pop-letters";
 import { copy } from "@/lib/copy";
 import { useGlQualityContext } from "@/components/gl/quality-context";
 import { QuarterRingsFigure } from "@/components/gl/static-figure";
+import { AmbientScribbles } from "@/components/ambient-scribbles";
 import type { StoryProps } from "./types";
 
 /**
@@ -312,6 +313,7 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
 
   return (
     <div className="absolute inset-0 text-ink pt-20 pb-16 overflow-hidden">
+      <AmbientScribbles field="cream" />
       {showCard ? (
         <ChapterCard chapter={chapter} />
       ) : chapter.kind === "special" ? (

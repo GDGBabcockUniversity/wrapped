@@ -8,8 +8,12 @@ import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
 import { DotField } from "@/components/dot-field";
+import { SubjectDoodle } from "@/components/subject-doodle";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
+
+// build4 §6.2: a five-point star drawn in one stroke, the setup illustration.
+const STAR_DOODLE = ["M200,60 L235,170 350,170 258,238 293,350 200,280 107,350 142,238 50,170 165,170 z"];
 
 const TIER_LABEL: Record<string, string> = {
   top1: "1",
@@ -46,10 +50,11 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
 
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-4">
         {/* The dot bands frame the stamp beat (build4 §3) — mounted in
             both setup and reveal so they don't pop in mid-story. */}
         <DotField accent={ACCENT_HEX.red} edge="both" />
+        <SubjectDoodle paths={STAR_DOODLE} className="w-28 h-28" />
         <p className="t-display text-center">
           <KineticWords text={isTier ? copy.standing.setup : copy.standing.setupQuiet} />
         </p>

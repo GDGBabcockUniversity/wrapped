@@ -3,8 +3,17 @@
 import { motion, useReducedMotion } from "motion/react";
 import { IdleFloat } from "@/components/idle-float";
 import { KineticWords } from "@/components/kinetic-words";
+import { AmbientScribbles } from "@/components/ambient-scribbles";
+import { SubjectDoodle } from "@/components/subject-doodle";
 import { copy, fmt } from "@/lib/copy";
 import type { StoryProps } from "./types";
+
+// build4 §6.2: an hourglass drawn in one stroke plus a loose crossing
+// scribble — the setup illustration for the time story.
+const HOURGLASS_DOODLE = [
+  "M140,40 h120 l-44,90 44,90 h-120 l44,-90 -44,-90 z",
+  "M110,220 C160,190 240,250 290,215",
+];
 
 const YEAR_START = new Date("2025-09-01T00:00:00Z").getTime();
 const YEAR_END = new Date("2026-08-01T00:00:00Z").getTime();
@@ -42,7 +51,8 @@ export function YourChapterStory({ phase, snapshot, guest }: StoryProps) {
 
   if (phase === "setup") {
     return (
-      <div className="absolute inset-0 flex items-center justify-center text-cream px-6 pt-20 pb-16">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-4">
+        <SubjectDoodle paths={HOURGLASS_DOODLE} className="w-28 h-28" />
         <p className="t-display text-center">
           <KineticWords text={snapshot.isNewMember ? copy.yourChapter.setupNew : copy.yourChapter.setup} />
         </p>
@@ -55,6 +65,7 @@ export function YourChapterStory({ phase, snapshot, guest }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center text-cream px-6 pt-20 pb-16 gap-8">
+      <AmbientScribbles field="ink" />
       <p className="t-editorial text-center">
         {fmt(
           snapshot.isNewMember ? copy.yourChapter.revealNew : copy.yourChapter.reveal,
