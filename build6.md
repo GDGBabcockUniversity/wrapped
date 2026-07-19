@@ -75,6 +75,16 @@ this doc was written — none of these are guesses):
     change where lines wrap. Words wrap as words, headlines balance
     (`text-wrap: balance`), and any animated-type primitive that can't
     guarantee this doesn't ship.
+12. **The reference cadence is the metronome.** Owner: "have we forgotten
+    the cadence of the wrapped screen recording." From the build4 §0
+    frame-by-frame timeline: a stat beat HOLDS 3.5–5s (long enough to
+    read, react, screenshot), a connective line beat 2–2.5s, and NOTHING
+    idles past its content — when a sequence finishes, the story moves.
+    Hard numbers: no beat under 2200ms, no stat beat under 3200ms, no
+    bare-line hold over 4000ms. A screen faster than this is noise; a
+    screen slower is dead air. Both showed up in the same review ("that
+    whole part even moves too fast … 'everyone who showed up' lasts too
+    long").
 
 ---
 
@@ -182,7 +192,79 @@ actually spread:
   CTAs, which all live within the bottom 24) and gains
   `pointer-events-none`.
 
-### 2.5 Corner chrome legibility (minor)
+### 2.5 The saga breathes, and the companies get faces
+(`components/stories/03-built.tsx`, law 12)
+
+Measured against the owner's "moves too fast": the product saga runs ~14
+beats mostly at 1400–1800ms — half the reference's stat-beat hold. Re-time
+every beat to the law-12 floor:
+
+- Line beats (`LineBeat` intros/teases): 1400/1600 → **2200ms**.
+- Stat beats (`StatBeat`, summit/speakers, tickets, sponsors, headline):
+  1800 → **3200ms**; the held-breath headline reveal keeps its two-step
+  but lands the slam with ≥2600ms of hold after it.
+- Compound beats (games marquee, companies wall): 2200 → **4000ms**.
+- Recompute the total, set `built`'s registry `revealMs` in the same
+  commit (§10.0 80% rule; the guess-game wait stays exempt per build4
+  §8.2). Cutting a TBD-null beat costs nothing — speed comes from beats
+  earning their hold, not from the clock.
+
+**The companies beat becomes a logo wall.** Owner: "instead of naming the
+5 companies, use their logos and add proper motion."
+
+- Assets: `public/logos/companies/{paystack,digital-encode,rise,nithub,
+  cubbes}.png` — owner-supplied (§9), transparent or white-field, ≥240px
+  wide. The sponsor logos in the ORBIT repo may cover some of these.
+- Render: each logo on a `bg-paper rounded-md px-3 py-2` chip (logos need
+  a light field on the ink story), `h-10`–`h-12`, laid out as a loose
+  two-row scatter (deterministic ±3° rotations, same recipe as
+  `ScatterChip`).
+- Proper motion: chips STAMP in 260ms apart (`SPRING.stamp`, scale
+  1.3→1, rotate -6→±3°) — and once landed, the wall drifts as one group
+  (`IdleFloat y=-3 duration=4`) so the 4000ms hold stays alive (law 10).
+  `vibrate(6)` per landing.
+- Fallback: a missing/failed logo file renders the name in the SAME chip
+  (`t-label`, ink on paper) — never a broken image, never a blank
+  (`onError` state per chip, same pattern as the credits `Avatar`).
+
+### 2.6 Dead-end holds auto-advance (law 12's second half)
+
+The credits closer ("…and everyone who showed up.") holds a bare line for
+~13.5s — `people`'s schedule finishes at ~50.5s of a 64s `revealMs` and
+the `finished` state just idles. The story-driven advance wiring already
+exists (`onComplete`, built's guess game):
+
+- `04-people.tsx`: when `finished` flips true, hold the closer **2600ms**,
+  then call `onComplete()` (props already reach every story). The closer
+  line also gets the ambient scribbles behind it (it currently renders on
+  a naked field).
+- Sweep for the same pattern: any story whose scripted content can finish
+  before `revealMs` must either fill the remainder with a live system or
+  auto-advance — `moments` (scenes end ~14.4s into 13s — fine),
+  `group-chat` (beats are timed to fill; re-verify after §6.3 lands), the
+  saga (re-timed in §2.5, re-verify).
+
+### 2.7 No bare screens — the setup/closer dressing pass
+
+Two more owner screenshots are one-line cream screens with literally
+nothing else ("None of this happened by its elf." — which also exhibits
+the §2.1 mid-word break — and the closer). Law 10 applies to QUIET
+screens, not just loud ones. Dressing, per screen, using only existing
+primitives (no new systems):
+
+- `people` setup: the ambient scribbles (cream field variant) + three
+  small scattered `Avatar` circles (24px, deterministic positions, the
+  first three CORE members) fading in at 0.4/0.7/1.0s at 45% opacity —
+  the credits teasing themselves.
+- `people` closer: scribbles + auto-advance (§2.6).
+- `moments` setup: already §2.3 (photo tease).
+- Sweep every other setup screen against law 10: `built` (has the stamp
+  sub-line — passes), `your-events`/`standing`/`your-chapter` (doodles —
+  pass), `your-club` (card backs — pass), `whats-next`, `the-year`
+  (overture — §2.2), `group-chat` (stripe band — passes), `summary` (no
+  setup). Any screen that fails gets scribbles at minimum.
+
+### 2.8 Corner chrome legibility (minor)
 
 The ⊞ grid button sat unreadable on the group-chat top stripe band in the
 owner's screenshot. Give the corner-chrome row a soft scrim:
@@ -246,7 +328,7 @@ know they CAN act even though it auto-advances.
 - New `components/story-engine/gesture-hint.tsx`: a centered column at
   `bottom-24`, `z-20`, `pointer-events-none`: a 28px cream chevron-up over
   the `t-label` line **"TAP → NEXT · HOLD TO PAUSE"** at `text-[0.55rem]
-  opacity-70`, on the §2.5 scrim pill.
+  opacity-70`, on the §2.8 scrim pill.
 - The chevron loops `y: [0, -6, 0]` over 1.6s, `ease: "easeInOut"`,
   `repeat: Infinity`.
 - Shows ONCE per session: mounts when story 0 enters its reveal phase,
@@ -536,6 +618,10 @@ commit body — not silently absorbed.
   `public/moments/<id>/NN.jpg`, ≤400KB each.
 - **Music**: one licensed/royalty-free loopable mp3 →
   `public/audio/wrapped-loop.mp3`. Sound effects need nothing (synthesized).
+- **Company logos** (§2.5): Paystack, Digital Encode, Rise, NitHub, Cubbes
+  → `public/logos/companies/<kebab-name>.png`, transparent or white-field,
+  ≥240px wide — the ORBIT repo's sponsor assets may already have these.
+  Until a file lands its chip shows the name (never blank, never broken).
 - **WhatsApp exports**: keep the 5-file batches coming; anything ambiguous
   goes in `data/exports/manifest.json`.
 - **Topic lists** (§6.2.3): skim and re-curate before freeze — you know
@@ -552,18 +638,20 @@ commit body — not silently absorbed.
 1. `fix(type): words wrap as words — pop-letters word grouping + balanced headlines` — §2.1
 2. `fix(stories): the overture belt — continuous numerals and a warp-field fallback` — §2.2
 3. `fix(stories): moments scatter — every photo visible, the deal and the flick` — §2.3
-4. `fix(engine): paused chip placement and summary suppression` — §2.4 + §2.5
-5. `feat(engine): vanishing chrome and the first-run gesture hint` — §4
-6. `feat(grid): the poster wall` — §3
-7. `feat(audio): the sfx engine` — §5.1
-8. `feat(pipeline): export merge + the topics engine` — §6.1-§6.2 (+ vitest
+4. `fix(engine): paused chip placement and summary suppression` — §2.4 + §2.8
+5. `fix(stories): the saga breathes — law-12 retiming and the company logo wall` — §2.5 (logo files land whenever the owner supplies them; the name-chip fallback ships now)
+6. `fix(stories): dead-end holds advance, bare screens get dressed` — §2.6 + §2.7
+7. `feat(engine): vanishing chrome and the first-run gesture hint` — §4
+8. `feat(grid): the poster wall` — §3
+9. `feat(audio): the sfx engine` — §5.1
+10. `feat(pipeline): export merge + the topics engine` — §6.1-§6.2 (+ vitest
    for merge dedupe and each analyzer on synthetic fixtures)
-9. `feat(stories): the group chat talks back — topics, vocabulary, emoji, starters` — §6.3 (registry bump + 80%-rule recheck in the same commit)
-10. `fix(auth): prod guard, request-origin links, health endpoint` — §7.3
-11. `chore(motion): the fluidity audit` — §8 (whatever it catches)
+11. `feat(stories): the group chat talks back — topics, vocabulary, emoji, starters` — §6.3 (registry bump + 80%-rule recheck in the same commit)
+12. `fix(auth): prod guard, request-origin links, health endpoint` — §7.3
+13. `chore(motion): the fluidity audit` — §8 (whatever it catches)
 
 Gates: `tsc` / `eslint` / `vitest` / production build per commit (the
-established bar). After 4, 9, and 11: the on-device pass — and the §8
+established bar). After 6, 11, and 13: the on-device pass — and the §8
 freeze-frame test is now part of every future visual verification.
 
 ## 11. What this pass deliberately does not do
