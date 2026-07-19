@@ -1,5 +1,7 @@
 import type { ReactNode, RefObject } from "react";
 import { ShaderField } from "@/components/gl/shader-field";
+import { useGlQuality } from "@/components/gl/use-gl-quality";
+import { GlQualityContext } from "@/components/gl/quality-context";
 
 export function StoryFrame({
   field,
@@ -16,6 +18,7 @@ export function StoryFrame({
   progressRef: RefObject<number>;
   children: ReactNode;
 }) {
+  const quality = useGlQuality();
   return (
     <div className="fixed inset-0 grid place-items-center bg-ink">
       <div className="stage relative overflow-hidden w-full h-[100dvh] md:w-auto md:h-auto md:rounded-2xl">
@@ -30,7 +33,7 @@ export function StoryFrame({
           pattern={pattern}
           progressRef={progressRef}
         />
-        {children}
+        <GlQualityContext.Provider value={quality}>{children}</GlQualityContext.Provider>
       </div>
     </div>
   );

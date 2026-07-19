@@ -199,11 +199,15 @@ export function Player() {
     def.personal && def.id !== "summary" && me.member && state.phase === "reveal";
   const seamEdgeName = seamEdge(state.vector);
   const seamEdgeIsVertical = seamEdgeName === "top" || seamEdgeName === "bottom";
+  // The-year's setup swaps in the overture warp field (shader story 10,
+  // build4 §2.2) instead of its own story-0 treatment; refined to a
+  // sub-beat window once the drive-through timing lands (build4 §4).
+  const shaderStory = state.storyIndex === 0 && state.phase === "setup" ? 10 : state.storyIndex;
 
   return (
     <StoryFrame
       field={def.field}
-      storyIndex={state.storyIndex}
+      storyIndex={shaderStory}
       accentHex={shaderAccentHex}
       pattern={shaderPattern}
       progressRef={progressRef}

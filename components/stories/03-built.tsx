@@ -6,6 +6,9 @@ import { KineticWords } from "@/components/kinetic-words";
 import { PRODUCTS } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING, TIMING } from "@/lib/stories";
+import { useGlQualityContext } from "@/components/gl/quality-context";
+import { StripeCircleFigure } from "@/components/gl/static-figure";
+import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
 
 const BG_CLASS: Record<string, string> = {
@@ -25,6 +28,7 @@ const ACTIVE_CYCLE_MS = 1800;
 
 export function BuiltStory({ phase, active, paused }: StoryProps) {
   const reduceMotion = useReducedMotion();
+  const glQuality = useGlQualityContext();
   const [activeRow, setActiveRow] = useState(0);
 
   useEffect(() => {
@@ -55,6 +59,8 @@ export function BuiltStory({ phase, active, paused }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex flex-col text-cream px-6 pt-20 pb-16">
+      {/* Static stand-in for the shader's stripe-circle figure (build4 §2.3). */}
+      {glQuality === "off" && <StripeCircleFigure accentHex={ACCENT_HEX.blue} />}
       <p className="t-label text-cream/55 text-center mb-6">{copy.built.revealLabel}</p>
       <div className="flex-1 flex flex-col justify-center gap-4">
         {PRODUCTS.map((p, i) => {

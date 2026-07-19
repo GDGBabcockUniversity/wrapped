@@ -9,6 +9,9 @@ import { CHAPTER } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING, TIMING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
+import { useGlQualityContext } from "@/components/gl/quality-context";
+import { StripeBandFigure } from "@/components/gl/static-figure";
+import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
 
 // Four cuts across a 5s setup beat — each line sits ~1.15s, the closer
@@ -112,6 +115,7 @@ function ReceiptRow({ label, value, suffix, delayMs }: { label: string; value: n
 
 export function TheYearStory({ phase }: StoryProps) {
   const reduceMotion = useReducedMotion();
+  const glQuality = useGlQualityContext();
 
   if (phase === "setup") {
     return <ColdOpen />;
@@ -119,6 +123,9 @@ export function TheYearStory({ phase }: StoryProps) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center px-4 pt-20 pb-16">
+      {/* Static stand-in for the shader's diagonal stripe band on devices
+          without a live WebGL figure (build4 §2.3). */}
+      {glQuality === "off" && <StripeBandFigure accentHex={ACCENT_HEX.blue} />}
       <IdleFloat y={-3} duration={6} delay={1.4} className="w-full">
       <motion.div
         initial={{ y: 40, rotate: -1.5, opacity: 0 }}
