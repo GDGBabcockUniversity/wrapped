@@ -6,6 +6,7 @@ import { fetchDbData, type FetchedDb } from "./fetch-db";
 import { parseSourceCsv, combineExternal, type ExternalData } from "./sources";
 import { buildUniverse } from "./universe";
 import { parseWhatsAppExports } from "./parse-whatsapp";
+import { computeGroupChatStats, type GroupStatsResult } from "./group-stats";
 import { matchMembers } from "./match-members";
 import { buildPipelineMembers, computeSnapshots } from "./compute-stats";
 import { writeSnapshots, deleteOptedOutSnapshots } from "./write-snapshot";
@@ -32,6 +33,23 @@ function readExportFiles(): string[] {
     .readdirSync(exportsDir)
     .filter((f) => f.endsWith(".txt"))
     .map((f) => fs.readFileSync(path.join(exportsDir, f), "utf-8"));
+}
+
+/** Every .txt under data/exports/groups/ — the main chat plus any subgroup
+    exports (build5 §5.2), one file per group. Kept separate from the flat
+    data/exports/ directory (member exports for the personal-stats path,
+    unchanged) — this directory only feeds the Group Chat story's fun
+    stats. `name` is the filename sans extension, e.g. "main", "data-and-ai". */
+function readGroupExportFiles(): { name: string; text: string }[] {
+  const groupsDir = path.join(DATA_DIR, "exports", "groups");
+  if (!fs.existsSync(groupsDir)) return [];
+  return fs
+    .readdirSync(groupsDir)
+    .filter((f) => f.endsWith(".txt"))
+    .map((f) => ({
+      name: f.replace(/\.txt$/, ""),
+      text: fs.readFileSync(path.join(groupsDir, f), "utf-8"),
+    }));
 }
 
 /** Every CSV under data/sources/, any nesting — community.dev, Luma, ORBIT. */
@@ -117,6 +135,14 @@ async function main() {
   const senderStats = parseWhatsAppExports(whatsAppTexts, YEAR_START, YEAR_END);
   const matchResult = matchMembers(senderStats, universe.members, mapping);
 
+  // Group Chat story fun stats (build5 §5) — separate from the member
+  // exports above: data/exports/groups/*.txt, main chat plus any subgroups.
+  const groupExports = readGroupExportFiles();
+  if (groupExports.length === 0) {
+    console.warn("No .txt files found in data/exports/groups/ — Group Chat stats will be zeroed.");
+  }
+  const groupStats: GroupStatsResult = computeGroupChatStats(groupExports, YEAR_START, YEAR_END);
+
   if (matchResult.unmatchedSenders.length > 0) {
     const unmatchedCsvPath = path.join(DATA_DIR, "unmatched.csv");
     const csv = [
@@ -144,7 +170,8 @@ async function main() {
     snapshots,
     chapterMeta,
     matchResult.matchedMessageVolume,
-    matchResult.totalMessageVolume
+    matchResult.totalMessageVolume,
+    groupStats
   );
 
   if (isDryRun || !isWrite) {

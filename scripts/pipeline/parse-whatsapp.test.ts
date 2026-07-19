@@ -68,6 +68,22 @@ describe("parseWhatsAppExports", () => {
     expect(stats.has("Ada Lovelace")).toBe(false);
   });
 
+  // The real WhatsApp export format (verified against the 2026-07-19
+  // main-chat export) trails the deleted marker with a period, and has an
+  // admin-deletion variant — an exact-string match missed both, silently
+  // counting every deleted message as real content (build5 §5.1 fix).
+  it("does not count a deleted-message body with a trailing period", () => {
+    const content = `01/10/2025, 09:43 - Ada Lovelace: This message was deleted.`;
+    const stats = parseWhatsAppExports([content], YEAR_START, YEAR_END);
+    expect(stats.has("Ada Lovelace")).toBe(false);
+  });
+
+  it("does not count an admin-deleted message body", () => {
+    const content = `01/10/2025, 09:43 - Ada Lovelace: This message was deleted by admin ~Bolanle.`;
+    const stats = parseWhatsAppExports([content], YEAR_START, YEAR_END);
+    expect(stats.has("Ada Lovelace")).toBe(false);
+  });
+
   it("strips a trailing edited marker but still counts the message", () => {
     const content = `01/10/2025, 09:43 - Ada Lovelace: hello <This message was edited>`;
     const stats = parseWhatsAppExports([content], YEAR_START, YEAR_END);

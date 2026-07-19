@@ -23,10 +23,13 @@ const RE_IOS_SYSTEM =
 
 const BIDI_MARKS = /[‎‏‪-‮]/g;
 
-const NOISY_BODIES = new Set([
-  "this message was deleted",
-  "you deleted this message",
-]);
+// Prefix match, not exact — the real WhatsApp export format (verified
+// against the 2026-07-19 main-chat export, build5 §5.1) has a trailing
+// period ("This message was deleted.") and an admin-deletion variant
+// ("This message was deleted by admin ~Name.") that an exact-string Set
+// silently missed entirely, letting every deleted message count as real
+// content. \b lets anything trail the phrase.
+const DELETED_BODY_RE = /^(this message was deleted|you deleted this message)\b/i;
 
 function stripBidi(line: string): string {
   return line.replace(BIDI_MARKS, "");
@@ -63,7 +66,7 @@ function buildDate(
   );
 }
 
-function normalizeSenderKey(raw: string): { key: string; isPhone: boolean } {
+export function normalizeSenderKey(raw: string): { key: string; isPhone: boolean } {
   const trimmed = raw.trim();
   const isPhoneLike = /^[+\d][\d\s-]+$/.test(trimmed);
   if (isPhoneLike) {
@@ -72,21 +75,23 @@ function normalizeSenderKey(raw: string): { key: string; isPhone: boolean } {
   return { key: trimmed, isPhone: false };
 }
 
-function cleanBody(body: string): { text: string; counts: boolean } {
+export function cleanBody(body: string): { text: string; counts: boolean } {
   const stripped = body.replace(/<This message was edited>\s*$/, "").trim();
-  if (NOISY_BODIES.has(stripped.toLowerCase())) {
+  if (DELETED_BODY_RE.test(stripped)) {
     return { text: stripped, counts: false };
   }
   return { text: stripped, counts: true };
 }
 
-interface ParsedLine {
+export interface ParsedLine {
   date: Date;
   senderRaw: string;
   body: string;
 }
 
-function parseLine(rawLine: string): ParsedLine | "system" | null {
+/** Exported for group-stats.ts (build5 §5.1) to reuse the dialect-parsing
+    logic instead of duplicating the Android/iOS regexes. */
+export function parseLine(rawLine: string): ParsedLine | "system" | null {
   const line = stripBidi(rawLine);
 
   const android = line.match(RE_ANDROID_MESSAGE);
