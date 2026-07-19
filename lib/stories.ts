@@ -40,7 +40,7 @@ export interface StoryDef {
 }
 
 export const STORIES: StoryDef[] = [
-  { id: "the-year", index: 0, personal: false, accent: "blue", field: "ink", setupMs: 4200, revealMs: 8000, label: "The Year" },
+  { id: "the-year", index: 0, personal: false, accent: "blue", field: "ink", setupMs: 5600, revealMs: 8000, label: "The Year" },
   { id: "moments", index: 1, personal: false, accent: "red", field: "cream", setupMs: 3000, revealMs: 13000, label: "The Moments" },
   { id: "built", index: 2, personal: false, accent: "blue", field: "ink", setupMs: 3200, revealMs: 9000, label: "What We Built" },
   { id: "people", index: 3, personal: false, accent: "yellow", field: "cream", setupMs: 3500, revealMs: 60000, label: "The People" },

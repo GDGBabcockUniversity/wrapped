@@ -121,6 +121,26 @@ export function Player() {
   const [me, setMe] = useState<MeResponse>({ member: false });
   const [dbDegraded, setDbDegraded] = useState(false);
   const verifiedTracked = useRef(false);
+  // The overture's drive-through window (build4 §4): the-year's setup shows
+  // the warp field (shader story 10) only for its first 3400ms, then
+  // resolves to the story's own stripe-band figure for the calm beat.
+  // Reset-on-prop-change happens synchronously during render (React's
+  // sanctioned pattern for this — see "Adjusting state when a prop
+  // changes" in the React docs) rather than in the effect below, which
+  // only owns the async flip-to-false so it never calls setState
+  // synchronously from its own body.
+  const setupCycleKey = `${state.storyIndex}-${state.phase}`;
+  const [warpKey, setWarpKey] = useState(setupCycleKey);
+  const [setupWarpActive, setSetupWarpActive] = useState(true);
+  if (setupCycleKey !== warpKey) {
+    setWarpKey(setupCycleKey);
+    setSetupWarpActive(true);
+  }
+  useEffect(() => {
+    if (state.storyIndex !== 0 || state.phase !== "setup") return;
+    const t = setTimeout(() => setSetupWarpActive(false), 3400);
+    return () => clearTimeout(t);
+  }, [state.storyIndex, state.phase]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -202,7 +222,8 @@ export function Player() {
   // The-year's setup swaps in the overture warp field (shader story 10,
   // build4 §2.2) instead of its own story-0 treatment; refined to a
   // sub-beat window once the drive-through timing lands (build4 §4).
-  const shaderStory = state.storyIndex === 0 && state.phase === "setup" ? 10 : state.storyIndex;
+  const shaderStory =
+    state.storyIndex === 0 && state.phase === "setup" && setupWarpActive ? 10 : state.storyIndex;
 
   return (
     <StoryFrame

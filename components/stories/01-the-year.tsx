@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
 import { IdleFloat } from "@/components/idle-float";
@@ -14,10 +14,30 @@ import { StripeBandFigure } from "@/components/gl/static-figure";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
 
-// Four cuts across a 5s setup beat — each line sits ~1.15s, the closer
-// ("We kept the receipts.") holds 1.5s. Cadence rule (§11.4): short lines
-// cut fast enough to feel like acceleration, long enough to be read twice.
-const CUT_DELAYS_MS = [0, 850, 1700, 2700];
+// The overture (build4 §4): a numeral drive-through over the warp field,
+// then a resolve, then a calm two-line beat — replaces the old four-cut
+// hard-switch cold open entirely.
+const DRIVE_MS = 3400;
+const OVERLAY_APPEAR_S = 0.05;
+const OVERLAY_HOLD_MS = 1200;
+const OVERLAY_FADE_S = 0.15;
+const OVERLAY_LINE1_AT = 400;
+const OVERLAY_LINE2_AT = 1900;
+const NUMERAL_TRANSITION = { duration: DRIVE_MS / 1000, ease: "linear" as const };
+
+const subscribeNoop = () => () => {};
+/** True only after the client has mounted — React's own sanctioned tool
+    (not an effect + setState) for values that legitimately differ between
+    the server snapshot and the client's, so the hydration pass itself
+    stays server/client-identical and only a later render picks up the
+    real client value. */
+function useHasMounted(): boolean {
+  return useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false
+  );
+}
 
 function ColdOpenLine({ entry }: { entry: (typeof copy.theYear.coldOpen)[number] }) {
   if (!("accentWord" in entry) || !entry.accentWord) {
@@ -35,47 +55,118 @@ function ColdOpenLine({ entry }: { entry: (typeof copy.theYear.coldOpen)[number]
   );
 }
 
-/**
- * The cold open (§11.4 build2.md): a hard-cut three-line title sequence —
- * full-bleed field inversions, no crossfade between cuts, a haptic on each
- * cut. Replaces the old single "What a year." setup line.
- */
-function ColdOpen() {
-  const [cut, setCut] = useState(0);
-  const reduceMotion = useReducedMotion();
+/** A cold-open overlay line: appears near-instantly, holds, fades — the
+    "One chapter." / "One unhinged year." captions riding the drive-through.
+    State-driven (not a keyframe array) so the on/off timing is exact and
+    doesn't depend on Motion resolving a delayed multi-stop array. */
+function DriveOverlayLine({ text, visible }: { text: string; visible: boolean }) {
+  return (
+    <motion.div
+      className="absolute z-10 px-3 py-1.5 rounded-full bg-ink/55"
+      initial={false}
+      animate={{ opacity: visible ? 1 : 0 }}
+      transition={{ duration: visible ? OVERLAY_APPEAR_S : OVERLAY_FADE_S }}
+    >
+      <span className="t-label text-cream">{text}</span>
+    </motion.div>
+  );
+}
+
+/** 0–3400ms: numerals "25"/"26" travel through at monument scale over the
+    warp field (shader story 10, wired in player.tsx); the logomark is the
+    pinned, static anchor the world moves around. */
+function DriveThrough() {
+  const [line, setLine] = useState<0 | 1 | 2>(0);
 
   useEffect(() => {
-    vibrate(8);
-    const timers = CUT_DELAYS_MS.slice(1).map((delay) =>
-      setTimeout(() => {
-        setCut(CUT_DELAYS_MS.indexOf(delay));
-        vibrate(8);
-      }, delay)
-    );
+    const timers = [
+      setTimeout(() => setLine(1), OVERLAY_LINE1_AT),
+      setTimeout(() => setLine(0), OVERLAY_LINE1_AT + OVERLAY_HOLD_MS),
+      setTimeout(() => setLine(2), OVERLAY_LINE2_AT),
+      setTimeout(() => setLine(0), OVERLAY_LINE2_AT + OVERLAY_HOLD_MS),
+    ];
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  const entry = copy.theYear.coldOpen[cut]!;
-  const isInk = entry.field === "ink";
-
   return (
-    <div
-      key={cut}
-      className={`absolute inset-0 flex items-center justify-center px-6 text-center ${
-        isInk ? "bg-ink text-cream" : "bg-cream text-ink"
-      }`}
-    >
-      <p
-        className="t-display"
-        style={{
-          fontSize: "clamp(2.6rem, 13cqw, 5rem)",
-          ...(cut === 0 ? ({ viewTransitionName: "wrapped-title" } as React.CSSProperties) : {}),
-        }}
+    <div className="absolute inset-0 overflow-hidden flex items-center justify-center px-6 text-center">
+      <motion.p
+        aria-hidden
+        className="absolute t-monument text-gdg-red pointer-events-none"
+        initial={{ x: "70%", y: "-30%", rotate: -8 }}
+        animate={{ x: "-70%", y: "30%", rotate: 6 }}
+        transition={NUMERAL_TRANSITION}
       >
-        {reduceMotion ? entry.line : <ColdOpenLine entry={entry} />}
-      </p>
+        25
+      </motion.p>
+      <motion.p
+        aria-hidden
+        className="absolute t-monument text-gdg-red pointer-events-none"
+        initial={{ x: "-70%", y: "30%", rotate: 6 }}
+        animate={{ x: "70%", y: "-30%", rotate: -8 }}
+        transition={{ ...NUMERAL_TRANSITION, delay: 1.4 }}
+      >
+        26
+      </motion.p>
+      <div className="relative z-10" style={{ viewTransitionName: "wrapped-title" } as React.CSSProperties}>
+        <img
+          src="/Sticker Logomark.png"
+          alt=""
+          aria-hidden
+          className="w-16 h-auto drop-shadow-md"
+        />
+      </div>
+      <DriveOverlayLine text={copy.theYear.coldOpen[0]!.line} visible={line === 1} />
+      <DriveOverlayLine text={copy.theYear.coldOpen[1]!.line} visible={line === 2} />
     </div>
   );
+}
+
+/** 3700–5600ms: the breath after the spectacle — cream-on-ink, "What a
+    year." then "We kept the receipts." landing 900ms later. Opaque so it
+    also covers any tail end of the drive-through's numeral travel. */
+function CalmBeat({ instant }: { instant: boolean }) {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-ink text-cream">
+      <p className="t-display" style={{ fontSize: "clamp(2.6rem, 13cqw, 5rem)" }}>
+        {instant ? copy.theYear.coldOpen[2]!.line : <PopLetters text={copy.theYear.coldOpen[2]!.line} profile="fast" />}
+      </p>
+      <motion.p
+        className="t-editorial"
+        initial={instant ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: instant ? 0 : 0.9 }}
+      >
+        {instant ? copy.theYear.coldOpen[3]!.line : <ColdOpenLine entry={copy.theYear.coldOpen[3]!} />}
+      </motion.p>
+    </div>
+  );
+}
+
+function ColdOpen() {
+  // useReducedMotion() reads the real matchMedia value synchronously on
+  // the client's very first render but always reads false during SSR (no
+  // `window`) — trusting it before the client has mounted makes the
+  // client's OWN hydration-pass render disagree with the server HTML
+  // it's reconciling against. useHasMounted() gates that until safe.
+  const reduceMotion = useReducedMotion();
+  const hasMounted = useHasMounted();
+  const [beat, setBeat] = useState<"drive" | "calm">("drive");
+
+  useEffect(() => {
+    if (!hasMounted) return;
+    // Deferred through setTimeout even for the reduced-motion case (delay
+    // 0) rather than calling setState synchronously in the effect body.
+    const t = setTimeout(() => setBeat("calm"), reduceMotion ? 0 : DRIVE_MS);
+    return () => clearTimeout(t);
+  }, [hasMounted, reduceMotion]);
+
+  useEffect(() => {
+    if (beat === "calm") vibrate(8); // the resolve's moment of contact
+  }, [beat]);
+
+  if (beat === "drive") return <DriveThrough />;
+  return <CalmBeat instant={!!reduceMotion} />;
 }
 
 const VALUES: Record<string, number> = {
