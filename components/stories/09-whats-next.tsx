@@ -5,6 +5,7 @@ import { KineticWords } from "@/components/kinetic-words";
 import { PopLetters } from "@/components/pop-letters";
 import { copy } from "@/lib/copy";
 import { DotField } from "@/components/dot-field";
+import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
 
@@ -12,8 +13,11 @@ export function WhatsNextStory({ phase }: StoryProps) {
   const reduceMotion = useReducedMotion();
 
   if (phase === "setup") {
+    // build6 §2.7: was a bare line on a naked field — law 10 applies to
+    // quiet screens too, so it gets scribbles at minimum.
     return (
       <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16">
+        <AmbientScribbles field="cream" />
         <p className="t-editorial text-center">
           <KineticWords text={copy.whatsNext.setup} />
         </p>

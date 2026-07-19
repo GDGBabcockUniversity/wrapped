@@ -346,6 +346,44 @@ function PersonTile({ person, index, chapterSize }: { person: Person; index: num
   );
 }
 
+// build6 §2.7: the setup screen was a bare line — three small scattered
+// circles of the first CORE members tease the credits to come, before the
+// full chapter grid takes over.
+const TEASE_POSITIONS = [
+  { top: "20%", left: "16%" },
+  { top: "66%", left: "78%" },
+  { top: "42%", left: "74%" },
+];
+const TEASE_DELAYS_S = [0.4, 0.7, 1.0];
+
+function TeaseAvatar({ person, index }: { person: Person; index: number }) {
+  const [failed, setFailed] = useState(false);
+  const pos = TEASE_POSITIONS[index % TEASE_POSITIONS.length]!;
+  return (
+    <motion.div
+      aria-hidden
+      className="absolute rounded-full overflow-hidden"
+      style={{ width: 24, height: 24, ...pos }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 0.45 }}
+      transition={{ duration: 0.4, delay: TEASE_DELAYS_S[index % TEASE_DELAYS_S.length] }}
+    >
+      {!person.photo || failed ? (
+        <InitialsAvatar name={person.name} index={index} sizePx={24} />
+      ) : (
+        <Image
+          src={person.photo}
+          alt=""
+          fill
+          className="object-cover"
+          sizes="24px"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </motion.div>
+  );
+}
+
 /** A plain name tile (photo + name, no role line) — the closer arc's MVPs
     and special force, whose "role" is the section header itself. */
 function NamedTile({ photo, name, index, size }: { photo: string | null; name: string; index: number; size: number }) {
@@ -608,7 +646,13 @@ function SpecialForceMoment() {
   );
 }
 
-export function PeopleStory({ phase, active, paused }: StoryProps) {
+// build6 §2.6: the closer used to hold "…and everyone who showed up."
+// indefinitely (the schedule finishes ~13.5s before revealMs and `finished`
+// just idled). It now holds long enough to read and land, then hands off —
+// the same onComplete wiring built's guess game already uses.
+const CLOSER_HOLD_MS = 2600;
+
+export function PeopleStory({ phase, active, paused, onComplete }: StoryProps) {
   const glQuality = useGlQualityContext();
   const [chapterIdx, setChapterIdx] = useState(0);
   const [showCard, setShowCard] = useState(true);
@@ -648,9 +692,23 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
     };
   }, [phase, active, paused]);
 
+  // The closer's dead-end (build6 §2.6): hold CLOSER_HOLD_MS once landed,
+  // then advance the player. Respects pause the same way the chapter clock
+  // above does — a pause mid-hold restarts the hold in full on resume.
+  useEffect(() => {
+    if (!finished || paused) return;
+    const id = setTimeout(() => onComplete?.(), CLOSER_HOLD_MS);
+    return () => clearTimeout(id);
+  }, [finished, paused, onComplete]);
+
   if (phase === "setup") {
+    const teaseCore = PEOPLE.filter((p) => p.section === "CORE").slice(0, 3);
     return (
-      <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16">
+      <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16 overflow-hidden">
+        <AmbientScribbles field="cream" />
+        {teaseCore.map((p, i) => (
+          <TeaseAvatar key={p.name} person={p} index={i} />
+        ))}
         <p className="t-editorial text-center">
           <PopLetters text={copy.people.setup} />
         </p>
@@ -660,7 +718,8 @@ export function PeopleStory({ phase, active, paused }: StoryProps) {
 
   if (finished) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16">
+      <div className="absolute inset-0 flex items-center justify-center text-ink px-6 pt-20 pb-16 overflow-hidden">
+        <AmbientScribbles field="cream" />
         <p className="t-editorial text-center">{copy.people.transitions.closer}</p>
       </div>
     );
