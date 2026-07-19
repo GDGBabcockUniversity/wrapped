@@ -192,6 +192,37 @@ export const GROUP_CHAT = {
   topSubgroup: { name: "DATA & AI", messages: 3882 } as { name: string; messages: number } | null,
 } as const;
 
+export interface GroupTopics {
+  wordsOfYear: { word: string; count: number }[] | null;
+  emojiLeaderboard: { emoji: string; count: number }[] | null;
+  topicBuckets: { name: string; count: number }[] | null;
+  nameDrops: { name: string; count: number }[] | null;
+  linksTotal: number | null;
+  linkDomains: { domain: string; count: number }[] | null;
+  questionsCount: number | null;
+  shouter: { name: string; count: number } | null;
+  longestMessage: { chars: number; sender: string } | null;
+  starters: { name: string; count: number }[] | null;
+}
+
+// build6 §6.2: the topics engine (scripts/pipeline/topics.ts) audits WHAT
+// the chat talked about, not just who/when/how much — but it hasn't run
+// against the merged real exports yet, so every field stays null (never a
+// blank array standing in for "no topics") until the operator pastes the
+// printed block here. Re-run: npx tsx scripts/pipeline/run-group-stats.ts
+export const GROUP_TOPICS: GroupTopics = {
+  wordsOfYear: null,
+  emojiLeaderboard: null,
+  topicBuckets: null,
+  nameDrops: null,
+  linksTotal: null,
+  linkDomains: null,
+  questionsCount: null,
+  shouter: null,
+  longestMessage: null,
+  starters: null,
+};
+
 export interface Person {
   name: string;
   role: string;

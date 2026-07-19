@@ -54,7 +54,7 @@ function hourLabel(hour: number): string {
   return `${h12}${hour < 12 ? "AM" : "PM"}`;
 }
 
-interface ClassifiedMessage {
+export interface ClassifiedMessage {
   date: Date;
   senderKey: string;
   counts: boolean; // false only for a deleted-message body
@@ -65,8 +65,9 @@ interface ClassifiedMessage {
     parse-whatsapp.ts's line matching so both pipelines agree on what a
     "message" is. Unlike parseWhatsAppExports, deleted-message lines are
     KEPT (with counts=false) rather than dropped, because this module needs
-    to count them (build5 §5.1's `deleted` stat). */
-function classifyExport(content: string, yearStart: Date, yearEnd: Date): ClassifiedMessage[] {
+    to count them (build5 §5.1's `deleted` stat). Exported for topics.ts
+    (build6 §6.2) to reuse instead of re-implementing classification. */
+export function classifyExport(content: string, yearStart: Date, yearEnd: Date): ClassifiedMessage[] {
   const out: ClassifiedMessage[] = [];
   const order = detectDateOrder(content);
   for (const rawLine of content.split(/\r?\n/)) {
