@@ -42,11 +42,15 @@ export interface StoryDef {
 export const STORIES: StoryDef[] = [
   { id: "the-year", index: 0, personal: false, accent: "blue", field: "ink", setupMs: 5600, revealMs: 8000, label: "The Year" },
   { id: "moments", index: 1, personal: false, accent: "red", field: "cream", setupMs: 3000, revealMs: 13000, label: "The Moments" },
-  // revealMs covers the row cycle (9000ms) + the guess game's worst case:
-  // a full 6000ms wait (visitor-paced, exempt from the 80% rule per build4
-  // §8.2) plus its mandatory 2400ms post-answer hold, which DOES need the
-  // rule's headroom: (9000 + 6000 + 2400) / 0.8 = 21750, rounded up.
-  { id: "built", index: 2, personal: false, accent: "blue", field: "ink", setupMs: 3200, revealMs: 22000, label: "What We Built" },
+  // revealMs covers the product saga's fully-filled worst case (build5 §3.2):
+  // rollcall 4500 + RADAR-full 5400 + VOTES-full 3400 + ORBIT-full 16000
+  // (1400+2200+1800+1800+2400+1600+1600+1400+1800) + quick beats 5200 =
+  // 34500 scripted, plus the guess game's worst case — a full 6000ms wait
+  // (visitor-paced, exempt from the 80% rule per build4 §8.2) plus its
+  // mandatory 2400ms post-answer hold, which DOES need the rule's headroom:
+  // (34500 + 6000 + 2400) / 0.8 = 53625, rounded up. Null-skipped TBDs only
+  // ever shorten the actual run.
+  { id: "built", index: 2, personal: false, accent: "blue", field: "ink", setupMs: 3200, revealMs: 54000, label: "What We Built" },
   // revealMs 60000 → 64000 (build4 §10B.3 item 5): splitting special thanks
   // into two full chapters adds one card (1600ms) + one content beat
   // (2400ms) to the schedule — 46.45+4 = 50.5s against the 80% rule's new

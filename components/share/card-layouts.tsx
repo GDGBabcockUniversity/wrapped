@@ -1,4 +1,4 @@
-import { CHAPTER, PRODUCTS, PRODUCT_STATS } from "@/lib/content/chapter";
+import { CHAPTER, PRODUCTS, productHeadlineStat } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
 import { CLUBS } from "@/lib/clubs";
 import type { Snapshot } from "@/lib/snapshot";
@@ -206,7 +206,7 @@ export function BuiltCard() {
         }}
       >
         {PRODUCTS.map((p) => {
-          const stat = PRODUCT_STATS[p.name];
+          const stat = productHeadlineStat(p.name);
           return (
             <div key={p.num} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
@@ -234,7 +234,7 @@ export function BuiltCard() {
               {stat && (
                 <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginLeft: 84 }}>
                   <div style={{ display: "flex", fontSize: 32, fontWeight: 700, color: BG_HEX[p.color] }}>
-                    {stat.value.toLocaleString("en-US")}
+                    {typeof stat.value === "number" ? stat.value.toLocaleString("en-US") : stat.value}
                   </div>
                   <div style={{ display: "flex", fontSize: 20, fontWeight: 700, letterSpacing: 2, color: `${CREAM}99` }}>
                     {stat.label}

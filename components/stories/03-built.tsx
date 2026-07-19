@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useState, type ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { KineticWords } from "@/components/kinetic-words";
 import { PopLetters } from "@/components/pop-letters";
-import { PRODUCTS, GUESS_GAME, PRODUCT_STATS, type ProductStat } from "@/lib/content/chapter";
+import { PRODUCTS, GUESS_GAME, PRODUCT_SAGA, type SagaStat } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
 import { SPRING, TIMING } from "@/lib/stories";
 import { useGlQualityContext } from "@/components/gl/quality-context";
@@ -15,6 +15,13 @@ import { SlamStat } from "@/components/slam-stat";
 import { useBuiltGuess } from "./built-guess";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
+
+/**
+ * What We Built — the product saga (build5 §3). The roll-call (fast bars,
+ * no stats attached) opens the story; then it walks RADAR, BABCOCKVOTES,
+ * and ORBIT with receipts, one number-then-consequence beat at a time
+ * (law 9); then the guess game closes it out, unchanged from build4 §8.
+ */
 
 const BG_CLASS: Record<string, string> = {
   blue: "bg-gdg-blue",
@@ -35,50 +42,370 @@ const TEXT_ACCENT: Record<string, string> = {
   green: "text-gdg-green",
 };
 
-const ACTIVE_CYCLE_MS = 1800;
+const ROLLCALL_CYCLE_MS = 900;
 
-/** build4 §10A: the stat line under an active product row — count, label,
-    optional detail. Never renders a blank or a "0" for a null stat (the
-    caller only mounts this when `stat` is non-null). */
-function StatLine({ stat, color }: { stat: ProductStat; color: string }) {
+function colorFor(name: string): string {
+  return PRODUCTS.find((p) => p.name === name)?.color ?? "blue";
+}
+const RADAR_COLOR = colorFor("RADAR");
+const VOTES_COLOR = colorFor("BABCOCKVOTES");
+const ORBIT_COLOR = colorFor("ORBIT");
+const WEBSITE_COLOR = colorFor("GDG WEBSITE");
+const B100_COLOR = colorFor("BABCOCK 100");
+
+const SCATTER_ROTATIONS = [-3, 2, -1, 3, -2];
+
+/** A sticker chip with a per-item resting rotation, for scattered clusters
+    of names (build5 §3.2: the ORBIT company chips). */
+function ScatterChip({ children, index }: { children: ReactNode; index: number }) {
+  const reduceMotion = useReducedMotion();
+  const rot = SCATTER_ROTATIONS[index % SCATTER_ROTATIONS.length]!;
   return (
-    <div className="flex items-baseline justify-between gap-2 pl-1 pt-1">
-      <div className="flex items-baseline gap-1.5">
-        <SlamStat
-          value={stat.value}
-          className={`t-stat ${TEXT_ACCENT[color]}`}
-          style={{ fontSize: "clamp(1.1rem, 5cqw, 1.6rem)", fontVariantNumeric: "tabular-nums" }}
-        />
-        <span className="t-label text-cream/60">{stat.label}</span>
-      </div>
-      {stat.detail && <span className="t-body text-cream/45 text-xs">{stat.detail}</span>}
+    <motion.span
+      className="sticker-chip t-label"
+      style={{ rotate: 0, fontSize: "0.6rem" }}
+      initial={reduceMotion ? { rotate: rot } : { scale: 1.25, rotate: rot * 4, opacity: 0 }}
+      animate={{ scale: 1, rotate: rot, opacity: 1 }}
+      transition={reduceMotion ? { duration: 0.01 } : { ...SPRING.stamp, delay: index * 0.09 }}
+    >
+      {children}
+    </motion.span>
+  );
+}
+
+/** The continuously-scrolling row of Radar's shipped games (build5 §3.2) —
+    compositor-only translateX loop, content duplicated for a seamless
+    wrap. */
+function Marquee({ names }: { names: readonly string[] }) {
+  const reduceMotion = useReducedMotion();
+  const items = [...names, ...names];
+  return (
+    <div className="overflow-hidden w-full">
+      <motion.div
+        className="flex gap-2 w-max"
+        animate={reduceMotion ? undefined : { x: ["0%", "-50%"] }}
+        transition={reduceMotion ? undefined : { duration: 26, ease: "linear", repeat: Infinity }}
+      >
+        {items.map((n, i) => (
+          <span
+            key={`${n}-${i}`}
+            className="sticker-chip t-label whitespace-nowrap"
+            style={{ fontSize: "0.52rem" }}
+          >
+            {n}
+          </span>
+        ))}
+      </motion.div>
     </div>
   );
 }
 
+/** One number-then-consequence beat (law 9): the slam, its label, and an
+    optional detail line — the generic shape most saga beats share. */
+function StatBeat({ stat, color }: { stat: SagaStat; color: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <SlamStat
+        value={stat.value}
+        className={`t-display text-center ${TEXT_ACCENT[color] ?? "text-cream"}`}
+        style={{ fontSize: "clamp(2rem, 11cqw, 3.5rem)", fontVariantNumeric: "tabular-nums" }}
+      />
+      <motion.p
+        className="t-label text-cream/60 text-center"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.35 }}
+      >
+        {stat.label}
+      </motion.p>
+      {stat.detail && (
+        <motion.p
+          className="t-body text-cream/45 text-xs text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.55 }}
+        >
+          {stat.detail}
+        </motion.p>
+      )}
+    </div>
+  );
+}
+
+/** The ORBIT summit+speakers beat: a primary slam, with a second stat
+    landing 600ms later at half scale beside it if both are present
+    (build5 §3.2 — falls back to a single slam when summit is still TBD). */
+function DualStatBeat({
+  primary,
+  secondary,
+  color,
+}: {
+  primary: SagaStat;
+  secondary: SagaStat | null;
+  color: string;
+}) {
+  return (
+    <div className="flex items-end justify-center gap-6">
+      <StatBeat stat={primary} color={color} />
+      {secondary && (
+        <motion.div
+          className="scale-[0.62] origin-bottom"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.6 }}
+        >
+          <StatBeat stat={secondary} color={color} />
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+/** A plain held line — the ORBIT intro, the BabcockVotes fallback, and the
+    headline tease all use this (the number that exits, the line alone,
+    then the slam — build5 §3.2's held-breath beat). */
+function LineBeat({ text, fast }: { text: string; fast?: boolean }) {
+  return (
+    <p className="t-editorial text-center px-6">
+      <PopLetters text={text} profile={fast ? "fast" : undefined} />
+    </p>
+  );
+}
+
+interface ChapterHeader {
+  label: string;
+  color: string;
+}
+
+interface SagaBeat {
+  header: ChapterHeader;
+  ms: number;
+  node: ReactNode;
+}
+
+/** Every beat the saga can show, in order, with null-skipped TBDs already
+    resolved out (build5 §3.1-3.2). Built once from static content — no
+    hooks, no per-render recomputation. */
+function buildSagaBeats(): SagaBeat[] {
+  const beats: SagaBeat[] = [];
+
+  // RADAR — articles and most-read are TBD-pending; games always renders
+  // (Radar never shows up empty-handed).
+  const radarHeader: ChapterHeader = { label: "RADAR", color: RADAR_COLOR };
+  if (PRODUCT_SAGA.radar.articles) {
+    beats.push({
+      header: radarHeader,
+      ms: 1800,
+      node: <StatBeat stat={PRODUCT_SAGA.radar.articles} color={RADAR_COLOR} />,
+    });
+  }
+  if (PRODUCT_SAGA.radar.mostRead) {
+    const mostRead = PRODUCT_SAGA.radar.mostRead;
+    beats.push({
+      header: radarHeader,
+      ms: 1800,
+      node: (
+        <div className="flex flex-col items-center gap-2">
+          <StickerChip className="t-editorial">{String(mostRead.value)}</StickerChip>
+          <p className="t-label text-cream/60">{mostRead.label}</p>
+        </div>
+      ),
+    });
+  }
+  beats.push({
+    header: radarHeader,
+    ms: 1800,
+    node: (
+      <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+        <StatBeat stat={PRODUCT_SAGA.radar.games} color={RADAR_COLOR} />
+        <Marquee names={PRODUCT_SAGA.radar.gameNames} />
+      </div>
+    ),
+  });
+
+  // BABCOCKVOTES — elections/votes are TBD; the fallback line covers the gap.
+  const votesHeader: ChapterHeader = { label: "BABCOCKVOTES", color: VOTES_COLOR };
+  if (PRODUCT_SAGA.votes.elections || PRODUCT_SAGA.votes.votesCast) {
+    if (PRODUCT_SAGA.votes.elections) {
+      beats.push({
+        header: votesHeader,
+        ms: 1800,
+        node: <StatBeat stat={PRODUCT_SAGA.votes.elections} color={VOTES_COLOR} />,
+      });
+    }
+    if (PRODUCT_SAGA.votes.votesCast) {
+      beats.push({
+        header: votesHeader,
+        ms: 1600,
+        node: <StatBeat stat={PRODUCT_SAGA.votes.votesCast} color={VOTES_COLOR} />,
+      });
+    }
+  } else {
+    beats.push({
+      header: votesHeader,
+      ms: 1800,
+      node: <LineBeat text={PRODUCT_SAGA.votes.fallbackLine} />,
+    });
+  }
+
+  // ORBIT — the centerpiece. Every VERIFIED beat always renders.
+  const orbitHeader: ChapterHeader = { label: "ORBIT", color: ORBIT_COLOR };
+  beats.push({ header: orbitHeader, ms: 1400, node: <LineBeat text={PRODUCT_SAGA.orbit.intro} fast /> });
+  beats.push({
+    header: orbitHeader,
+    ms: 2200,
+    node: (
+      <div className="flex flex-col items-center gap-3">
+        <StatBeat stat={PRODUCT_SAGA.orbit.companies} color={ORBIT_COLOR} />
+        <div className="flex flex-wrap justify-center gap-2 max-w-xs">
+          {PRODUCT_SAGA.orbit.companyNames.map((n, i) => (
+            <ScatterChip key={n} index={i}>
+              {n}
+            </ScatterChip>
+          ))}
+        </div>
+      </div>
+    ),
+  });
+  if (PRODUCT_SAGA.orbit.lagos) {
+    beats.push({
+      header: orbitHeader,
+      ms: 1800,
+      node: <StatBeat stat={PRODUCT_SAGA.orbit.lagos} color={ORBIT_COLOR} />,
+    });
+  }
+  if (PRODUCT_SAGA.orbit.careerFair) {
+    beats.push({
+      header: orbitHeader,
+      ms: 1800,
+      node: <StatBeat stat={PRODUCT_SAGA.orbit.careerFair} color={ORBIT_COLOR} />,
+    });
+  }
+  beats.push({
+    header: orbitHeader,
+    ms: 2400,
+    node: (
+      <DualStatBeat
+        primary={PRODUCT_SAGA.orbit.summit ?? PRODUCT_SAGA.orbit.speakers}
+        secondary={PRODUCT_SAGA.orbit.summit ? PRODUCT_SAGA.orbit.speakers : null}
+        color={ORBIT_COLOR}
+      />
+    ),
+  });
+  beats.push({
+    header: orbitHeader,
+    ms: 1600,
+    node: <StatBeat stat={PRODUCT_SAGA.orbit.tickets} color={ORBIT_COLOR} />,
+  });
+  beats.push({
+    header: orbitHeader,
+    ms: 1600,
+    node: <StatBeat stat={PRODUCT_SAGA.orbit.sponsors} color={ORBIT_COLOR} />,
+  });
+  beats.push({ header: orbitHeader, ms: 1400, node: <LineBeat text={PRODUCT_SAGA.orbit.headlineTease} /> });
+  beats.push({
+    header: orbitHeader,
+    ms: 1800,
+    node: (
+      <div className="flex flex-col items-center gap-3">
+        {/* "t-monument sizing" per build5 §3.2 — the raw clamp(9rem,62cqw,
+            22rem) is tuned for a bare numeral and overflows a 9-letter
+            word, so the size is scaled down while keeping the class's
+            weight/tracking/line-height. */}
+        <SlamStat
+          value={PRODUCT_SAGA.orbit.headline.value}
+          className={`t-monument text-center ${TEXT_ACCENT[ORBIT_COLOR]}`}
+          style={{ fontSize: "clamp(2.25rem, 15cqw, 4.5rem)" }}
+        />
+        <StickerChip className="t-label">{PRODUCT_SAGA.orbit.headline.label}</StickerChip>
+      </div>
+    ),
+  });
+
+  // Quick beats — both TBD today, so this section renders nothing.
+  if (PRODUCT_SAGA.website) {
+    beats.push({
+      header: { label: "GDG WEBSITE", color: WEBSITE_COLOR },
+      ms: 2600,
+      node: <StatBeat stat={PRODUCT_SAGA.website} color={WEBSITE_COLOR} />,
+    });
+  }
+  if (PRODUCT_SAGA.babcock100) {
+    beats.push({
+      header: { label: "BABCOCK 100", color: B100_COLOR },
+      ms: 2600,
+      node: <StatBeat stat={PRODUCT_SAGA.babcock100} color={B100_COLOR} />,
+    });
+  }
+
+  return beats;
+}
+
+const SAGA_BEATS = buildSagaBeats();
+
+/** The product name pinned top-left for the run of a chapter's beats —
+    keyed by label so it only re-mounts (re-animates) when the chapter
+    actually changes, not on every beat within it (build5 §3.2). */
+function ChapterHeaderTag({ header }: { header: ChapterHeader }) {
+  return (
+    <motion.div
+      key={header.label}
+      className={`absolute top-20 left-6 inline-block rounded-[3px] px-[0.35em] py-[0.15em] t-display ${BG_CLASS[header.color]} ${CHIP_TEXT[header.color]}`}
+      style={{ fontSize: "clamp(0.9rem, 4.5cqw, 1.2rem)", rotate: -2 }}
+      initial={{ scale: 1.25, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={SPRING.stamp}
+    >
+      {header.label}
+    </motion.div>
+  );
+}
+
+type Stage = "rollcall" | "saga" | "game";
+
 export function BuiltStory({ phase, active, paused, onComplete }: StoryProps) {
   const reduceMotion = useReducedMotion();
   const glQuality = useGlQualityContext();
+  const [stage, setStage] = useState<Stage>("rollcall");
   const [activeRow, setActiveRow] = useState(0);
-  // The guess game (build4 §8) mounts as the final beat, after one full
-  // table cycle — every row has had its turn as "active".
-  const [gameActive, setGameActive] = useState(false);
+  const [sagaIdx, setSagaIdx] = useState(0);
+  const gameActive = stage === "game";
   const game = useBuiltGuess(gameActive, onComplete);
 
+  // The roll-call: a fast pass over the five products, no stats attached
+  // (build5 §3.2 point 1 — supersedes build4 §10A's stat-cycling rows).
   useEffect(() => {
-    if (phase !== "reveal" || !active || paused || gameActive) return;
+    if (phase !== "reveal" || !active || paused || stage !== "rollcall") return;
     let ticks = 0;
     const id = setInterval(() => {
       ticks += 1;
       if (ticks >= PRODUCTS.length) {
         clearInterval(id);
-        setGameActive(true);
+        setStage(SAGA_BEATS.length > 0 ? "saga" : "game");
         return;
       }
       setActiveRow((r) => (r + 1) % PRODUCTS.length);
-    }, ACTIVE_CYCLE_MS);
+    }, ROLLCALL_CYCLE_MS);
     return () => clearInterval(id);
-  }, [phase, active, paused, gameActive]);
+  }, [phase, active, paused, stage]);
+
+  // The saga: walk each beat in order, then hand off to the guess game.
+  // sagaIdx only ever advances while it stays in range for "saga" — the
+  // out-of-range hand-off happens inside the timeout callback below, never
+  // synchronously in the effect body.
+  useEffect(() => {
+    if (phase !== "reveal" || !active || paused || stage !== "saga") return;
+    const beat = SAGA_BEATS[sagaIdx];
+    if (!beat) return;
+    const id = setTimeout(() => {
+      if (sagaIdx + 1 >= SAGA_BEATS.length) {
+        setStage("game");
+      } else {
+        setSagaIdx((i) => i + 1);
+      }
+    }, beat.ms);
+    return () => clearTimeout(id);
+  }, [phase, active, paused, stage, sagaIdx]);
 
   if (phase === "setup") {
     return (
@@ -98,150 +425,166 @@ export function BuiltStory({ phase, active, paused, onComplete }: StoryProps) {
     );
   }
 
+  const currentBeat = stage === "saga" ? SAGA_BEATS[sagaIdx] : undefined;
+
   return (
     <div className="absolute inset-0 flex flex-col text-cream px-6 pt-20 pb-16">
-      {/* Static stand-in for the shader's stripe-circle figure (build4 §2.3). */}
+      {/* Static stand-in for the shader's stripe-circle figure (build4 §2.3) —
+          the story's one ambient system throughout (law 1). */}
       {glQuality === "off" && <StripeCircleFigure accentHex={ACCENT_HEX.blue} />}
       <AmbientScribbles field="ink" />
-      <div className="flex justify-center mb-6 min-h-[2.5rem] items-center px-4">
-        {gameActive ? (
-          <p key={game.headline} className="t-label text-center">
-            <PopLetters text={game.headline} profile="fast" />
-          </p>
-        ) : (
-          <StickerChip className="t-label">{copy.built.revealLabel}</StickerChip>
-        )}
-      </div>
-      <div className="flex-1 flex flex-col justify-center gap-4">
-        {PRODUCTS.map((p, i) => {
-          const isActive = i === activeRow;
-          const resolved = gameActive && (!!game.answer || game.timedOut);
-          const isRevealedCorrect = resolved && i === GUESS_GAME.answerIndex;
-          const isWrongTap = resolved && game.answer?.index === i && !game.answer.correct;
-          const stat = PRODUCT_STATS[p.name];
-          // build4 §10A: one stat on screen at a time, mounted only while
-          // its row is active, hidden entirely once the guess game claims
-          // the rows. Reduced motion keeps stat-carrying rows' stats up
-          // permanently instead of cycling them.
-          const showStat = !!stat && !gameActive && (reduceMotion || isActive);
 
-          return (
-            <motion.div
-              key={p.num}
-              initial={{ opacity: 0, x: -16 }}
-              animate={{
-                opacity: gameActive ? 1 : isActive ? 1 : 0.7,
-                // §10.7: the active row swells AND nudges — a physical shove,
-                // not just a zoom. Entrance rides the same x channel; after
-                // mount the nudge keyframes take over per activation.
-                x: gameActive ? 0 : isActive ? [0, 4, 0] : 0,
-              }}
-              transition={{
-                opacity: { duration: 0.3 },
-                x: { duration: 0.3, delay: (i * TIMING.staggerMs) / 1000 },
-              }}
-              className="flex flex-col"
-            >
-              <div className="flex items-center gap-4">
-                {!gameActive && (
+      {stage === "rollcall" && (
+        <>
+          <div className="flex justify-center mb-6 min-h-[2.5rem] items-center px-4">
+            <StickerChip className="t-label">{copy.built.revealLabel}</StickerChip>
+          </div>
+          <div className="flex-1 flex flex-col justify-center gap-4">
+            {PRODUCTS.map((p, i) => {
+              const isActive = i === activeRow;
+              return (
+                <motion.div
+                  key={p.num}
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{
+                    opacity: isActive ? 1 : 0.7,
+                    x: isActive ? [0, 4, 0] : 0,
+                  }}
+                  transition={{
+                    opacity: { duration: 0.3 },
+                    x: { duration: 0.3, delay: (i * TIMING.staggerMs) / 1000 },
+                  }}
+                  className="flex items-center gap-4"
+                >
                   <span
                     className="text-cream/40 text-sm"
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   >
                     {p.num}
                   </span>
-                )}
-                {/* Redacted bar (build4 §7.1) that morphs into an outlined,
-                    tappable guess-game card (§8.2) — the SAME element, no
-                    remount, via Motion's `layout` prop. The wrapper stays
-                    the flex-growing box; the button itself stays content-
-                    sized (a bar) until the game claims the full row (a
-                    card). */}
-                <div className="flex-1">
-                  <motion.button
-                    type="button"
-                    layout
-                    disabled={!gameActive || resolved}
-                    onClick={() => gameActive && game.onTapRow(i)}
-                    initial={{ opacity: 0, scaleX: 0.9, y: 10 }}
-                    animate={{
-                      opacity: 1,
-                      scaleX: !gameActive && isActive ? 1.06 : 1,
-                      y: 0,
-                      rotate: reduceMotion
-                        ? 0
-                        : isRevealedCorrect
-                          ? [4, 0]
-                          : !gameActive && isActive
-                            ? [2, 0]
-                            : 0,
-                    }}
-                    transition={{
-                      opacity: { ...SPRING.default, delay: gameActive ? 0 : (i * TIMING.staggerMs) / 1000 },
-                      scaleX: { ...SPRING.default, delay: gameActive ? 0 : (i * TIMING.staggerMs) / 1000 },
-                      y: { ...SPRING.default, delay: gameActive ? 0 : (i * TIMING.staggerMs) / 1000 },
-                      rotate: SPRING.default,
-                      layout: reduceMotion ? { duration: 0.01 } : SPRING.default,
-                    }}
-                    className={`text-left t-stat origin-left ${
-                      gameActive
-                        ? `w-full flex items-center justify-between gap-2 rounded-lg border px-4 py-2.5 ${
-                            isRevealedCorrect
-                              ? `${BG_CLASS[p.color]} ${CHIP_TEXT[p.color]} border-transparent`
-                              : isWrongTap
-                                ? "border-2 border-gdg-red text-cream"
-                                : "border-cream/30 text-cream"
-                          }`
-                        : `inline-block rounded-[3px] px-[0.35em] py-[0.1em] ${
-                            isActive ? `${BG_CLASS[p.color]} ${CHIP_TEXT[p.color]}` : "bg-cream text-ink"
-                          }`
-                    }`}
-                    style={{
-                      fontSize:
-                        p.name.length > 10
-                          ? "clamp(1.1rem, 5.6cqw, 2rem)"
-                          : "clamp(1.5rem, 8cqw, 2.75rem)",
-                    }}
-                  >
-                    <span>{p.name}</span>
-                    {isRevealedCorrect && (
-                      <span aria-hidden className="t-label">
-                        &#10003;
-                      </span>
-                    )}
-                    {isWrongTap && (
-                      <span aria-hidden className="t-label">
-                        &#10005;
-                      </span>
-                    )}
-                  </motion.button>
-                </div>
-                {!gameActive && (
+                  <div className="flex-1">
+                    <motion.span
+                      initial={{ opacity: 0, scaleX: 0.9, y: 10 }}
+                      animate={{
+                        opacity: 1,
+                        scaleX: isActive ? 1.06 : 1,
+                        y: 0,
+                        rotate: reduceMotion ? 0 : isActive ? [2, 0] : 0,
+                      }}
+                      transition={{
+                        opacity: { ...SPRING.default, delay: (i * TIMING.staggerMs) / 1000 },
+                        scaleX: { ...SPRING.default, delay: (i * TIMING.staggerMs) / 1000 },
+                        y: { ...SPRING.default, delay: (i * TIMING.staggerMs) / 1000 },
+                        rotate: SPRING.default,
+                      }}
+                      className={`inline-block t-stat origin-left rounded-[3px] px-[0.35em] py-[0.1em] ${
+                        isActive ? `${BG_CLASS[p.color]} ${CHIP_TEXT[p.color]}` : "bg-cream text-ink"
+                      }`}
+                      style={{
+                        fontSize:
+                          p.name.length > 10
+                            ? "clamp(1.1rem, 5.6cqw, 2rem)"
+                            : "clamp(1.5rem, 8cqw, 2.75rem)",
+                      }}
+                    >
+                      {p.name}
+                    </motion.span>
+                  </div>
                   <span
                     className={`rounded-full px-2.5 py-0.5 t-label ${BG_CLASS[p.color]} ${CHIP_TEXT[p.color]}`}
                     style={{ fontSize: "0.6rem" }}
                   >
                     LIVE
                   </span>
-                )}
-              </div>
-              {stat &&
-                (reduceMotion ? (
-                  showStat && <StatLine stat={stat} color={p.color} />
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: showStat ? 1 : 0, height: showStat ? "auto" : 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    <StatLine stat={stat} color={p.color} />
-                  </motion.div>
-                ))}
-            </motion.div>
-          );
-        })}
-      </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {stage === "saga" && currentBeat && (
+        <>
+          <ChapterHeaderTag header={currentBeat.header} />
+          <div className="flex-1 flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={sagaIdx}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                {currentBeat.node}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </>
+      )}
+
+      {gameActive && (
+        <>
+          <div className="flex justify-center mb-6 min-h-[2.5rem] items-center px-4">
+            <p key={game.headline} className="t-label text-center">
+              <PopLetters text={game.headline} profile="fast" />
+            </p>
+          </div>
+          <div className="flex-1 flex flex-col justify-center gap-4">
+            {PRODUCTS.map((p, i) => {
+              const resolved = !!game.answer || game.timedOut;
+              const isRevealedCorrect = resolved && i === GUESS_GAME.answerIndex;
+              const isWrongTap = resolved && game.answer?.index === i && !game.answer.correct;
+              return (
+                <motion.button
+                  key={p.num}
+                  type="button"
+                  layout
+                  disabled={resolved}
+                  onClick={() => game.onTapRow(i)}
+                  initial={{ opacity: 0, scaleX: 0.9, y: 10 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    rotate: reduceMotion ? 0 : isRevealedCorrect ? [4, 0] : 0,
+                  }}
+                  transition={{
+                    opacity: SPRING.default,
+                    y: SPRING.default,
+                    rotate: SPRING.default,
+                    layout: reduceMotion ? { duration: 0.01 } : SPRING.default,
+                  }}
+                  className={`text-left t-stat w-full flex items-center justify-between gap-2 rounded-lg border px-4 py-2.5 ${
+                    isRevealedCorrect
+                      ? `${BG_CLASS[p.color]} ${CHIP_TEXT[p.color]} border-transparent`
+                      : isWrongTap
+                        ? "border-2 border-gdg-red text-cream"
+                        : "border-cream/30 text-cream"
+                  }`}
+                  style={{
+                    fontSize:
+                      p.name.length > 10
+                        ? "clamp(1.1rem, 5.6cqw, 2rem)"
+                        : "clamp(1.5rem, 8cqw, 2.75rem)",
+                  }}
+                >
+                  <span>{p.name}</span>
+                  {isRevealedCorrect && (
+                    <span aria-hidden className="t-label">
+                      &#10003;
+                    </span>
+                  )}
+                  {isWrongTap && (
+                    <span aria-hidden className="t-label">
+                      &#10005;
+                    </span>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       <p className="t-label text-cream/55 text-center mt-6">{copy.built.footer}</p>
     </div>
   );

@@ -157,8 +157,14 @@ be telling a story, with the products."
 
 ### 3.1 The data (`lib/content/chapter.ts`)
 
-Replace `PRODUCT_STATS` (build4 §10A shape) with the saga block. Keep the
-`ProductStat` interface exported (the share card still uses it), and add:
+Replace `PRODUCT_STATS` and its `ProductStat` interface (build4 §10A shape)
+with the saga block below — `SagaStat` is a structural superset (`value:
+number | string` instead of `number`, to carry the headline sponsor's name),
+so nothing else needs a parallel type. Add a `productHeadlineStat(name)`
+helper alongside it (one representative stat per product — radar picks
+`articles` if set else `games`; votes picks `elections`; orbit picks
+`tickets`; website/babcock100 pick their own beat) for `BuiltCard` (§3.2
+point 5) to source from, replacing its old `PRODUCT_STATS[p.name]` lookup:
 
 ```ts
 // Product saga beats (build5 §3) — every `null` beat is SKIPPED at render
@@ -228,7 +234,7 @@ figure — law 1):
 3. **BABCOCKVOTES chapter (3400ms).** Same header treatment. Beats:
    `votes.elections` (1800ms), `votes.votesCast` (1600ms). If BOTH are
    null: one 1800ms beat with `votes.fallbackLine` in `t-editorial`.
-4. **ORBIT chapter (up to 14400ms) — the centerpiece.** Beats in exactly
+4. **ORBIT chapter (up to 16000ms) — the centerpiece.** Beats in exactly
    this order (null-skipped where TBD):
    - `orbit.intro` line, PopLetters fast — 1400ms
    - `orbit.companies` slam + the five `companyNames` as sticker chips
@@ -250,10 +256,10 @@ figure — law 1):
 6. **The guess game** (build4 §8) — unchanged mechanics, still the finale,
    still auto-advances via `onComplete`.
 
-Registry (`lib/stories.ts`): built `revealMs 22000 → 49000` — scripted
-worst case 4500+5400+3400+14400+5200 = 32,900ms; plus the game's 6000ms
-wait + 2400ms hold; (32900+6000+2400)/0.8 = 51,625 does NOT fit 49000, so
-set **revealMs 52000**. (Show your work in the commit body if any beat
+Registry (`lib/stories.ts`): built `revealMs 22000 → 54000` — scripted
+worst case 4500+5400+3400+16000+5200 = 34,500ms; plus the game's 6000ms
+wait + 2400ms hold; (34500+6000+2400)/0.8 = 53,625, rounded up to
+**revealMs 54000**. (Show your work in the commit body if any beat
 count changes; the formula is (scripted + wait + hold) / 0.8, rounded up
 to the next 1000.) The null-skips only ever SHORTEN the run — revealMs is
 sized for the fully-filled block, and the guess game's `onComplete`
@@ -794,7 +800,7 @@ build` green before each commit):
    ADVISORS/MVPS/SPECIAL_FORCE blocks (§6.6 data only), PEOPLE
    placeholder removals, ASSET_MANIFEST updates.
 3. `feat(stories): what we built — the product saga` — §3.2 + registry
-   revealMs 52000.
+   revealMs 54000.
 4. `feat(pipeline): group chat stats and subgroup exports` — §5 module +
    tests + run.ts wiring + report sections.
 5. `feat(stories): the group chat` — §4 story + copy + registry insertion

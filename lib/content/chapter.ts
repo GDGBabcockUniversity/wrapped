@@ -61,27 +61,6 @@ export const PRODUCTS = [
   { num: "05", name: "BABCOCK 100", color: "yellow", url: "babcock100.com" },
 ] as const;
 
-// Per-product headline stats for the What We Built story (build4 §13) —
-// static content, keyed by PRODUCTS[].name, because the public story path
-// has ZERO database dependency (build.md architecture): the pipeline report
-// prints platform totals and a lead copies them here before copy freeze.
-// null = no stat yet; the row renders without one (never a blank or a "0").
-export interface ProductStat {
-  value: number; // the slam numeral
-  label: string; // small-caps label beside/under it
-  detail?: string; // optional second line, e.g. check-in count
-}
-export const PRODUCT_STATS: Record<(typeof PRODUCTS)[number]["name"], ProductStat | null> = {
-  "GDG WEBSITE": null, // TBD-confirm (site analytics)
-  "BABCOCKVOTES": null, // TBD-confirm — owner: stats exist; number pending
-  "RADAR": null, // TBD-confirm — pipeline report will total reads + plays
-  // Confirmed 2026-07-19 from the ORBIT admin dashboard (no CSV export UI
-  // yet — owner exports the per-guest data later; these headline numbers
-  // are real today).
-  "ORBIT": { value: 547, label: "TICKETS ISSUED", detail: "252 checked in" },
-  "BABCOCK 100": null, // TBD-confirm
-};
-
 // Product saga beats (build5 §3) — the What We Built story walks each
 // product with receipts instead of a flat stat cycle. Every `null` beat is
 // SKIPPED at render (no blank, no zero). VERIFIED values were read directly
@@ -126,6 +105,28 @@ export const PRODUCT_SAGA = {
   website: null as SagaStat | null, // TBD (site analytics)
   babcock100: null as SagaStat | null, // TBD
 } as const;
+
+// The share card's per-product headline number (build5 §3.2 point 5) —
+// one representative stat per product, sourced from the saga block. Same
+// null-renders-nothing rule as everywhere else.
+export function productHeadlineStat(
+  name: (typeof PRODUCTS)[number]["name"]
+): SagaStat | null {
+  switch (name) {
+    case "RADAR":
+      return PRODUCT_SAGA.radar.articles ?? PRODUCT_SAGA.radar.games;
+    case "BABCOCKVOTES":
+      return PRODUCT_SAGA.votes.elections;
+    case "ORBIT":
+      return PRODUCT_SAGA.orbit.tickets;
+    case "GDG WEBSITE":
+      return PRODUCT_SAGA.website;
+    case "BABCOCK 100":
+      return PRODUCT_SAGA.babcock100;
+    default:
+      return null;
+  }
+}
 
 // The reactive tap-to-guess beat (build4 §8) — the final beat of What We
 // Built's reveal, after one full row cycle. Chapter data, not personal:
