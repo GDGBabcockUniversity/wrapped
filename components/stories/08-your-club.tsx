@@ -228,15 +228,30 @@ function FoilCard({
           </span>
         </div>
 
+        {/* The album-art tile (build4 §9.1). It used to be the whole panel at
+            opacity 0.25 over black, which on real devices read as an empty,
+            broken graph (IMG_6461): a faint grid with two stripe nubs marooned
+            in the corners. Now it's a confident, filled accent tile — the
+            club color, the pattern in ink on top, a big ghost initial as the
+            focal subject, and one collage stripe bleeding off the corner. */}
         <div
-          className={`h-[34%] rounded-lg mt-4 relative ${PATTERN_CLASS[club.pattern]}`}
-          style={{ color: club.hex, opacity: 0.25, backgroundColor: "#0f0f0f" }}
+          className="h-[34%] rounded-lg mt-4 relative overflow-hidden"
+          style={{ backgroundColor: club.hex }}
         >
-          {/* Newsprint/xerox collage texture (build4 §9.1) — the pattern
-              panel treated like the reference's top-song album art: a
-              halftone overlay plus two stripe fragments bleeding off the
-              corners, one carrying the accent runner. */}
-          <div aria-hidden className="absolute inset-0 pattern-halftone" style={{ color: "#0f0f0f", opacity: 0.5 }} />
+          <div
+            aria-hidden
+            className={`absolute inset-0 ${PATTERN_CLASS[club.pattern]}`}
+            style={{ color: "#0f0f0f", opacity: 0.22 }}
+          />
+          <div aria-hidden className="absolute inset-0 pattern-halftone" style={{ color: "#0f0f0f", opacity: 0.14 }} />
+          {/* Focal subject so the tile never reads empty. */}
+          <span
+            aria-hidden
+            className="absolute inset-0 flex items-center justify-center t-monument leading-none select-none"
+            style={{ fontSize: "clamp(2.75rem, 22cqw, 4.5rem)", color: "rgba(15,15,15,0.32)" }}
+          >
+            {club.name[0]}
+          </span>
           <div
             aria-hidden
             className="collage-runner absolute h-3 w-24 -top-1.5 -right-3 rotate-[4deg]"
@@ -246,13 +261,6 @@ function FoilCard({
           >
             <span style={{ color: club.hex }} />
           </div>
-          <div
-            aria-hidden
-            className="absolute h-3 w-16 -bottom-1.5 -left-3 rotate-[-3deg]"
-            style={{
-              backgroundImage: "repeating-linear-gradient(90deg, #fff6e0 0 8px, #0f0f0f 8px 16px)",
-            }}
-          />
         </div>
 
         <p
@@ -271,8 +279,10 @@ function FoilCard({
         >
           {club.vibe}
         </motion.p>
+        {/* line-clamp-3, not 2 — every club.role is one sentence that ran
+            three lines and got cut mid-word ("…that didn't…", IMG_6461). */}
         <motion.p
-          className="t-body text-cream/65 mt-2 relative line-clamp-2"
+          className="t-body text-cream/65 mt-2 relative line-clamp-3"
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 1.1 }}

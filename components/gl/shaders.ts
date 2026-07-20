@@ -29,6 +29,15 @@ float noise(vec2 p) {
 }
 float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
 
+// Analytic antialiasing for the hard-edged procedural patterns. step() edges
+// crawl and stair-step badly on a phone (real-device bug: the overture
+// checker/rings and the diagonal stripe bands rendered as a blocky low-res
+// mess). fwidth() is the pixel-footprint of x, so smoothstepping across one
+// footprint softens the edge to exactly one pixel wide — no shimmer, no MSAA
+// needed. Only ever used on a fract()'s 0.5 crossing, which sits mid-cell,
+// safely away from the fract wrap where the derivative would blow up.
+float aastep(float e, float x) { float w = max(fwidth(x), 1e-4); return smoothstep(e - w, e + w, x); }
+
 // Accent runner (build4 §2.1): returns 1.0 on the stripe/ring whose index
 // the runner is currently crossing. idx = which band this fragment is in;
 // n = band count. The runner sweeps continuously (not stepped) and wraps
@@ -48,7 +57,7 @@ void main() {
   if (u_story == 0) {            // THE YEAR: diagonal stripe band, accent runner (build4 §2.1)
     float band = smoothstep(0.19, 0.18, uv.y) + 0.5 * smoothstep(0.91, 0.92, uv.y);
     float sIdx = floor((p.x + p.y) * 22.0);
-    float stripe = step(0.5, fract((p.x + p.y) * 11.0));
+    float stripe = aastep(0.5, fract((p.x + p.y) * 11.0));
     vec3 stripeCol = mix(base, CREAM * 0.92, stripe * 0.85);
     stripeCol = mix(stripeCol, u_accent, stripe * runner(sIdx, 30.0, u_time) * 0.9);
     col = mix(col, stripeCol, band);
@@ -59,7 +68,7 @@ void main() {
     vec2 c = vec2(-0.30, -0.75);
     float inCircle = smoothstep(0.68, 0.66, length(p - c));
     float sIdx = floor(uv.x * 16.0);
-    float stripe = step(0.5, fract(uv.x * 8.0));
+    float stripe = aastep(0.5, fract(uv.x * 8.0));
     vec3 sc = mix(base, CREAM * 0.92, stripe * 0.8);
     sc = mix(sc, u_accent, stripe * runner(sIdx, 22.0, u_time) * 0.9);
     col = mix(col, sc, inCircle);
@@ -67,7 +76,7 @@ void main() {
     vec2 c = vec2(-0.42, -0.95);                  // anchor: bottom-left, off-frame
     float r = length(p - c);
     float rIdx = floor(r * 14.0);
-    float ring = step(0.5, fract(r * 7.0));
+    float ring = aastep(0.5, fract(r * 7.0));
     float mask = smoothstep(1.15, 0.55, r);       // fade out past ~half the frame
     vec3 ringCol = mix(base, INK, ring * 0.88);
     ringCol = mix(ringCol, u_accent, ring * runner(rIdx, 16.0, u_time) * 0.95);
@@ -112,10 +121,10 @@ void main() {
     float d1 = length(p - c1);
     // radial displacement wave: checker cells bend around the moving center
     vec2 warped = p + normalize(p - c1 + 1e-4) * 0.10 * sin(d1 * 18.0 - u_time * 1.6);
-    float cx = step(0.5, fract(warped.x * 5.0));
-    float cy = step(0.5, fract(warped.y * 5.0));
+    float cx = aastep(0.5, fract(warped.x * 5.0));
+    float cy = aastep(0.5, fract(warped.y * 5.0));
     float checker = abs(cx - cy);              // 1.0 on alternating cells
-    float rings = step(0.5, fract(d1 * 9.0 - u_time * 0.35));
+    float rings = aastep(0.5, fract(d1 * 9.0 - u_time * 0.35));
     float fig = mix(checker, rings, smoothstep(0.75, 0.2, d1)); // rings near center, checker out
     col = mix(CREAM * 0.96, INK, fig * 0.92);
   }

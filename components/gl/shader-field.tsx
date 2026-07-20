@@ -104,7 +104,11 @@ export function ShaderField({ storyIndex, field, accentHex, pattern, progressRef
       fade: gl.getUniformLocation(program, "u_fade"),
     };
 
-    let dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    // Cap at 2, not 1.5: a DPR-3 phone was rendering the field at half
+    // resolution and CSS-upscaling it, which is half of why the overture read
+    // as blocky. The perf governor below still steps this back to 1.0 (then
+    // off) if a device can't hold frame rate at 2.
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
     function resize() {
       const w = stage!.clientWidth;
       const h = stage!.clientHeight;
