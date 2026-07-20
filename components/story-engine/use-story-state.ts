@@ -48,6 +48,8 @@ export interface EngineState {
 export type Action =
   | { type: "NEXT" }
   | { type: "PREV" }
+  | { type: "NEXT_STORY" }
+  | { type: "PREV_STORY" }
   | { type: "GOTO"; index: number }
   | { type: "PAUSE" }
   | { type: "RESUME" }
@@ -64,41 +66,47 @@ function clampToActive(index: number, active: number[]): number {
   return active.includes(index) ? index : active[0]!;
 }
 
+/** Travel to another story index — always from that story's first beat. */
+function goToStory(state: EngineState, target: number): EngineState {
+  const seen = [...state.seen];
+  // Only a forward move banks the story you're leaving — stepping BACK out
+  // of a chapter you haven't watched shouldn't tick it off in the grid.
+  if (target > state.storyIndex) seen[state.storyIndex] = true;
+  return {
+    ...state,
+    storyIndex: target,
+    phase: "setup",
+    vector: vectorForTransition(state.storyIndex, target),
+    paused: false,
+    seen,
+  };
+}
+
 function reducer(state: EngineState, action: Action): EngineState {
   const active = activeIndexesFor(state.isMember);
+  const pos = active.indexOf(state.storyIndex);
+  const last = active[active.length - 1]!;
   switch (action.type) {
     case "NEXT": {
       if (state.phase === "setup") return { ...state, phase: "reveal", paused: false };
-      const pos = active.indexOf(state.storyIndex);
-      const last = active[active.length - 1]!;
       if (state.storyIndex === last) return state; // end state (summary), do nothing
-      const seen = [...state.seen];
-      seen[state.storyIndex] = true;
-      const next = active[pos + 1]!;
-      return {
-        ...state,
-        storyIndex: next,
-        phase: "setup",
-        vector: vectorForTransition(state.storyIndex, next),
-        paused: false,
-        seen,
-      };
+      return goToStory(state, active[pos + 1]!);
     }
-    case "PREV": {
-      // Back always means "the story I came from" (owner, 2026-07-20) —
-      // never a rewind to the current story's own setup beat, which read
-      // as being thrown to "the start of the whole story". On the first
-      // story there's nowhere back to go, so restart its setup instead.
-      const pos = active.indexOf(state.storyIndex);
+    // Swipes move a WHOLE story at a time (owner, 2026-07-20) — the vertical
+    // gesture is chapter-granular by definition, so unlike NEXT it never
+    // stops on the current story's own reveal beat on the way past.
+    case "NEXT_STORY": {
+      if (pos < 0 || state.storyIndex === last) return state;
+      return goToStory(state, active[pos + 1]!);
+    }
+    case "PREV":
+    case "PREV_STORY": {
+      // Back always means "the story I came from" (owner, 2026-07-20) — a
+      // whole chapter back, from its beginning, never a rewind to the
+      // current story's own setup beat. On the first story there's nowhere
+      // back to go, so restart its setup instead.
       if (pos <= 0) return { ...state, phase: "setup", paused: false };
-      const prev = active[pos - 1]!;
-      return {
-        ...state,
-        storyIndex: prev,
-        phase: "setup",
-        vector: vectorForTransition(state.storyIndex, prev),
-        paused: false,
-      };
+      return goToStory(state, active[pos - 1]!);
     }
     case "GOTO": {
       const seen = [...state.seen];

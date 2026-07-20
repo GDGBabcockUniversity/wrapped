@@ -14,7 +14,7 @@ import { GestureHint } from "./gesture-hint";
 import { TapZones } from "./tap-zones";
 import { preloadStoryAssets } from "./preloader";
 import { useStoryEngine } from "./use-story-state";
-import { startAudio, setStoryTrack } from "@/lib/audio";
+import { primeAudio, setStoryTrack } from "@/lib/audio";
 import { initSfx, playSfx } from "@/lib/sfx";
 import type { Snapshot } from "@/lib/snapshot";
 import { copy } from "@/lib/copy";
@@ -225,19 +225,22 @@ export function Player() {
     setStoryTrack(STORIES[state.storyIndex]!.id);
   }, [state.storyIndex]);
 
-  // The ambient loop and the SFX engine can only start from a user gesture
-  // (autoplay policy) — arm one-shot listeners for the first tap or
-  // keypress inside the player.
+  // The soundtrack and the SFX engine can only start from a user gesture
+  // (autoplay policy). primeAudio() owns the listeners now and RETRIES on
+  // every gesture until a `playing` event confirms real sound — the old
+  // `once: true` pair gave the browser exactly one chance to say no, and a
+  // single swallowed rejection meant silence for the whole session.
   useEffect(() => {
-    function unlock() {
-      startAudio();
+    const disarm = primeAudio();
+    function unlockSfx() {
       initSfx();
     }
-    window.addEventListener("pointerdown", unlock, { once: true, capture: true });
-    window.addEventListener("keydown", unlock, { once: true, capture: true });
+    window.addEventListener("pointerdown", unlockSfx, { capture: true });
+    window.addEventListener("keydown", unlockSfx, { capture: true });
     return () => {
-      window.removeEventListener("pointerdown", unlock, { capture: true });
-      window.removeEventListener("keydown", unlock, { capture: true });
+      disarm();
+      window.removeEventListener("pointerdown", unlockSfx, { capture: true });
+      window.removeEventListener("keydown", unlockSfx, { capture: true });
     };
   }, []);
 
@@ -247,7 +250,14 @@ export function Player() {
         e.preventDefault();
         dispatch({ type: "NEXT" });
       } else if (e.key === "ArrowLeft") {
-        dispatch({ type: "PREV" });
+        dispatch({ type: "PREV_STORY" });
+      } else if (e.key === "ArrowDown") {
+        // The keyboard mirror of the swipe — whole chapters, both ways.
+        e.preventDefault();
+        dispatch({ type: "NEXT_STORY" });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        dispatch({ type: "PREV_STORY" });
       } else if (e.key === "Escape") {
         dispatch({ type: state.gridOpen ? "CLOSE_GRID" : "OPEN_GRID" });
       }
@@ -355,10 +365,11 @@ export function Player() {
 
       <TapZones
         onNext={() => dispatch({ type: "NEXT" })}
-        onPrev={() => dispatch({ type: "PREV" })}
+        onPrev={() => dispatch({ type: "PREV_STORY" })}
+        onNextStory={() => dispatch({ type: "NEXT_STORY" })}
+        onPrevStory={() => dispatch({ type: "PREV_STORY" })}
         onPause={() => dispatch({ type: "PAUSE" })}
         onResume={() => dispatch({ type: "RESUME" })}
-        onOpenGrid={() => dispatch({ type: "OPEN_GRID" })}
         paused={state.paused}
       />
 

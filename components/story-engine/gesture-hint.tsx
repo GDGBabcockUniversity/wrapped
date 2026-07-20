@@ -5,56 +5,48 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 const LIFE_MS = 5200;
 const EXIT_S = 0.45;
+const SWIPE_S = 1.9; // one full demo swipe, including the pause between
 // localStorage, not sessionStorage — "first time" means first time on this
 // DEVICE (owner, 2026-07-20). A returning visitor already knows the moves;
 // only genuinely new people get the flash.
-const STORAGE_KEY = "wrapped-coach-v2";
+// v3: the icon-chip legend was replaced by the demonstrated swipe.
+const STORAGE_KEY = "wrapped-coach-v3";
 
-const CUES: { icon: "tap-right" | "tap-left" | "swipe-up" | "hold"; text: string }[] = [
-  { icon: "tap-right", text: "TAP → NEXT" },
-  { icon: "tap-left", text: "TAP LEFT ← BACK" },
-  { icon: "swipe-up", text: "SWIPE ↑ ALL CHAPTERS" },
-  { icon: "hold", text: "HOLD TO PAUSE" },
-];
+const CREAM = "#fff6e0";
 
-function CueIcon({ kind }: { kind: (typeof CUES)[number]["icon"] }) {
-  const stroke = "#fff6e0";
-  switch (kind) {
-    case "tap-right":
-      return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <circle cx="6" cy="8" r="3.4" stroke={stroke} strokeWidth="1.6" />
-          <path d="M11 8h3.4M12.4 5.8L14.8 8l-2.4 2.2" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "tap-left":
-      return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <circle cx="10" cy="8" r="3.4" stroke={stroke} strokeWidth="1.6" />
-          <path d="M5 8H1.6M3.6 5.8L1.2 8l2.4 2.2" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "swipe-up":
-      return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <path d="M8 13V4M4.5 7.5L8 3.5l3.5 4" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "hold":
-      return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <rect x="4" y="3" width="2.6" height="10" rx="1.3" fill={stroke} />
-          <rect x="9.4" y="3" width="2.6" height="10" rx="1.3" fill={stroke} />
-        </svg>
-      );
-  }
+/** A hand, drawn the way the platform coach marks draw one: index finger up,
+    curled fist beneath. Deliberately simple — it has to read at 44px while
+    moving. */
+function Hand() {
+  return (
+    <svg width="46" height="60" viewBox="0 0 46 60" fill="none" aria-hidden>
+      {/* The demo plays over ink AND cream story fields — the shadow is what
+          keeps a cream-stroked hand legible on the light ones. */}
+      <g
+        style={{ filter: "drop-shadow(0 1px 3px rgb(0 0 0 / 0.5))" }}
+        stroke={CREAM}
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="rgba(15,15,15,0.55)"
+      >
+        {/* index finger */}
+        <path d="M19 30V9.5a4.2 4.2 0 0 1 8.4 0V30" />
+        {/* fist */}
+        <path d="M27.4 24.5a3.7 3.7 0 0 1 7.4 0v6M34.8 27.5a3.6 3.6 0 0 1 7 0v10.8c0 8.4-5.2 14.4-13.4 14.4h-3.2c-5.6 0-8.6-2.4-11.4-7L8 37.6a3.7 3.7 0 0 1 6-4.3l5 5.4V30" />
+      </g>
+    </svg>
+  );
 }
 
 /**
- * The first-run gesture coach (build6 §4.2, rebuilt 2026-07-20) — flashes
- * ONCE per device over story 0's reveal, teaches every gesture the player
- * actually supports, then gets out of the way forever. The caller passes
- * `active` as the story-0-reveal condition.
+ * The first-run gesture coach (build6 §4.2, rebuilt as a demonstration
+ * 2026-07-20) — the previous version was a legend: four chips of arrow
+ * glyphs and shouty labels that a visitor had to READ. A first-time TikTok
+ * user is never told to scroll; they're shown one hand travelling up the
+ * screen, once, and they copy it. This shows the swipe instead of naming it:
+ * the hand rises along a fading track, twice, over a dim scrim, then leaves
+ * forever. The caller passes `active` as the story-0-reveal condition.
  */
 export function GestureHint({ active }: { active: boolean }) {
   const reduceMotion = useReducedMotion();
@@ -85,41 +77,70 @@ export function GestureHint({ active }: { active: boolean }) {
     <AnimatePresence>
       {show && (
         <motion.div
-          className="absolute bottom-20 inset-x-0 z-20 flex flex-col items-center gap-1.5 pointer-events-none"
+          className="absolute inset-0 z-20 flex flex-col items-center justify-end pb-24 pointer-events-none"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0, y: 6 }}
+          exit={{ opacity: 0 }}
           transition={{ duration: EXIT_S }}
         >
-          {CUES.map((cue, i) => (
-            <motion.div
-              key={cue.icon}
-              className="flex items-center gap-2 rounded-full bg-ink/75 px-3.5 py-1.5"
-              style={{ backdropFilter: "blur(2px)" }}
-              initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 10, scale: 0.92 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={
-                reduceMotion
-                  ? { duration: 0.01 }
-                  : { type: "spring", stiffness: 380, damping: 26, delay: 0.15 + i * 0.14 }
-              }
-            >
-              {reduceMotion || cue.icon !== "swipe-up" ? (
-                <CueIcon kind={cue.icon} />
-              ) : (
-                <motion.span
-                  className="inline-flex"
-                  animate={{ y: [0, -3, 0] }}
-                  transition={{ duration: 1.4, ease: "easeInOut", repeat: Infinity }}
-                >
-                  <CueIcon kind={cue.icon} />
-                </motion.span>
+          {/* A soft vignette under the demo so the hand reads over any
+              story field without dimming the whole reveal. */}
+          <div
+            className="absolute inset-x-0 bottom-0 h-2/3"
+            style={{
+              background:
+                "linear-gradient(to top, rgb(15 15 15 / 0.55), transparent)",
+            }}
+          />
+
+          <div className="relative flex flex-col items-center gap-3">
+            {/* The track the hand travels — a hint of where the screen goes,
+                not an arrow telling you about it. */}
+            <div className="relative h-[132px] w-[46px]">
+              {!reduceMotion && (
+                <motion.div
+                  className="absolute left-1/2 bottom-3 w-[2px] -translate-x-1/2 origin-bottom rounded-full"
+                  style={{ background: CREAM, height: 96 }}
+                  animate={{ scaleY: [0, 1, 1, 0], opacity: [0, 0.28, 0.28, 0] }}
+                  transition={{
+                    duration: SWIPE_S,
+                    times: [0, 0.28, 0.6, 0.78],
+                    ease: "easeOut",
+                    repeat: Infinity,
+                    repeatDelay: 0.2,
+                  }}
+                />
               )}
-              <span className="t-label text-cream" style={{ fontSize: "0.55rem", opacity: 0.85 }}>
-                {cue.text}
-              </span>
-            </motion.div>
-          ))}
+              <motion.div
+                className="absolute left-0 bottom-0"
+                animate={
+                  reduceMotion
+                    ? { y: -36, opacity: 1 }
+                    : { y: [8, -84, -84], opacity: [0, 1, 0] }
+                }
+                transition={
+                  reduceMotion
+                    ? { duration: 0.01 }
+                    : {
+                        duration: SWIPE_S,
+                        times: [0, 0.62, 0.86],
+                        ease: [0.22, 0.9, 0.28, 1],
+                        repeat: Infinity,
+                        repeatDelay: 0.2,
+                      }
+                }
+              >
+                <Hand />
+              </motion.div>
+            </div>
+
+            <span
+              className="t-label text-cream"
+              style={{ fontSize: "0.6rem", opacity: 0.8 }}
+            >
+              Swipe for the next chapter
+            </span>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

@@ -1,6 +1,7 @@
 "use client";
 
 import { isMuted } from "@/lib/audio";
+import { ensureAudioContext } from "@/lib/audio-context";
 
 /**
  * Synthesized SFX engine (build7 §5 — rebuilt from build6's thin single-osc
@@ -190,15 +191,16 @@ function vBlip(c: BaseAudioContext, b: Bus, t0: number, up: boolean) {
   sin.stop(t0 + dur);
 }
 
-/** Call from the first user gesture inside the player. Idempotent. */
+/** Call from a user gesture inside the player. Idempotent, and safe to call
+    on every gesture — ensureAudioContext() also re-resumes a context the
+    browser suspended behind our back. */
 export function initSfx(): void {
-  if (ctx || typeof window === "undefined") return;
-  const Ctor =
-    window.AudioContext ??
-    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Ctor) return;
-  ctx = new Ctor();
-  bus = buildBus(ctx);
+  const c = ensureAudioContext();
+  if (!c) return;
+  if (ctx !== c) {
+    ctx = c;
+    bus = buildBus(c);
+  }
 }
 
 export function playSfx(name: SfxName): void {
