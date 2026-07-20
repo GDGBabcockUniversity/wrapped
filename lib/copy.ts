@@ -25,6 +25,7 @@ export const copy = {
       { line: "What a year.", field: "ink" as const },
       { line: "We kept the receipts.", field: "cream" as const, accentWord: "receipts" },
     ],
+    coverTag: "THE YEAR IN REVIEW",
     revealLabel: "GDG BABCOCK · 2025/26",
     rows: [
       { label: "EVENTS RUN", key: "eventsRun" },

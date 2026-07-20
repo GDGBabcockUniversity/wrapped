@@ -17,15 +17,21 @@ const FADE_MS = 400;
 const CYCLE_MS = DRAW_S * 1000 + HOLD_MS + FADE_MS;
 const DRAW_EASE = [0.83, 0, 0.17, 1] as const;
 
+// Both bands live in the stage's true MARGINS (2026-07-20): stories keep
+// pt-20/pb-16 clear, so the top band stays above y≈115 and the bottom band
+// below y≈660 (of 700). The old bottom range (560–650) ran straight through
+// story text — "That's before ORBIT was even an idea." rendered with an
+// apparent strikethrough. A scribble may underline the margin; it must
+// never slice a line of copy.
 const TOP_VARIANTS = [
-  "M-10,120 C90,60 210,150 410,70",
-  "M-10,90 C140,140 260,40 410,120",
-  "M-10,60 C60,120 330,90 410,150",
+  "M-10,95 C90,45 210,115 410,55",
+  "M-10,70 C140,110 260,35 410,95",
+  "M-10,45 C60,100 330,70 410,115",
 ];
 const BOTTOM_VARIANTS = [
-  "M-10,620 C120,560 300,650 410,590",
-  "M-10,580 C90,640 280,560 410,640",
-  "M-10,650 C150,590 250,660 410,570",
+  "M-10,678 C120,660 300,698 410,668",
+  "M-10,666 C90,694 280,660 410,688",
+  "M-10,690 C150,664 250,700 410,662",
 ];
 
 function ScribbleLine({
@@ -70,7 +76,7 @@ function ScribbleLine({
 
   return (
     <motion.g
-      animate={{ x: [-8, 8], y: [4, -4] }}
+      animate={{ x: [-8, 8], y: [2, -2] }}
       transition={{ duration: 6, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
     >
       <motion.path

@@ -91,10 +91,16 @@ export function TapZones({
     if (start) {
       const dy = e.clientY - start.y;
       const dx = e.clientX - start.x;
-      if (dy > 80 && Math.abs(dx) < 60) {
+      // Swipe up OR down opens the chapter deck — the vertical pull is the
+      // "show me everything" gesture in both directions, same as the
+      // reference Wrapped.
+      if (Math.abs(dy) > 70 && Math.abs(dx) < 60) {
         onOpenGrid();
         return;
       }
+      // A real drag that isn't a recognized swipe must never fall through
+      // to the tap zones — an accidental 40px flick was advancing stories.
+      if (Math.hypot(dx, dy) > 24) return;
     }
 
     // If the story is paused, a simple tap resumes rather than navigating.

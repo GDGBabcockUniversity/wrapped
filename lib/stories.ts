@@ -9,6 +9,18 @@ export const TIMING = {
   staggerMs: 120, // list item stagger
 } as const;
 
+// The overture's three setup beats (2026-07-20): a legible COVER title card
+// first — the old opener dropped visitors straight into the warp-field
+// numeral belt, which read as "the first page is…?" — then the drive-through,
+// then the calm two-line beat. the-year's setupMs must equal cover + drive +
+// calm. Shared here because player.tsx times the warp-field shader window
+// off the same numbers.
+export const OVERTURE = {
+  coverMs: 2000,
+  driveMs: 3400,
+  calmMs: 2000,
+} as const;
+
 export const SPRING = {
   default: { type: "spring", stiffness: 260, damping: 30 } as const,
   stamp: { type: "spring", stiffness: 420, damping: 22 } as const, // story 6 slam
@@ -41,7 +53,8 @@ export interface StoryDef {
 }
 
 export const STORIES: StoryDef[] = [
-  { id: "the-year", index: 0, personal: false, accent: "blue", field: "ink", setupMs: 5600, revealMs: 8000, label: "The Year" },
+  // setupMs = OVERTURE.coverMs + driveMs + calmMs (cover beat added 2026-07-20).
+  { id: "the-year", index: 0, personal: false, accent: "blue", field: "ink", setupMs: 7400, revealMs: 8000, label: "The Year" },
   // revealMs 46000 (full slate, 2026-07-20): 11 stylised pages × PAGE_MS
   // 3800 = 41,800ms scripted, then the last page's hold hands off via
   // onComplete — so revealMs is a backstop above the scripted total, no

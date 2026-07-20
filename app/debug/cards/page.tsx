@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { STORIES } from "@/lib/stories";
 
-const PUBLIC_IDS = ["the-year", "moments", "built", "people", "whats-next"] as const;
+const PUBLIC_IDS = ["the-year", "moments", "built", "group-chat", "people", "whats-next"] as const;
 const PERSONAL_IDS = ["your-events", "standing", "your-chapter", "your-club", "summary"] as const;
+const STYLES = ["classic", "ink", "cream", "accent"] as const;
 const FIXTURE_NAMES = [
   "top1",
   "member",
@@ -40,6 +41,22 @@ export default function DebugCardsPage() {
                 className="w-full rounded-lg border border-cream/15"
               />
               <p className="t-label text-cream/60 text-center">{labelFor(id)}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mb-12">
+        <h2 className="t-label text-cream/55 mb-4">STYLE VARIANTS (summary · builder)</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {STYLES.map((style) => (
+            <div key={style} className="flex flex-col gap-2">
+              <img
+                src={`/api/share/summary?fixture=builder&style=${style}`}
+                alt={`summary-${style}`}
+                className="w-full rounded-lg border border-cream/15"
+              />
+              <p className="t-label text-cream/60 text-center">{style}</p>
             </div>
           ))}
         </div>

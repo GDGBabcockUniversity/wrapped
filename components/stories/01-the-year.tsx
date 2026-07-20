@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
 import { IdleFloat } from "@/components/idle-float";
 import { PopLetters } from "@/components/pop-letters";
 import { CHAPTER } from "@/lib/content/chapter";
 import { copy } from "@/lib/copy";
-import { SPRING, TIMING } from "@/lib/stories";
+import { OVERTURE, SPRING, TIMING } from "@/lib/stories";
 import { vibrate } from "@/lib/haptics";
 import { useGlQualityContext } from "@/components/gl/quality-context";
 import { StripeBandFigure, WarpFieldFigure } from "@/components/gl/static-figure";
@@ -15,9 +15,13 @@ import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import type { StoryProps } from "./types";
 
-// The overture (build4 §4, retimed build6 §2.2): a numeral drive-through
-// over the warp field, then a resolve, then a calm two-line beat.
-const DRIVE_MS = 3400;
+// The overture (build4 §4, retimed build6 §2.2, cover beat 2026-07-20):
+// a legible COVER title card first — logo, "WRAPPED", "25/26", who we are —
+// then the numeral drive-through over the warp field, then a calm two-line
+// beat. The cover exists because the drive-through opened cold and a first
+// visitor couldn't name what they were looking at.
+const COVER_MS = OVERTURE.coverMs;
+const DRIVE_MS = OVERTURE.driveMs;
 const OVERLAY_APPEAR_S = 0.18;
 const OVERLAY_HOLD_MS = 1150;
 const OVERLAY_FADE_S = 0.2;
@@ -143,7 +147,7 @@ function DriveThrough() {
           it stamps in FIRST so there's a clear subject before anything else. */}
       <motion.div
         className="absolute left-1/2 top-1/2 z-10"
-        style={{ transform: "translate(-50%, -50%)", viewTransitionName: "wrapped-title" } as React.CSSProperties}
+        style={{ transform: "translate(-50%, -50%)" }}
         initial={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 1.25 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={reduceMotion ? { duration: 0.01 } : { ...SPRING.stamp, delay: LOGO_STAMP_S }}
@@ -162,7 +166,67 @@ function DriveThrough() {
   );
 }
 
-/** 3700–5600ms: the breath after the spectacle — cream-on-ink, "What a
+/** 0–2000ms: the cover — the one beat that answers "what am I looking at"
+    before any spectacle. Opaque ink, the same identity block as the landing
+    page (eyebrow / WRAPPED / 25/26), so arriving here feels like the title
+    page turning, not a channel change. */
+function CoverBeat({ instant }: { instant: boolean }) {
+  const at = (delay: number) =>
+    instant
+      ? { duration: 0.01 }
+      : ({ ...SPRING.default, delay } as const);
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center bg-ink text-cream">
+      <motion.img
+        src="/Sticker Logomark.png"
+        alt=""
+        aria-hidden
+        className="w-14 h-auto drop-shadow-md"
+        initial={instant ? { opacity: 1 } : { opacity: 0, scale: 1.3 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={instant ? { duration: 0.01 } : { ...SPRING.stamp, delay: 0.05 }}
+      />
+      <motion.p
+        className="t-label text-cream/60"
+        initial={instant ? { opacity: 1 } : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={at(0.2)}
+      >
+        {copy.landing.eyebrow}
+      </motion.p>
+      <motion.div
+        initial={instant ? { opacity: 1 } : { opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={at(0.3)}
+        style={{ viewTransitionName: "wrapped-title" } as React.CSSProperties}
+      >
+        <p
+          className="text-outline-base text-outline-cream leading-none"
+          style={{ fontSize: "clamp(3rem, 16cqw, 6.5rem)" }}
+        >
+          {copy.landing.title}
+        </p>
+        <p
+          className="t-display text-gdg-blue kinetic kinetic-breathe"
+          style={{ fontSize: "clamp(1.5rem, 8cqw, 3.2rem)" }}
+        >
+          {copy.landing.year}
+        </p>
+      </motion.div>
+      <motion.p
+        className="t-label text-cream/40"
+        style={{ fontSize: "0.6rem" }}
+        initial={instant ? { opacity: 1 } : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: instant ? 0 : 0.85 }}
+      >
+        {copy.theYear.coverTag}
+      </motion.p>
+    </div>
+  );
+}
+
+/** After the drive: the breath after the spectacle — cream-on-ink, "What a
     year." then "We kept the receipts." landing 900ms later. Opaque so it
     also covers any tail end of the drive-through's numeral travel. */
 function CalmBeat({ instant }: { instant: boolean }) {
@@ -191,22 +255,51 @@ function ColdOpen() {
   // it's reconciling against. useHasMounted() gates that until safe.
   const reduceMotion = useReducedMotion();
   const hasMounted = useHasMounted();
-  const [beat, setBeat] = useState<"drive" | "calm">("drive");
+  const [beat, setBeat] = useState<"cover" | "drive" | "calm">("cover");
 
   useEffect(() => {
     if (!hasMounted) return;
-    // Deferred through setTimeout even for the reduced-motion case (delay
-    // 0) rather than calling setState synchronously in the effect body.
-    const t = setTimeout(() => setBeat("calm"), reduceMotion ? 0 : DRIVE_MS);
-    return () => clearTimeout(t);
+    // Reduced motion skips the drive-through spectacle entirely: cover,
+    // then straight to the calm resolve. Deferred through setTimeout rather
+    // than calling setState synchronously in the effect body.
+    if (reduceMotion) {
+      const t = setTimeout(() => setBeat("calm"), 1200);
+      return () => clearTimeout(t);
+    }
+    const t1 = setTimeout(() => setBeat("drive"), COVER_MS);
+    const t2 = setTimeout(() => setBeat("calm"), COVER_MS + DRIVE_MS);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [hasMounted, reduceMotion]);
 
   useEffect(() => {
     if (beat === "calm") vibrate(8); // the resolve's moment of contact
   }, [beat]);
 
-  if (beat === "drive") return <DriveThrough />;
-  return <CalmBeat instant={!!reduceMotion} />;
+  // Beat-level crossfade (never a hard cut): cover and calm are opaque ink,
+  // the drive carries its own scrim, so overlapping fades are always clean.
+  return (
+    <AnimatePresence initial={false}>
+      <motion.div
+        key={beat}
+        className="absolute inset-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: reduceMotion ? 0.01 : 0.3 }}
+      >
+        {beat === "cover" ? (
+          <CoverBeat instant={!!reduceMotion} />
+        ) : beat === "drive" ? (
+          <DriveThrough />
+        ) : (
+          <CalmBeat instant={!!reduceMotion} />
+        )}
+      </motion.div>
+    </AnimatePresence>
+  );
 }
 
 const VALUES: Record<string, number> = {

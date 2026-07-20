@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { track } from "@vercel/analytics";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { STORIES, TIMING, SHADER_STORY } from "@/lib/stories";
+import { STORIES, TIMING, OVERTURE, SHADER_STORY } from "@/lib/stories";
 import { STORY_COMPONENTS } from "@/components/stories";
 import { CLUBS } from "@/lib/clubs";
 import { ACCENT_HEX } from "@/components/gl/shaders";
@@ -14,7 +14,7 @@ import { GestureHint } from "./gesture-hint";
 import { TapZones } from "./tap-zones";
 import { preloadStoryAssets } from "./preloader";
 import { useStoryEngine } from "./use-story-state";
-import { startAudio } from "@/lib/audio";
+import { startAudio, setStoryTrack } from "@/lib/audio";
 import { initSfx, playSfx } from "@/lib/sfx";
 import type { Snapshot } from "@/lib/snapshot";
 import { copy } from "@/lib/copy";
@@ -144,25 +144,32 @@ export function Player() {
   const [me, setMe] = useState<MeResponse>({ member: false });
   const [dbDegraded, setDbDegraded] = useState(false);
   const verifiedTracked = useRef(false);
-  // The overture's drive-through window (build4 §4): the-year's setup shows
-  // the warp field (shader story 10) only for its first 3400ms, then
-  // resolves to the story's own stripe-band figure for the calm beat.
+  // The overture's drive-through window (build4 §4, cover beat 2026-07-20):
+  // the-year's setup shows the warp field (shader story 10) only during the
+  // DRIVE beat — after the cover title card, before the calm resolve.
   // Reset-on-prop-change happens synchronously during render (React's
   // sanctioned pattern for this — see "Adjusting state when a prop
   // changes" in the React docs) rather than in the effect below, which
-  // only owns the async flip-to-false so it never calls setState
+  // only owns the async window flips so it never calls setState
   // synchronously from its own body.
   const setupCycleKey = `${state.storyIndex}-${state.phase}`;
   const [warpKey, setWarpKey] = useState(setupCycleKey);
-  const [setupWarpActive, setSetupWarpActive] = useState(true);
+  const [setupWarpActive, setSetupWarpActive] = useState(false);
   if (setupCycleKey !== warpKey) {
     setWarpKey(setupCycleKey);
-    setSetupWarpActive(true);
+    setSetupWarpActive(false);
   }
   useEffect(() => {
     if (state.storyIndex !== 0 || state.phase !== "setup") return;
-    const t = setTimeout(() => setSetupWarpActive(false), 3400);
-    return () => clearTimeout(t);
+    const on = setTimeout(() => setSetupWarpActive(true), OVERTURE.coverMs);
+    const off = setTimeout(
+      () => setSetupWarpActive(false),
+      OVERTURE.coverMs + OVERTURE.driveMs
+    );
+    return () => {
+      clearTimeout(on);
+      clearTimeout(off);
+    };
   }, [state.storyIndex, state.phase]);
 
   useEffect(() => {
@@ -212,6 +219,12 @@ export function Player() {
     preloadStoryAssets(state.storyIndex);
   }, [state.storyIndex]);
 
+  // Every story carries its own song (lib/soundtrack.ts). Safe before the
+  // first gesture — the engine remembers the track and starts it on unlock.
+  useEffect(() => {
+    setStoryTrack(STORIES[state.storyIndex]!.id);
+  }, [state.storyIndex]);
+
   // The ambient loop and the SFX engine can only start from a user gesture
   // (autoplay policy) — arm one-shot listeners for the first tap or
   // keypress inside the player.
@@ -250,10 +263,12 @@ export function Player() {
   const shaderAccentHex =
     def.accent === "club" ? clubMeta?.hex ?? ACCENT_HEX.green : ACCENT_HEX[def.accent];
   const shaderPattern = clubMeta ? CLUB_PATTERN_INDEX[clubMeta.pattern] : 0;
-  // Summary carries its own primary share CTA already — the header chip is
-  // only for the other personal reveal screens.
+  // Every story is shareable (owner, 2026-07-20) — the header chip appears
+  // on every reveal EXCEPT summary, which carries its own primary share CTA.
+  // Personal "your-*" beats still require membership: a guest has no
+  // snapshot to render, so those cards would 401.
   const showShareChip =
-    def.personal && def.id !== "summary" && me.member && state.phase === "reveal";
+    def.id !== "summary" && state.phase === "reveal" && (!def.personal || me.member);
   const seamEdgeName = seamEdge(state.vector);
   const seamEdgeIsVertical = seamEdgeName === "top" || seamEdgeName === "bottom";
   // The-year's setup swaps in the overture warp field (shader story 10,

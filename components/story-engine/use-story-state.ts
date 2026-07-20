@@ -85,9 +85,12 @@ function reducer(state: EngineState, action: Action): EngineState {
       };
     }
     case "PREV": {
-      if (state.phase === "reveal") return { ...state, phase: "setup", paused: false };
+      // Back always means "the story I came from" (owner, 2026-07-20) —
+      // never a rewind to the current story's own setup beat, which read
+      // as being thrown to "the start of the whole story". On the first
+      // story there's nowhere back to go, so restart its setup instead.
       const pos = active.indexOf(state.storyIndex);
-      if (pos <= 0) return { ...state }; // restart setup timer via consumer key remount
+      if (pos <= 0) return { ...state, phase: "setup", paused: false };
       const prev = active[pos - 1]!;
       return {
         ...state,

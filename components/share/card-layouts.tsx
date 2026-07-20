@@ -1,22 +1,27 @@
-import { CHAPTER, PRODUCTS, productHeadlineStat } from "@/lib/content/chapter";
+import { CHAPTER, GROUP_CHAT, PRODUCTS, productHeadlineStat } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
 import { CLUBS } from "@/lib/clubs";
 import type { Snapshot } from "@/lib/snapshot";
 import { STICKER_LOGOMARK_BASE64 } from "./logo-data";
+import { INK, CREAM, CREAM_DEEP, type CardTheme } from "./card-themes";
 
-const INK = "#0f0f0f";
-const CREAM = "#fff6e0";
-const PAPER = "#fdfbf7";
-const CREAM_DEEP = "#f8ecc9";
-const BLUE = "#4285f4";
-const RED = "#ea4335";
-const YELLOW = "#faab00";
-const GREEN = "#34a853";
+/**
+ * Satori layouts for every share card, 1080×1920. Each card receives a
+ * CardTheme (components/share/card-themes.ts) — `classic` reproduces the
+ * original art direction; ink/cream/accent restyle the same layout, chosen
+ * by the visitor in the share sheet. Product chips keep their literal GDG
+ * colors in every theme: they're identity, not decoration.
+ */
 
 const CHIP_TEXT: Record<string, string> = { blue: CREAM, red: CREAM, yellow: INK, green: INK };
-const BG_HEX: Record<string, string> = { blue: BLUE, red: RED, yellow: YELLOW, green: GREEN };
+const BG_HEX: Record<string, string> = {
+  blue: "#4285f4",
+  red: "#ea4335",
+  yellow: "#faab00",
+  green: "#34a853",
+};
 
-function Watermark({ dark }: { dark: boolean }) {
+function Watermark({ t }: { t: CardTheme }) {
   return (
     <div
       style={{
@@ -39,7 +44,7 @@ function Watermark({ dark }: { dark: boolean }) {
           fontFamily: "Google Sans",
           fontWeight: 500,
           fontSize: 22,
-          color: dark ? `${CREAM}99` : `${INK}99`,
+          color: t.muted,
         }}
       >
         wrapped.gdgbabcock.com
@@ -48,13 +53,7 @@ function Watermark({ dark }: { dark: boolean }) {
   );
 }
 
-function Base({
-  bg,
-  children,
-}: {
-  bg: string;
-  children: React.ReactNode;
-}) {
+function Base({ t, children }: { t: CardTheme; children: React.ReactNode }) {
   return (
     <div
       style={{
@@ -62,7 +61,7 @@ function Base({
         flexDirection: "column",
         width: "100%",
         height: "100%",
-        background: bg,
+        background: t.bg,
         position: "relative",
         fontFamily: "Google Sans",
       }}
@@ -72,7 +71,7 @@ function Base({
   );
 }
 
-export function TheYearCard() {
+export function TheYearCard({ t }: { t: CardTheme }) {
   const rows = copy.theYear.rows;
   const values: Record<string, number> = {
     eventsRun: CHAPTER.eventsRun,
@@ -82,7 +81,7 @@ export function TheYearCard() {
     messagesParsed: CHAPTER.messagesParsed,
   };
   return (
-    <Base bg={INK}>
+    <Base t={t}>
       <div
         style={{
           display: "flex",
@@ -91,9 +90,9 @@ export function TheYearCard() {
           justifyContent: "center",
           margin: "0 80px",
           padding: "64px 56px",
-          background: PAPER,
+          background: t.panelBg,
           borderRadius: 12,
-          color: INK,
+          color: t.panelFg,
         }}
       >
         <div
@@ -104,7 +103,7 @@ export function TheYearCard() {
             letterSpacing: 4,
             justifyContent: "center",
             paddingBottom: 24,
-            borderBottom: `2px dashed ${INK}55`,
+            borderBottom: `2px dashed ${t.panelFg}55`,
           }}
         >
           {copy.theYear.revealLabel}
@@ -123,7 +122,15 @@ export function TheYearCard() {
               {values[row.key]}
               {row.key === "members" ? "+" : ""}
             </div>
-            <div style={{ display: "flex", fontSize: 24, fontWeight: 700, letterSpacing: 3, opacity: 0.7 }}>
+            <div
+              style={{
+                display: "flex",
+                fontSize: 24,
+                fontWeight: 700,
+                letterSpacing: 3,
+                color: t.panelMuted,
+              }}
+            >
               {row.label}
             </div>
           </div>
@@ -136,20 +143,21 @@ export function TheYearCard() {
             letterSpacing: 3,
             justifyContent: "center",
             paddingTop: 24,
-            borderTop: `2px dashed ${INK}55`,
+            borderTop: `2px dashed ${t.panelFg}55`,
           }}
         >
           {copy.theYear.footer}
         </div>
       </div>
-      <Watermark dark />
+      <Watermark t={t} />
     </Base>
   );
 }
 
-export function MomentsCard() {
+export function MomentsCard({ t }: { t: CardTheme }) {
+  const frameBg = t.dark ? `${CREAM}22` : CREAM_DEEP;
   return (
-    <Base bg={CREAM}>
+    <Base t={t}>
       <div
         style={{
           display: "flex",
@@ -167,19 +175,29 @@ export function MomentsCard() {
               position: "absolute",
               width: 420,
               height: 420,
-              background: CREAM_DEEP,
+              background: frameBg,
               borderRadius: 8,
               transform: `rotate(${rot}deg) translateX(${(i - 1) * 40}px)`,
             }}
           />
         ))}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            width: 180,
+            height: 34,
+            background: t.accent,
+            transform: "rotate(-5deg) translateY(-215px)",
+          }}
+        />
       </div>
       <div
         style={{
           display: "flex",
           fontSize: 72,
           fontWeight: 700,
-          color: INK,
+          color: t.fg,
           textAlign: "center",
           justifyContent: "center",
           padding: "0 80px 220px",
@@ -187,14 +205,14 @@ export function MomentsCard() {
       >
         SOME NIGHTS YOU HAD TO BE THERE.
       </div>
-      <Watermark dark={false} />
+      <Watermark t={t} />
     </Base>
   );
 }
 
-export function BuiltCard() {
+export function BuiltCard({ t }: { t: CardTheme }) {
   return (
-    <Base bg={INK}>
+    <Base t={t}>
       <div
         style={{
           display: "flex",
@@ -210,8 +228,18 @@ export function BuiltCard() {
           return (
             <div key={p.num} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-                <div style={{ display: "flex", fontSize: 28, color: `${CREAM}66`, width: 60 }}>{p.num}</div>
-                <div style={{ display: "flex", flex: 1, fontSize: 56, fontWeight: 700, color: CREAM }}>
+                <div style={{ display: "flex", fontSize: 28, color: t.faint, width: 60 }}>
+                  {p.num}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flex: 1,
+                    fontSize: 56,
+                    fontWeight: 700,
+                    color: t.fg,
+                  }}
+                >
                   {p.name}
                 </div>
                 <div
@@ -233,14 +261,22 @@ export function BuiltCard() {
                   live story — no blank line where a stat isn't confirmed yet. */}
               {stat && (
                 <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginLeft: 84 }}>
-                  <div style={{ display: "flex", fontSize: 32, fontWeight: 700, color: BG_HEX[p.color] }}>
+                  <div style={{ display: "flex", fontSize: 32, fontWeight: 700, color: t.fg }}>
                     {typeof stat.value === "number" ? stat.value.toLocaleString("en-US") : stat.value}
                   </div>
-                  <div style={{ display: "flex", fontSize: 20, fontWeight: 700, letterSpacing: 2, color: `${CREAM}99` }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      fontSize: 20,
+                      fontWeight: 700,
+                      letterSpacing: 2,
+                      color: t.muted,
+                    }}
+                  >
                     {stat.label}
                   </div>
                   {stat.detail && (
-                    <div style={{ display: "flex", fontSize: 18, color: `${CREAM}73`, marginLeft: "auto" }}>
+                    <div style={{ display: "flex", fontSize: 18, color: t.faint, marginLeft: "auto" }}>
                       {stat.detail}
                     </div>
                   )}
@@ -256,7 +292,7 @@ export function BuiltCard() {
           fontSize: 26,
           fontWeight: 700,
           letterSpacing: 3,
-          color: `${CREAM}99`,
+          color: t.muted,
           justifyContent: "center",
           marginTop: "auto",
           marginBottom: 220,
@@ -264,20 +300,110 @@ export function BuiltCard() {
       >
         ALL LIVE. ALL OURS.
       </div>
+      <Watermark t={t} />
     </Base>
   );
 }
 
-export function PeopleCard() {
+export function GroupChatCard({ t }: { t: CardTheme }) {
+  const rows: { value: string; label: string }[] = [
+    { value: GROUP_CHAT.stickers.toLocaleString("en-US"), label: "STICKERS DEPLOYED" },
+    { value: GROUP_CHAT.laughs.toLocaleString("en-US"), label: "LAUGHS ON RECORD" },
+    { value: `${GROUP_CHAT.streakDays} DAYS`, label: "WITHOUT SILENCE" },
+    { value: GROUP_CHAT.peakHourLabel, label: "PEAK HOUR" },
+  ];
+  return (
+    <Base t={t}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          justifyContent: "center",
+          margin: "0 90px",
+          gap: 8,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontSize: 26,
+            fontWeight: 700,
+            letterSpacing: 4,
+            color: t.muted,
+          }}
+        >
+          {copy.groupChat.revealLabel}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 190,
+            fontWeight: 700,
+            color: t.accent,
+            marginTop: 8,
+          }}
+        >
+          {GROUP_CHAT.messages.toLocaleString("en-US")}
+        </div>
+        <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: t.fg }}>
+          MESSAGES SENT
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            marginTop: 60,
+            gap: 26,
+          }}
+        >
+          {rows.map((r) => (
+            <div
+              key={r.label}
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                borderBottom: `2px solid ${t.faint}`,
+                paddingBottom: 18,
+              }}
+            >
+              <div style={{ display: "flex", fontSize: 52, fontWeight: 700, color: t.fg }}>
+                {r.value}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 22,
+                  fontWeight: 700,
+                  letterSpacing: 3,
+                  color: t.muted,
+                }}
+              >
+                {r.label}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", fontSize: 26, color: t.muted, marginTop: 40 }}>
+          Sleep is a suggestion.
+        </div>
+      </div>
+      <Watermark t={t} />
+    </Base>
+  );
+}
+
+export function PeopleCard({ t }: { t: CardTheme }) {
   const sections = ["CORE", "TRACKS", "DEV", "MEDIA", "EVENTS"];
   return (
-    <Base bg={CREAM}>
+    <Base t={t}>
       <div
         style={{
           display: "flex",
           fontSize: 88,
           fontWeight: 700,
-          color: INK,
+          color: t.fg,
           justifyContent: "center",
           margin: "220px 0 100px",
         }}
@@ -296,23 +422,31 @@ export function PeopleCard() {
       >
         {sections.map((s) => (
           <div key={s} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ display: "flex", fontSize: 28, fontWeight: 700, letterSpacing: 3, color: `${INK}88` }}>
+            <div
+              style={{
+                display: "flex",
+                fontSize: 28,
+                fontWeight: 700,
+                letterSpacing: 3,
+                color: t.muted,
+              }}
+            >
               {s}
             </div>
-            <div style={{ display: "flex", width: 120, height: 4, background: YELLOW }} />
+            <div style={{ display: "flex", width: 120, height: 4, background: t.accent }} />
           </div>
         ))}
       </div>
-      <Watermark dark={false} />
+      <Watermark t={t} />
     </Base>
   );
 }
 
-export function YourEventsCard({ snapshot }: { snapshot: Snapshot }) {
+export function YourEventsCard({ snapshot, t }: { snapshot: Snapshot; t: CardTheme }) {
   const { events, flags } = snapshot;
   if (flags.zeroCheckins) {
     return (
-      <Base bg={INK}>
+      <Base t={t}>
         <div
           style={{
             display: "flex",
@@ -329,11 +463,11 @@ export function YourEventsCard({ snapshot }: { snapshot: Snapshot }) {
               display: "flex",
               width: 480,
               height: 240,
-              border: `6px solid ${BLUE}`,
+              border: `6px solid ${t.accent}`,
               borderRadius: 16,
               alignItems: "center",
               justifyContent: "center",
-              color: BLUE,
+              color: t.accent,
               fontSize: 40,
               fontWeight: 700,
               letterSpacing: 4,
@@ -341,19 +475,27 @@ export function YourEventsCard({ snapshot }: { snapshot: Snapshot }) {
           >
             ADMIT ONE
           </div>
-          <div style={{ display: "flex", fontSize: 56, fontWeight: 700, color: CREAM, textAlign: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              fontSize: 56,
+              fontWeight: 700,
+              color: t.fg,
+              textAlign: "center",
+            }}
+          >
             {CHAPTER.eventsRun} events happened this year.
           </div>
-          <div style={{ display: "flex", fontSize: 30, color: `${CREAM}88`, textAlign: "center" }}>
+          <div style={{ display: "flex", fontSize: 30, color: t.muted, textAlign: "center" }}>
             26/27 has my name on it.
           </div>
         </div>
-        <Watermark dark />
+        <Watermark t={t} />
       </Base>
     );
   }
   return (
-    <Base bg={INK}>
+    <Base t={t}>
       <div
         style={{
           display: "flex",
@@ -369,27 +511,35 @@ export function YourEventsCard({ snapshot }: { snapshot: Snapshot }) {
             display: "flex",
             fontSize: 420,
             fontWeight: 700,
-            color: BLUE,
+            color: t.accent,
           }}
         >
           {events.checkins}
         </div>
-        <div style={{ display: "flex", fontSize: 48, fontWeight: 700, color: CREAM, textAlign: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 48,
+            fontWeight: 700,
+            color: t.fg,
+            textAlign: "center",
+          }}
+        >
           {snapshot.firstName} checked into {events.checkins} events
         </div>
       </div>
-      <Watermark dark />
+      <Watermark t={t} />
     </Base>
   );
 }
 
-export function StandingCard({ snapshot }: { snapshot: Snapshot }) {
+export function StandingCard({ snapshot, t }: { snapshot: Snapshot; t: CardTheme }) {
   const isTier = snapshot.standing.tier !== "member";
   if (isTier) {
     const TIER_LABEL: Record<string, string> = { top1: "1", top5: "5", top10: "10", top25: "25" };
     const tierNum = TIER_LABEL[snapshot.standing.tier] ?? "";
     return (
-      <Base bg={CREAM}>
+      <Base t={t}>
         <div
           style={{
             display: "flex",
@@ -405,22 +555,22 @@ export function StandingCard({ snapshot }: { snapshot: Snapshot }) {
               display: "flex",
               fontSize: 150,
               fontWeight: 700,
-              color: RED,
+              color: t.accent,
               transform: "rotate(-2deg)",
             }}
           >
             {fmt(copy.standing.revealTier, { percentile: tierNum })}
           </div>
-          <div style={{ display: "flex", fontSize: 32, color: `${INK}99`, textAlign: "center" }}>
+          <div style={{ display: "flex", fontSize: 32, color: t.muted, textAlign: "center" }}>
             GDG BABCOCK COMMUNITY · 25/26
           </div>
         </div>
-        <Watermark dark={false} />
+        <Watermark t={t} />
       </Base>
     );
   }
   return (
-    <Base bg={CREAM}>
+    <Base t={t}>
       <div
         style={{
           display: "flex",
@@ -434,28 +584,32 @@ export function StandingCard({ snapshot }: { snapshot: Snapshot }) {
         <div style={{ display: "flex", gap: 80 }}>
           {snapshot.messages.matched && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ display: "flex", fontSize: 96, fontWeight: 700, color: INK }}>
+              <div style={{ display: "flex", fontSize: 96, fontWeight: 700, color: t.fg }}>
                 {snapshot.messages.count}
               </div>
-              <div style={{ display: "flex", fontSize: 22, color: `${INK}77`, letterSpacing: 2 }}>MESSAGES</div>
+              <div style={{ display: "flex", fontSize: 22, color: t.muted, letterSpacing: 2 }}>
+                MESSAGES
+              </div>
             </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div style={{ display: "flex", fontSize: 96, fontWeight: 700, color: INK }}>
+            <div style={{ display: "flex", fontSize: 96, fontWeight: 700, color: t.fg }}>
               {snapshot.events.checkins}
             </div>
-            <div style={{ display: "flex", fontSize: 22, color: `${INK}77`, letterSpacing: 2 }}>EVENTS</div>
+            <div style={{ display: "flex", fontSize: 22, color: t.muted, letterSpacing: 2 }}>
+              EVENTS
+            </div>
           </div>
         </div>
       </div>
-      <Watermark dark={false} />
+      <Watermark t={t} />
     </Base>
   );
 }
 
-export function YourChapterCard({ snapshot }: { snapshot: Snapshot }) {
+export function YourChapterCard({ snapshot, t }: { snapshot: Snapshot; t: CardTheme }) {
   return (
-    <Base bg={INK}>
+    <Base t={t}>
       <div
         style={{
           display: "flex",
@@ -472,24 +626,27 @@ export function YourChapterCard({ snapshot }: { snapshot: Snapshot }) {
             display: "flex",
             fontFamily: "Bricolage",
             fontSize: 56,
-            color: CREAM,
+            color: t.fg,
             textAlign: "center",
             transform: "skewX(-8deg)",
           }}
         >
           HERE SINCE {snapshot.joinMonthLabel.toUpperCase()}
         </div>
-        <div style={{ display: "flex", width: 600, height: 6, background: GREEN, borderRadius: 3 }} />
+        <div style={{ display: "flex", width: 600, height: 6, background: t.accent, borderRadius: 3 }} />
       </div>
-      <Watermark dark />
+      <Watermark t={t} />
     </Base>
   );
 }
 
-export function YourClubCard({ snapshot }: { snapshot: Snapshot }) {
+export function YourClubCard({ snapshot, t }: { snapshot: Snapshot; t: CardTheme }) {
   const club = CLUBS[snapshot.club.id];
+  // The club card's inner panel is always the ink club card — its identity.
+  // On an ink page it lifts to a slightly lighter surface for separation.
+  const innerBg = t.bg === INK ? "#1c1c1c" : INK;
   return (
-    <Base bg={club.hex}>
+    <Base t={t}>
       <div
         style={{
           display: "flex",
@@ -504,14 +661,22 @@ export function YourClubCard({ snapshot }: { snapshot: Snapshot }) {
             flexDirection: "column",
             width: 720,
             height: 1008,
-            background: INK,
+            background: innerBg,
             borderRadius: 32,
             padding: 56,
             border: `2px solid ${CREAM}44`,
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", fontSize: 26, fontWeight: 700, letterSpacing: 3, color: `${CREAM}cc` }}>
+            <div
+              style={{
+                display: "flex",
+                fontSize: 26,
+                fontWeight: 700,
+                letterSpacing: 3,
+                color: `${CREAM}cc`,
+              }}
+            >
               {copy.yourClub.revealPrefix}
             </div>
             <div style={{ display: "flex", fontSize: 56, fontWeight: 700, color: club.hex }}>
@@ -542,7 +707,9 @@ export function YourClubCard({ snapshot }: { snapshot: Snapshot }) {
           >
             {club.vibe}
           </div>
-          <div style={{ display: "flex", fontSize: 26, color: `${CREAM}aa`, marginTop: 16 }}>{club.role}</div>
+          <div style={{ display: "flex", fontSize: 26, color: `${CREAM}aa`, marginTop: 16 }}>
+            {club.role}
+          </div>
           <div
             style={{
               display: "flex",
@@ -560,14 +727,14 @@ export function YourClubCard({ snapshot }: { snapshot: Snapshot }) {
           </div>
         </div>
       </div>
-      <Watermark dark />
+      <Watermark t={t} />
     </Base>
   );
 }
 
-export function WhatsNextCard() {
+export function WhatsNextCard({ t }: { t: CardTheme }) {
   return (
-    <Base bg={CREAM}>
+    <Base t={t}>
       <div
         style={{
           display: "flex",
@@ -583,14 +750,14 @@ export function WhatsNextCard() {
             display: "flex",
             fontSize: 88,
             fontWeight: 700,
-            color: GREEN,
+            color: t.accent,
             textAlign: "center",
           }}
         >
           THE 100 IS LIVE.
         </div>
       </div>
-      <Watermark dark={false} />
+      <Watermark t={t} />
     </Base>
   );
 }
@@ -598,22 +765,24 @@ export function WhatsNextCard() {
 export function SummaryCard({
   snapshot,
   guest,
+  t,
 }: {
   snapshot: Snapshot | null;
   guest: boolean;
+  t: CardTheme;
 }) {
   const club = snapshot ? CLUBS[snapshot.club.id] : null;
   return (
-    <Base bg={INK}>
+    <Base t={t}>
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           margin: "160px 90px",
           padding: 56,
-          background: CREAM,
+          background: t.panelBg,
           borderRadius: 32,
-          color: INK,
+          color: t.panelFg,
           flex: 1,
         }}
       >
@@ -622,7 +791,15 @@ export function SummaryCard({
             src={`data:image/png;base64,${STICKER_LOGOMARK_BASE64}`}
             style={{ width: 33, height: 22, display: "flex" }}
           />
-          <div style={{ display: "flex", fontSize: 24, fontWeight: 700, letterSpacing: 2, opacity: 0.6 }}>
+          <div
+            style={{
+              display: "flex",
+              fontSize: 24,
+              fontWeight: 700,
+              letterSpacing: 2,
+              color: t.panelMuted,
+            }}
+          >
             {copy.summary.title}
           </div>
         </div>
@@ -634,50 +811,76 @@ export function SummaryCard({
             </div>
             <div style={{ display: "flex", gap: 60, marginTop: 48 }}>
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>{CHAPTER.eventsRun}</div>
-                <div style={{ display: "flex", fontSize: 20, opacity: 0.5 }}>EVENTS</div>
+                <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>
+                  {CHAPTER.eventsRun}
+                </div>
+                <div style={{ display: "flex", fontSize: 20, color: t.panelMuted }}>EVENTS</div>
               </div>
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>{CHAPTER.members}+</div>
-                <div style={{ display: "flex", fontSize: 20, opacity: 0.5 }}>MEMBERS</div>
+                <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>
+                  {CHAPTER.members}+
+                </div>
+                <div style={{ display: "flex", fontSize: 20, color: t.panelMuted }}>MEMBERS</div>
               </div>
             </div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-            <div style={{ display: "flex", fontSize: 68, fontWeight: 700, marginTop: 40 }}>{snapshot.name}</div>
+            <div style={{ display: "flex", fontSize: 68, fontWeight: 700, marginTop: 40 }}>
+              {snapshot.name}
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 40 }}>
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", fontSize: 20, opacity: 0.5 }}>{copy.summary.memberSince}</div>
-                <div style={{ display: "flex", fontSize: 36, fontWeight: 700 }}>{snapshot.joinMonthLabel}</div>
+                <div style={{ display: "flex", fontSize: 20, color: t.panelMuted }}>
+                  {copy.summary.memberSince}
+                </div>
+                <div style={{ display: "flex", fontSize: 36, fontWeight: 700 }}>
+                  {snapshot.joinMonthLabel}
+                </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", fontSize: 20, opacity: 0.5 }}>{copy.summary.club}</div>
-                <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: club!.hex }}>{club!.name}</div>
+                <div style={{ display: "flex", fontSize: 20, color: t.panelMuted }}>
+                  {copy.summary.club}
+                </div>
+                <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: club!.hex }}>
+                  {club!.name}
+                </div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 56, marginTop: 48 }}>
               {!snapshot.flags.zeroCheckins && (
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>{snapshot.events.checkins}</div>
-                  <div style={{ display: "flex", fontSize: 20, opacity: 0.5 }}>{copy.summary.statEvents}</div>
+                  <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>
+                    {snapshot.events.checkins}
+                  </div>
+                  <div style={{ display: "flex", fontSize: 20, color: t.panelMuted }}>
+                    {copy.summary.statEvents}
+                  </div>
                 </div>
               )}
               {snapshot.messages.matched && (
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>{snapshot.messages.count}</div>
-                  <div style={{ display: "flex", fontSize: 20, opacity: 0.5 }}>{copy.summary.statMessages}</div>
+                  <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>
+                    {snapshot.messages.count}
+                  </div>
+                  <div style={{ display: "flex", fontSize: 20, color: t.panelMuted }}>
+                    {copy.summary.statMessages}
+                  </div>
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>{snapshot.tenureMonths}</div>
-                <div style={{ display: "flex", fontSize: 20, opacity: 0.5 }}>{copy.summary.statMonths}</div>
+                <div style={{ display: "flex", fontSize: 44, fontWeight: 700 }}>
+                  {snapshot.tenureMonths}
+                </div>
+                <div style={{ display: "flex", fontSize: 20, color: t.panelMuted }}>
+                  {copy.summary.statMonths}
+                </div>
               </div>
             </div>
           </div>
         )}
       </div>
-      <Watermark dark />
+      <Watermark t={t} />
     </Base>
   );
 }

@@ -5,12 +5,15 @@ import { SATORI_FONTS } from "@/lib/satori-fonts";
 import { verifyToken, SESSION_COOKIE } from "@/lib/session";
 import { getSnapshotByEmail } from "@/lib/db";
 import { FIXTURES, type FixtureName } from "@/lib/fixtures";
+import { CLUBS } from "@/lib/clubs";
 import type { Snapshot } from "@/lib/snapshot";
 import { STORIES, type StoryId } from "@/lib/stories";
+import { resolveTheme, isCardStyle, type CardStyle } from "@/components/share/card-themes";
 import {
   TheYearCard,
   MomentsCard,
   BuiltCard,
+  GroupChatCard,
   PeopleCard,
   YourEventsCard,
   StandingCard,
@@ -23,7 +26,10 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const PUBLIC_CARDS = new Set<StoryId>(["the-year", "moments", "built", "people", "whats-next"]);
+// Every story is shareable (owner, 2026-07-20): the public chapter beats
+// need no snapshot at all; "your-*" beats need one and fall back to the
+// guest summary card when there isn't one, same as before.
+const PUBLIC_CARDS = new Set<StoryId>(["the-year", "moments", "built", "group-chat", "people", "whats-next"]);
 
 const SIZE = { width: 1080, height: 1920 };
 
@@ -64,8 +70,11 @@ export async function GET(
     return new Response("not found", { status: 404 });
   }
 
+  const styleParam = req.nextUrl.searchParams.get("style");
+  const style: CardStyle = isCardStyle(styleParam) ? styleParam : "classic";
+
   if (PUBLIC_CARDS.has(def.id)) {
-    const element = renderPublicCard(def.id);
+    const element = renderPublicCard(def.id, style);
     return new ImageResponse(element, {
       ...SIZE,
       fonts: SATORI_FONTS,
@@ -83,7 +92,7 @@ export async function GET(
     });
   }
 
-  const element = renderPersonalCard(def.id, resolved.snapshot, resolved.guest);
+  const element = renderPersonalCard(def.id, resolved.snapshot, resolved.guest, style);
   return new ImageResponse(element, {
     ...SIZE,
     fonts: SATORI_FONTS,
@@ -91,35 +100,41 @@ export async function GET(
   });
 }
 
-function renderPublicCard(id: StoryId) {
+function renderPublicCard(id: StoryId, style: CardStyle) {
+  const t = resolveTheme(id, style);
   switch (id) {
     case "the-year":
-      return <TheYearCard />;
+      return <TheYearCard t={t} />;
     case "moments":
-      return <MomentsCard />;
+      return <MomentsCard t={t} />;
     case "built":
-      return <BuiltCard />;
+      return <BuiltCard t={t} />;
+    case "group-chat":
+      return <GroupChatCard t={t} />;
     case "people":
-      return <PeopleCard />;
+      return <PeopleCard t={t} />;
     case "whats-next":
-      return <WhatsNextCard />;
+      return <WhatsNextCard t={t} />;
     default:
       throw new Error(`unreachable public card: ${id}`);
   }
 }
 
-function renderPersonalCard(id: StoryId, snapshot: Snapshot | null, guest: boolean) {
+function renderPersonalCard(id: StoryId, snapshot: Snapshot | null, guest: boolean, style: CardStyle) {
+  const clubHex = snapshot ? CLUBS[snapshot.club.id].hex : undefined;
+  const t = resolveTheme(id, style, clubHex);
+  const guestFallback = <SummaryCard snapshot={null} guest={guest} t={resolveTheme("summary", style)} />;
   switch (id) {
     case "your-events":
-      return snapshot ? <YourEventsCard snapshot={snapshot} /> : <SummaryCard snapshot={null} guest={guest} />;
+      return snapshot ? <YourEventsCard snapshot={snapshot} t={t} /> : guestFallback;
     case "standing":
-      return snapshot ? <StandingCard snapshot={snapshot} /> : <SummaryCard snapshot={null} guest={guest} />;
+      return snapshot ? <StandingCard snapshot={snapshot} t={t} /> : guestFallback;
     case "your-chapter":
-      return snapshot ? <YourChapterCard snapshot={snapshot} /> : <SummaryCard snapshot={null} guest={guest} />;
+      return snapshot ? <YourChapterCard snapshot={snapshot} t={t} /> : guestFallback;
     case "your-club":
-      return snapshot ? <YourClubCard snapshot={snapshot} /> : <SummaryCard snapshot={null} guest={guest} />;
+      return snapshot ? <YourClubCard snapshot={snapshot} t={t} /> : guestFallback;
     case "summary":
-      return <SummaryCard snapshot={snapshot} guest={guest} />;
+      return <SummaryCard snapshot={snapshot} guest={guest} t={resolveTheme("summary", style)} />;
     default:
       throw new Error(`unreachable personal card: ${id}`);
   }

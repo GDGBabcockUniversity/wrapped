@@ -250,16 +250,37 @@ export function ChapterGrid({
               initial={reduceMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={reduceMotion ? { duration: 0.01 } : { duration: 0.2, delay: i * 0.04 }}
-              className={`relative aspect-[9/16] rounded-xl overflow-hidden flex flex-col text-left ${
+              className={`relative aspect-[9/16] rounded-xl overflow-hidden text-left ${
                 s.field === "ink" ? "bg-ink-2 text-cream" : "bg-cream-deep text-ink"
               } ${locked ? "opacity-30 cursor-not-allowed" : ""}`}
             >
-              <div className="relative flex-none w-full overflow-hidden" style={{ height: "55%" }}>
+              {/* Figure fills the tile; the label rides ON it over a scrim —
+                  a tile must say which story it is no matter how the figure
+                  area lays out (2026-07-20: labels were getting lost below
+                  the fold, so the grid read as anonymous previews). */}
+              <div className="absolute inset-0 overflow-hidden">
                 <CardFigure id={s.id} accent={s.accent} />
               </div>
-              <div className="flex-1 flex flex-col justify-end p-3">
-                <p className="t-label opacity-90">{s.label}</p>
-                <p className="t-body text-xs opacity-70 mt-1">{copy.grid[s.id]}</p>
+              <span
+                className="absolute top-2 left-2 t-label opacity-50"
+                style={{ fontSize: "0.55rem" }}
+                aria-hidden
+              >
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <div
+                className="absolute inset-x-0 bottom-0 p-3 pt-10"
+                style={{
+                  background:
+                    s.field === "ink"
+                      ? "linear-gradient(transparent, rgb(15 15 15 / 0.88))"
+                      : "linear-gradient(transparent, rgb(248 236 201 / 0.94))",
+                }}
+              >
+                <p className="t-label" style={{ fontSize: "0.6rem" }}>
+                  {s.label}
+                </p>
+                <p className="t-body text-xs opacity-70 mt-0.5">{copy.grid[s.id]}</p>
               </div>
               {isSeen && !locked && <CheckChip accent={s.accent} />}
               {locked && (
