@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { parseSourceCsv, combineExternal, type ExternalData } from "./sources";
+import { parseSourceCsv, combineExternal, parseCsv, type ExternalData } from "./sources";
 import { parseWhatsAppExports } from "./parse-whatsapp";
 import { nameSimilarity } from "./match-members";
 
@@ -17,6 +17,15 @@ import { nameSimilarity } from "./match-members";
  * the top 3 candidates per sender, biggest senders first. Suggestions only:
  * a human copies the confirmed ones into data/mapping.json as
  * {"<senderKey>": "<email>"}.
+ *
+ * PHONE EVIDENCE (the strong path): the chat export writes only the
+ * exporting phone's address-book display name for saved contacts — the
+ * number never appears — but a contacts export from THAT phone restores the
+ * link. Drop a Google Contacts CSV at data/contacts.csv (Google Contacts ->
+ * Export -> CSV) and any sender whose display name equals a contact name
+ * with a number matching a roster WhatsApp number resolves sender -> number
+ * -> email; those land as candidate1 tagged [phone] and are safe to accept
+ * nearly verbatim.
  *
  * Usage: npx tsx scripts/pipeline/suggest-mappings.ts
  */
@@ -47,6 +56,58 @@ for (const r of external.roster) {
   people.set(r.email, { name: r.fullName, email: r.email });
 }
 console.log(`candidate pool: ${people.size} people`);
+
+// --- phone evidence: contacts CSV (name -> number) x roster (number -> email) ---
+const last10 = (s: string) => s.replace(/[^\d]/g, "").slice(-10);
+const emailByPhone = new Map<string, { name: string; email: string }>();
+for (const r of external.roster) {
+  if (r.whatsapp) emailByPhone.set(last10(r.whatsapp), { name: r.fullName, email: r.email });
+}
+
+/** senderKey (normalized) -> resolved person, via the contacts export. */
+const byContactName = new Map<string, { name: string; email: string; number: string }>();
+const normName = (s: string) => s.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase();
+const contactsPath = path.join(DATA_DIR, "contacts.csv");
+if (fs.existsSync(contactsPath)) {
+  const rows = parseCsv(fs.readFileSync(contactsPath, "utf-8"));
+  const headers = rows[0]!.map((h) => h.trim().toLowerCase());
+  const nameIdx = headers.findIndex((h) => h === "name");
+  const firstIdx = headers.findIndex((h) => h === "first name" || h === "given name");
+  const middleIdx = headers.findIndex((h) => h === "middle name" || h === "additional name");
+  const lastIdx = headers.findIndex((h) => h === "last name" || h === "family name");
+  const phoneIdxs = headers
+    .map((h, i) => (/^phone \d+ - value$/.test(h) ? i : -1))
+    .filter((i) => i !== -1);
+  let linked = 0;
+  for (const row of rows.slice(1)) {
+    const display =
+      nameIdx !== -1 && row[nameIdx]?.trim()
+        ? row[nameIdx]!.trim()
+        : [firstIdx, middleIdx, lastIdx]
+            .filter((i) => i !== -1)
+            .map((i) => (row[i] ?? "").trim())
+            .filter(Boolean)
+            .join(" ");
+    if (!display) continue;
+    // "Phone 1 - Value" can hold ":::"-separated multiples.
+    for (const idx of phoneIdxs) {
+      for (const raw of (row[idx] ?? "").split(":::")) {
+        const key = last10(raw);
+        if (key.length < 10) continue;
+        const person = emailByPhone.get(key);
+        if (person) {
+          byContactName.set(normName(display), { ...person, number: raw.trim() });
+          linked++;
+        }
+      }
+    }
+  }
+  console.log(`contacts.csv: ${rows.length - 1} contacts, ${linked} linked to a roster number`);
+} else {
+  console.log(
+    "No data/contacts.csv — phone evidence skipped. Export Google Contacts as CSV from the phone that exported the chats to auto-resolve named senders."
+  );
+}
 
 function tokens(s: string): string[] {
   return s
@@ -85,20 +146,19 @@ const texts = fs
   .map((f) => fs.readFileSync(path.join(exportsDir, f), "utf-8"));
 const senders = parseWhatsAppExports(texts, YEAR_START, YEAR_END);
 
-const rows: { key: string; msgs: number; cands: string[] }[] = [];
+const rows: { key: string; msgs: number; cands: string[]; phoneResolved: boolean }[] = [];
 for (const s of senders.values()) {
   if (s.isPhone) continue;
+  const viaPhone = byContactName.get(normName(s.senderKey));
   const senderToks = tokens(s.senderKey);
   const scored = [...people.values()]
     .map((p) => ({ p, sc: score(senderToks, p) }))
-    .filter((x) => x.sc >= 0.5)
+    .filter((x) => x.sc >= 0.5 && x.p.email !== viaPhone?.email)
     .sort((a, b) => b.sc - a.sc)
-    .slice(0, 3);
-  rows.push({
-    key: s.senderKey,
-    msgs: s.messageCount,
-    cands: scored.map((x) => `${x.p.name} <${x.p.email}> [${x.sc.toFixed(2)}]`),
-  });
+    .slice(0, viaPhone ? 2 : 3);
+  const cands = scored.map((x) => `${x.p.name} <${x.p.email}> [${x.sc.toFixed(2)}]`);
+  if (viaPhone) cands.unshift(`${viaPhone.name} <${viaPhone.email}> [phone]`);
+  rows.push({ key: s.senderKey, msgs: s.messageCount, cands, phoneResolved: Boolean(viaPhone) });
 }
 rows.sort((a, b) => b.msgs - a.msgs);
 
@@ -114,10 +174,15 @@ const csv = [
 fs.writeFileSync(outPath, csv, "utf-8");
 
 const withCand = rows.filter((r) => r.cands.length > 0);
+const phoneRows = rows.filter((r) => r.phoneResolved);
 const msgsCovered = withCand.reduce((s, r) => s + r.msgs, 0);
+const msgsPhone = phoneRows.reduce((s, r) => s + r.msgs, 0);
 const msgsTotal = rows.reduce((s, r) => s + r.msgs, 0);
 console.log(`Wrote ${outPath}`);
 console.log(`name senders: ${rows.length}, with >=1 candidate: ${withCand.length}`);
 console.log(
   `message volume with a candidate: ${msgsCovered} of ${msgsTotal} (${((msgsCovered / msgsTotal) * 100).toFixed(1)}%)`
+);
+console.log(
+  `phone-resolved (contacts.csv): ${phoneRows.length} senders, ${msgsPhone} msgs (${((msgsPhone / msgsTotal) * 100).toFixed(1)}%)`
 );

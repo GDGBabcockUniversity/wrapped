@@ -180,8 +180,17 @@ async function main() {
   }
 
   if (matchRatePct < 80) {
-    console.error(`Match rate ${matchRatePct}% is below the 80% gate. Refusing to write. Fix data/mapping.json first.`);
-    process.exit(1);
+    // --allow-low-match: the provisional-write escape hatch (owner,
+    // 2026-07-20) — ship real chapter/event data now, re-run for personal
+    // message stats once data/mapping.json is curated.
+    if (args.includes("--allow-low-match")) {
+      console.warn(
+        `Match rate ${matchRatePct}% is below the 80% gate — writing anyway (--allow-low-match). Personal message stats will be missing/low until data/mapping.json is curated.`
+      );
+    } else {
+      console.error(`Match rate ${matchRatePct}% is below the 80% gate. Refusing to write. Fix data/mapping.json first.`);
+      process.exit(1);
+    }
   }
   if (!clubFloorOk) {
     console.warn("Warning: at least one club is below the 8% population floor after rebalancing.");
