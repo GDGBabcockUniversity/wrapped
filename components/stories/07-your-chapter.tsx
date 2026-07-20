@@ -110,21 +110,30 @@ export function YourChapterStory({ phase, snapshot, guest }: StoryProps) {
             </motion.div>
           );
         })}
+        {/* YOU floats clearly ABOVE the track on a tall stem, not planted on
+            it: at the old -8 lift with a 16px pole the flag sat right on the
+            green milestone dots, so a member who joined near a milestone (or
+            before the year — clamped to the far left) merged into it as one
+            unreadable cluster (real-device bug, IMG_6460). Longer stem + a
+            backed label + z-20 make it read as "you are here", separate from
+            the on-track dots underneath. */}
         <motion.div
-          className="absolute top-1/2 flex flex-col items-center"
+          className="absolute top-1/2 z-20 flex flex-col items-center"
           style={{
-            left: `${Math.max(2, Math.min(98, joinFraction * 100))}%`,
+            left: `${Math.max(3, Math.min(97, joinFraction * 100))}%`,
             transform: "translate(-50%, -100%)",
           }}
           initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: -8 }}
+          animate={{ opacity: 1, y: -18 }}
           transition={{ duration: 0.4, delay: 1 }}
         >
           <IdleFloat y={-5} duration={2.4} delay={1.6} className="flex flex-col items-center">
-            <span className="t-label text-cream text-[0.55rem] mb-1">YOU</span>
-            <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden>
+            <span className="t-label text-cream text-[0.55rem] mb-1 px-1.5 py-0.5 rounded-full bg-gdg-green">
+              YOU
+            </span>
+            <svg width="12" height="30" viewBox="0 0 12 30" aria-hidden>
               <path d="M1 0 L11 4 L1 8 Z" fill="#fff6e0" />
-              <line x1="1" y1="0" x2="1" y2="16" stroke="#fff6e0" strokeWidth="1" />
+              <line x1="1" y1="0" x2="1" y2="30" stroke="#fff6e0" strokeWidth="1" />
             </svg>
           </IdleFloat>
         </motion.div>
