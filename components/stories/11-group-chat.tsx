@@ -37,7 +37,7 @@ function Stat({ value, label, detail }: { value: number | string; label: string;
         className="t-label text-cream/60 text-center"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.35 }}
+        transition={{ duration: 0.35, delay: 0.55 }}
       >
         {label}
       </motion.p>
@@ -46,7 +46,7 @@ function Stat({ value, label, detail }: { value: number | string; label: string;
           className="t-body text-cream/50 text-sm text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.6 }}
+          transition={{ duration: 0.35, delay: 1.0 }}
         >
           {detail}
         </motion.p>
@@ -64,7 +64,7 @@ function BarRow({ label, count, maxCount, index }: { label: string; count: numbe
       className="flex items-center gap-2"
       initial={{ opacity: 0, scaleX: 0.9, y: 10 }}
       animate={{ opacity: 1, scaleX: 1, y: 0 }}
-      transition={{ ...SPRING.default, delay: index * 0.09 }}
+      transition={{ ...SPRING.default, delay: index * 0.15 }}
       style={{ transformOrigin: "left" }}
     >
       <span
@@ -110,7 +110,7 @@ function BarList({
           className="t-body text-cream/50 text-sm text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.3 + rows.length * 0.09 }}
+          transition={{ duration: 0.3, delay: 0.4 + rows.length * 0.15 }}
         >
           {sub}
         </motion.p>
@@ -122,7 +122,7 @@ function BarList({
 // build6 §6.3: the vocabulary beat — top words as scattered sticker chips,
 // each with its count beneath, stamping in one by one.
 const VOCAB_ROTATIONS = [-6, 4, -3, 6, -5, 2];
-const VOCAB_STAMP_MS = 120;
+const VOCAB_STAMP_MS = 170;
 
 function VocabChip({ word, count, index }: { word: string; count: number; index: number }) {
   const reduceMotion = useReducedMotion();
@@ -184,7 +184,7 @@ function EmojiPodium() {
           className="flex flex-wrap justify-center gap-3"
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.6 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
+          transition={{ duration: 0.4, delay: 0.9 }}
         >
           {rest.map((e) => (
             <span key={e.emoji} className="t-label flex items-center gap-1">
@@ -240,14 +240,14 @@ function buildBeats(): ReactNode[] {
         className="t-label text-cream/60 text-center"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.35 }}
+        transition={{ duration: 0.35, delay: 0.55 }}
       >
         {copy.groupChat.busiestLabel}
       </motion.p>
       <motion.div
         initial={{ scale: 1.25, rotate: -6, opacity: 0 }}
         animate={{ scale: 1, rotate: -1.5, opacity: 1 }}
-        transition={{ ...SPRING.stamp, delay: 0.45 }}
+        transition={{ ...SPRING.stamp, delay: 0.75 }}
       >
         <StickerChip className="t-label">{GROUP_CHAT.busiestDay.label}</StickerChip>
       </motion.div>
@@ -255,7 +255,7 @@ function buildBeats(): ReactNode[] {
         className="t-body text-cream/50 text-sm text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: 0.75 }}
+        transition={{ duration: 0.4, delay: 1.25 }}
       >
         {GROUP_CHAT.busiestDay.line}
       </motion.p>
@@ -272,7 +272,7 @@ function buildBeats(): ReactNode[] {
         className="t-body text-cream/55 text-center"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.5 }}
+        transition={{ duration: 0.4, delay: 0.75 }}
       >
         {fmt(copy.groupChat.nightSub, { afterMidnight: GROUP_CHAT.afterMidnight })}
       </motion.p>
@@ -373,7 +373,7 @@ function buildBeats(): ReactNode[] {
           className="t-body text-cream/55 text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
+          transition={{ duration: 0.4, delay: 0.7 }}
         >
           {fmt(copy.groupChat.subgroupSub, { messages: subgroup.messages })}
         </motion.p>
@@ -382,7 +382,7 @@ function buildBeats(): ReactNode[] {
             className="w-full max-w-xs flex flex-col gap-2 mt-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.7 }}
+            transition={{ duration: 0.4, delay: 1.1 }}
           >
             <p className="t-label text-cream/50 text-center" style={{ fontSize: "0.6rem" }}>
               {copy.groupChat.subgroupAllTitle}
@@ -399,23 +399,50 @@ function buildBeats(): ReactNode[] {
   return beats;
 }
 
-const BEAT_MS = [2200, 3600, 2600, 2400, 2600, 2800, 2600, 2600, 2600, 2600, 2000, 2200, 2400];
+// build7 §6: "the whatsapp stats just blitz through — calm down, this is a
+// journey." Every beat re-timed to breathe — stat beats ~3800ms, list/podium/
+// vocab ~4200ms, the busiest-day and streak moment beats ~4000ms — paired with
+// the slower within-beat reveals above (labels, details, and bar rows now land
+// with real space between them). Beats are per-index so the two moment beats
+// (busiest, streak) and the richer lists get their extra air.
+const BEAT_MS = [
+  3800, // messages (stat)
+  4200, // yappers (list)
+  4000, // busiest (moment — three sub-beats)
+  3800, // night
+  3800, // stickers (stat)
+  4200, // dialect (list)
+  4200, // topics (list)
+  4200, // vocabulary (stamped chips)
+  4200, // emoji podium
+  4200, // starters (list)
+  3600, // laughs (stat)
+  4000, // streak (stat/moment)
+  4400, // subgroup (headline + 4-row ranking)
+];
 const BEATS = buildBeats();
 
-export function GroupChatStory({ phase, active, paused }: StoryProps) {
+export function GroupChatStory({ phase, active, paused, onComplete }: StoryProps) {
   const glQuality = useGlQualityContext();
   const [beatIdx, setBeatIdx] = useState(0);
 
   useEffect(() => {
     if (phase !== "reveal" || !active || paused) return;
-    const ms = BEAT_MS[beatIdx] ?? 2200;
-    if (beatIdx >= BEATS.length - 1) return; // hold on the final beat
+    const ms = BEAT_MS[beatIdx] ?? 3800;
+    const isLast = beatIdx >= BEATS.length - 1;
     const id = setTimeout(() => {
+      if (isLast) {
+        // Hand off after the final beat's hold rather than idling — the
+        // slower total now exceeds a fixed revealMs, so onComplete drives the
+        // advance (same pattern as moments/people; §6 + build6 §2.6).
+        onComplete?.();
+        return;
+      }
       setBeatIdx((i) => i + 1);
       playSfx("tick");
     }, ms);
     return () => clearTimeout(id);
-  }, [phase, active, paused, beatIdx]);
+  }, [phase, active, paused, beatIdx, onComplete]);
 
   if (phase === "setup") {
     return (

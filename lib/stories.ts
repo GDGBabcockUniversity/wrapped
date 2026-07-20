@@ -59,7 +59,11 @@ export const STORIES: StoryDef[] = [
   // vocabulary, emoji podium, starters) at 2600ms each — +10,400ms over
   // build5 §4.4's 9-beat, 22,800ms baseline = 33,200ms scripted worst
   // case; 33200/0.8 = 41,500, rounded up.
-  { id: "group-chat", index: 3, personal: false, accent: "green", field: "ink", setupMs: 3200, revealMs: 42000, label: "The Group Chat" },
+  // build7 §6 supersedes: beats re-timed to breathe (~3800–4400ms each, was
+  // ~2200–2800) — "calm down, this is a journey." 13 beats ~52,600ms scripted,
+  // then onComplete hands off after the final beat's hold; revealMs 56000 is
+  // the backstop above that.
+  { id: "group-chat", index: 3, personal: false, accent: "green", field: "ink", setupMs: 3200, revealMs: 56000, label: "The Group Chat" },
   // revealMs 64000 → 103000 (build5 §6.7): the sponsor wall (real ORBIT
   // data) plus the four-chapter closer arc (advisors/MVPs/special force)
   // replace the old two-slide special thanks — cards 23,100ms + content
