@@ -28,7 +28,6 @@ const OVERLAY_FADE_S = 0.2;
 // build7 §2: stage the three lanes in TIME, not all-at-once. Logo stamps
 // first (center), the belt fades into the upper lane, then the cold-open
 // line owns the lower third — each element gets the stage before the next.
-const LOGO_STAMP_S = 0.3;
 const BELT_APPEAR_S = 0.6;
 const OVERLAY_LINE1_AT = 950;
 const OVERLAY_LINE2_AT = 2050;
@@ -81,13 +80,13 @@ function ColdOpenLine({ entry }: { entry: (typeof copy.theYear.coldOpen)[number]
 function DriveOverlayLine({ text, visible }: { text: string; visible: boolean }) {
   return (
     <motion.div
-      className="absolute z-10 px-3 py-1.5 rounded-full bg-ink/70 whitespace-nowrap"
+      className="absolute z-10 px-4 py-2 rounded-full bg-ink/90 whitespace-nowrap"
       style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
       initial={false}
       animate={{ opacity: visible ? 1 : 0 }}
       transition={{ duration: visible ? OVERLAY_APPEAR_S : OVERLAY_FADE_S }}
     >
-      <span className="t-label text-cream">{text}</span>
+      <span className="t-label text-cream text-sm">{text}</span>
     </motion.div>
   );
 }
@@ -116,7 +115,11 @@ function DriveThrough() {
       {/* BACKGROUND — the warp field is texture now, and a scrim sits over it
           so the three lanes read cleanly above it instead of fighting it. */}
       {glQuality === "off" && <WarpFieldFigure />}
-      <div aria-hidden className="absolute inset-0 bg-ink/40 pointer-events-none" />
+      {/* Scrim bumped 0.40 -> 0.62: at 0.40 the grey checker bled through and
+          muddied the red numeral belt into near-illegibility on a real screen
+          (owner, IMG_6458). A darker field lets the red and the white caption
+          read; the warp is texture, not the subject. */}
+      <div aria-hidden className="absolute inset-0 bg-ink/62 pointer-events-none" />
 
       {/* UPPER LANE — the numeral belt travels here, well clear of the logo
           and the line. Quieter scale so several glyphs show at once and it
@@ -143,17 +146,11 @@ function DriveThrough() {
         </div>
       </motion.div>
 
-      {/* CENTER LANE — the logo is the pinned anchor the world moves around;
-          it stamps in FIRST so there's a clear subject before anything else. */}
-      <motion.div
-        className="absolute left-1/2 top-1/2 z-10"
-        style={{ transform: "translate(-50%, -50%)" }}
-        initial={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 1.25 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={reduceMotion ? { duration: 0.01 } : { ...SPRING.stamp, delay: LOGO_STAMP_S }}
-      >
-        <img src="/Sticker Logomark.png" alt="" aria-hidden className="w-16 h-auto drop-shadow-md" />
-      </motion.div>
+      {/* No center logo here anymore: pinned dead-center over the warp it read
+          as a random floating sticker (owner, IMG_6458), and the cover beat two
+          seconds earlier already plants the logomark as the brand anchor. The
+          drive-through is the belt + the caption over the warp — nothing in the
+          middle competing with them. */}
 
       {/* LOWER LANE — the cold-open line owns the bottom third, alone. */}
       <div className="absolute inset-x-0 flex justify-center px-6" style={{ top: "72%", height: "2.5rem" }}>
