@@ -11,7 +11,7 @@
  * feature degrades to silence with zero UI residue.
  */
 
-const SRC = "/audio/wrapped-loop.mp3";
+const SRC = "/loop.mp3";
 const MUTE_KEY = "wrapped-muted";
 const VOLUME = 0.35;
 
