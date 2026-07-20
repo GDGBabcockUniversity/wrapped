@@ -42,19 +42,20 @@ export interface StoryDef {
 
 export const STORIES: StoryDef[] = [
   { id: "the-year", index: 0, personal: false, accent: "blue", field: "ink", setupMs: 5600, revealMs: 8000, label: "The Year" },
-  // revealMs 30000 (build7 §4): 7 stylised pages × PAGE_MS 3800 = 26,600ms
-  // scripted, then the last page's hold hands off via onComplete — so
-  // revealMs is a backstop above the scripted total, no dead air.
-  { id: "moments", index: 1, personal: false, accent: "red", field: "cream", setupMs: 3000, revealMs: 30000, label: "The Moments" },
-  // revealMs covers the product saga's fully-filled worst case (build5 §3.2):
-  // rollcall 4500 + RADAR-full 5400 + VOTES-full 3400 + ORBIT-full 16000
-  // (1400+2200+1800+1800+2400+1600+1600+1400+1800) + quick beats 5200 =
-  // 34500 scripted, plus the guess game's worst case — a full 6000ms wait
-  // (visitor-paced, exempt from the 80% rule per build4 §8.2) plus its
-  // mandatory 2400ms post-answer hold, which DOES need the rule's headroom:
-  // (34500 + 6000 + 2400) / 0.8 = 53625, rounded up. Null-skipped TBDs only
-  // ever shorten the actual run.
-  { id: "built", index: 2, personal: false, accent: "blue", field: "ink", setupMs: 3200, revealMs: 54000, label: "What We Built" },
+  // revealMs 46000 (full slate, 2026-07-20): 11 stylised pages × PAGE_MS
+  // 3800 = 41,800ms scripted, then the last page's hold hands off via
+  // onComplete — so revealMs is a backstop above the scripted total, no
+  // dead air.
+  { id: "moments", index: 1, personal: false, accent: "red", field: "cream", setupMs: 3000, revealMs: 46000, label: "The Moments" },
+  // revealMs re-derived 2026-07-20 with build6 §2.5 beat floors and every
+  // saga stat now owner-confirmed: rollcall 4500 + RADAR 13600 (issues 3200
+  // + reads 3200 + most-read 3200 + games 4000) + VOTES 6400 + ORBIT 27600
+  // (2200+4000+3200+3200+3200+3200+3200+2200+3200) + BABCOCK100 3200 =
+  // 55,300 scripted, plus the guess game's worst case (6000ms wait + 2400ms
+  // post-answer hold) with the 80% rule's headroom:
+  // (55300 + 6000 + 2400) / 0.8 = 79,625, rounded up. A future website
+  // stat adds one 3200ms beat inside this margin.
+  { id: "built", index: 2, personal: false, accent: "blue", field: "ink", setupMs: 3200, revealMs: 80000, label: "What We Built" },
   // revealMs 42000 (build6 §6.3): the topics engine adds 4 beats (topics,
   // vocabulary, emoji podium, starters) at 2600ms each — +10,400ms over
   // build5 §4.4's 9-beat, 22,800ms baseline = 33,200ms scripted worst
