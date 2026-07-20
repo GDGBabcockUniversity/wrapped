@@ -12,7 +12,7 @@
  */
 
 const SRC = "/loop.mp3";
-const MUTE_KEY = "wrapped-muted";
+const MUTE_KEY = 0;
 const VOLUME = 0.35;
 
 let audio: HTMLAudioElement | null = null;
