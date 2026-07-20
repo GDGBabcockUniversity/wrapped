@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "ts-lint": "tsc --noEmit --incremental",
     "test": "vitest run",
-    "pipeline": "tsx scripts/pipeline/run.ts"
+    "pipeline": "tsx scripts/pipeline/run.ts",
+    "build-mapping": "tsx scripts/pipeline/build-mapping.ts",
+    "suggest-mappings": "tsx scripts/pipeline/suggest-mappings.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
