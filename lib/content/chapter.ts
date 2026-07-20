@@ -3,17 +3,27 @@ import type { StoryId } from "@/lib/stories";
 export const CHAPTER = {
   // CONFIRMED from the real community.dev export (2026-07-18): 1,607 members
   // since inception, of whom 504 are active 25/26 track members per the
-  // membership form. The receipt renders this with a "+" suffix.
+  // membership form. The receipt renders this with a "+" suffix. (The
+  // pipeline's full universe is 2,166 once ORBIT registrations land — but
+  // that includes external registrants, not members, so it stays out of
+  // this display number.)
   members: 1600,
-  // Confirmed floor from real exports so far: 7 dated events (info session,
-  // two monthly meetups, Allstars, two DevFest-weekend tracks, the Feb
-  // workshop) + ORBIT 1.0. The old 23 was wrong (owner, 2026-07-19: "i dont
-  // think we had up to 15" — and DevFest itself was attended, not organized,
-  // so it never counts here). Remaining exports may nudge this up.
+  // PIPELINE-CONFIRMED 2026-07-20 (with the ORBIT registrations CSV in):
+  // 8 dated events with attendance exports — info session (Oct 5), Special
+  // Edition meetup (Nov 2), the two DevFest-weekend track sessions (Nov 9),
+  // Allstars (Nov 16), monthly meetup (Feb 1), the SW/Infra workshop (Feb
+  // 20), ORBIT (Apr 17). The pipeline prints 9 because the auth DB still
+  // holds a "Test Event" — excluded here. DevFest was attended, not
+  // organized, so it never counts. Spaces/tech week/innovation challenge
+  // have no attendance exports; drop CSVs in data/sources/events/ to count
+  // them.
   eventsRun: 8,
   productsShipped: 5,
-  totalCheckins: 1400, // TBD-confirm (pipeline report will supply the real value)
-  messagesParsed: 13000, // TBD-confirm (pipeline report will supply the real value)
+  totalCheckins: 526, // PIPELINE-CONFIRMED 2026-07-20 (event CSV check-ins)
+  // Audited group-export totals (merge-exports + group-stats, 2026-07-19):
+  // 11,607 main-chat + 5,972 subgroup messages. The pipeline's member-path
+  // count (194) is NOT this number — that path is missing the main export.
+  messagesParsed: 17579,
 } as const;
 
 export interface Moment {
@@ -23,12 +33,45 @@ export interface Moment {
   images: string[]; // /moments/<id>/NN.jpg
 }
 
+// The full event slate, in the year's own order (owner, 2026-07-20): the
+// info session opened the year, then the monthly meetups, All Stars, the
+// Twitter Spaces, game nights (a WhatsApp thing — its page carries a stat,
+// not a check-in count), DevFest (which came before ORBIT), Babcock Tech
+// Week and the Babcock Innovation Challenge, and ORBIT closing as the
+// flagship. Image paths are pre-listed slots: a missing file renders as a
+// tinted placeholder, so dropping the photo into public/moments/<id>/
+// fills it with zero code change (e.g. the two Spaces fliers → 02/03.jpg).
 export const MOMENTS: Moment[] = [
   {
-    id: "orbit",
-    title: "ORBIT",
-    caption: "The flagship. A full first-semester arc.",
-    images: ["/moments/orbit/01.jpg", "/moments/orbit/02.jpg", "/moments/orbit/03.jpg"],
+    id: "info-session",
+    title: "INFO SESSION",
+    caption: "Day one. The room said yes.",
+    images: ["/moments/info-session/01.jpg"],
+  },
+  {
+    id: "meetups",
+    title: "MONTHLY MEETUPS",
+    caption: "Every month. No excuses.",
+    images: ["/moments/meetups/01.jpg", "/moments/meetups/02.jpg", "/moments/meetups/03.jpg"],
+  },
+  {
+    id: "allstars",
+    title: "ALL STARS",
+    caption: "Every track's best, one room.",
+    images: ["/moments/allstars/01.jpg"],
+  },
+  {
+    id: "spaces",
+    title: "TWITTER SPACES",
+    caption: "The conversations that ran too long.",
+    // 01 exists today; 02/03 are the two fliers the owner is dropping in.
+    images: ["/moments/spaces/01.jpg", "/moments/spaces/02.jpg", "/moments/spaces/03.jpg"],
+  },
+  {
+    id: "games",
+    title: "GAME NIGHTS",
+    caption: "Competitive. Unnecessarily so.",
+    images: ["/moments/games/01.jpg", "/moments/games/02.jpg"],
   },
   {
     // build7 §3.3: DevFest is the continent's largest developer gathering —
@@ -39,16 +82,22 @@ export const MOMENTS: Moment[] = [
     images: ["/moments/devfest/01.jpg", "/moments/devfest/02.jpg"],
   },
   {
-    id: "games",
-    title: "GAME NIGHTS",
-    caption: "Competitive. Unnecessarily so.",
-    images: ["/moments/games/01.jpg", "/moments/games/02.jpg"],
+    id: "techweek",
+    title: "BABCOCK TECH WEEK",
+    caption: "A whole week. The whole campus.",
+    images: ["/moments/techweek/01.jpg"],
   },
   {
-    id: "spaces",
-    title: "TWITTER SPACES",
-    caption: "The conversations that ran too long.",
-    images: ["/moments/spaces/01.jpg"],
+    id: "innovation",
+    title: "INNOVATION CHALLENGE",
+    caption: "Pitched. Judged. Crowned.",
+    images: ["/moments/innovation/01.jpg"],
+  },
+  {
+    id: "orbit",
+    title: "ORBIT",
+    caption: "The flagship. A full second-semester arc.",
+    images: ["/moments/orbit/01.jpg", "/moments/orbit/02.jpg", "/moments/orbit/03.jpg"],
   },
 ];
 
@@ -64,9 +113,9 @@ export const PRODUCTS = [
 // product with receipts instead of a flat stat cycle. Every `null` beat is
 // SKIPPED at render (no blank, no zero). VERIFIED values were read directly
 // from the ORBIT repo (src/lib/constants.ts) and the Radar repo
-// (app/lib/games.ts) on 2026-07-19; everything else is a pipeline-pending
-// TBD — the pipeline report (build5 §5.3) prints this whole block with real
-// values filled where it can, for paste-back before copy freeze.
+// (app/lib/games.ts) on 2026-07-19; the rest are OWNER-CONFIRMED 2026-07-20
+// (Radar issues/reads, BabcockVotes totals, ORBIT crowd sizes, Babcock100).
+// Still open: Radar game plays (only the Radar DB knows) and site analytics.
 export interface SagaStat {
   value: number | string; // slam numeral or string (e.g. "MONIEPOINT")
   label: string; // small-caps label
@@ -74,27 +123,29 @@ export interface SagaStat {
 }
 export const PRODUCT_SAGA = {
   radar: {
-    articles: null as SagaStat | null, // TBD { value, label: "ARTICLES PUBLISHED" }
-    mostRead: null as SagaStat | null, // TBD { value: "<title>", label: "MOST READ" }
-    reads: null as SagaStat | null, // TBD { value, label: "TOTAL READS" }
-    games: { value: 7, label: "GAMES SHIPPED" } as SagaStat, // VERIFIED (radar repo)
+    // 7 issues since December, including Radar's first-ever series. Reads
+    // per issue: 30, 46, 159, 140, 273, 126, 74 — issue 5 leads.
+    articles: { value: 7, label: "ISSUES PUBLISHED", detail: "the first dropped in December" } as SagaStat,
+    mostRead: { value: "ISSUE 5", label: "MOST READ" } as SagaStat,
+    reads: { value: 848, label: "TOTAL READS", detail: "including our first-ever series" } as SagaStat,
+    games: { value: 7, label: "GAMES SHIPPED", detail: "3 in the newsletter, then 4 more" } as SagaStat, // VERIFIED (radar repo)
     gameNames: [
       "SIGNAL", "CROSSLINKS", "CRYPTIC", "RAPID FIRE",
       "NEW YEAR, NEW LIES", "VALENTINE'S MATCH", "FIND YOUR TRACK",
     ],
   },
   votes: {
-    elections: null as SagaStat | null, // TBD { value, label: "ELECTIONS RUN" }
-    votesCast: null as SagaStat | null, // TBD { value, label: "VOTES CAST" }
+    elections: { value: 9, label: "ELECTIONS RUN" } as SagaStat,
+    votesCast: { value: 29253, label: "VOTES CAST" } as SagaStat,
     fallbackLine: "Democracy, but make it digital.", // shown only if BOTH null
   },
   orbit: {
     intro: "ONE FLAGSHIP. THREE DAYS.",
     companies: { value: 5, label: "COMPANIES VISITED" } as SagaStat, // VERIFIED
     companyNames: ["PAYSTACK", "DIGITAL ENCODE", "RISE", "NITHUB", "CUBBES"],
-    lagos: null as SagaStat | null, // TBD { value, label: "STUDENTS TO LAGOS" }
-    careerFair: null as SagaStat | null, // TBD { value, label: "AT THE CAREER FAIR" }
-    summit: null as SagaStat | null, // TBD { value, label: "AT THE SUMMIT" }
+    lagos: { value: "70+", label: "STUDENTS TO LAGOS", detail: "the industry field trip" } as SagaStat,
+    careerFair: { value: "1,000+", label: "AT THE CAREER FAIR" } as SagaStat,
+    summit: { value: "500+", label: "AT THE CONFERENCE" } as SagaStat,
     speakers: { value: 12, label: "SPEAKERS ON STAGE", detail: "and 2 moderators keeping them honest" } as SagaStat, // VERIFIED
     tickets: { value: 547, label: "TICKETS ISSUED" } as SagaStat, // VERIFIED (build7 §3.1: check-in detail dropped)
     sponsors: { value: 23, label: "SPONSORS & PARTNERS" } as SagaStat, // VERIFIED
@@ -102,7 +153,7 @@ export const PRODUCT_SAGA = {
     headline: { value: "MONIEPOINT", label: "HEADLINE SPONSOR" } as SagaStat, // VERIFIED
   },
   website: null as SagaStat | null, // TBD (site analytics)
-  babcock100: null as SagaStat | null, // TBD
+  babcock100: { value: "400+", label: "NOMINATIONS", detail: "175 shortlisted" } as SagaStat,
 } as const;
 
 // The share card's per-product headline number (build5 §3.2 point 5) —

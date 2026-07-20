@@ -247,14 +247,21 @@ const COMPOUND_BEAT_MS = 4000;
 function buildSagaBeats(): SagaBeat[] {
   const beats: SagaBeat[] = [];
 
-  // RADAR — articles and most-read are TBD-pending; games always renders
-  // (Radar never shows up empty-handed).
+  // RADAR — issues, then the reads receipt, then the most-read chip; games
+  // always renders (Radar never shows up empty-handed).
   const radarHeader: ChapterHeader = { label: "RADAR", color: RADAR_COLOR };
   if (PRODUCT_SAGA.radar.articles) {
     beats.push({
       header: radarHeader,
       ms: STAT_BEAT_MS,
       node: <StatBeat stat={PRODUCT_SAGA.radar.articles} color={RADAR_COLOR} />,
+    });
+  }
+  if (PRODUCT_SAGA.radar.reads) {
+    beats.push({
+      header: radarHeader,
+      ms: STAT_BEAT_MS,
+      node: <StatBeat stat={PRODUCT_SAGA.radar.reads} color={RADAR_COLOR} />,
     });
   }
   if (PRODUCT_SAGA.radar.mostRead) {

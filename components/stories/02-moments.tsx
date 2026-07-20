@@ -17,14 +17,16 @@ import { playSfx } from "@/lib/sfx";
 import type { StoryProps } from "./types";
 
 /**
- * The Moments spread (build7 §4). Each event gets a multi-page STYLISED
- * spread — polaroid, filmstrip, postcard — not one 4-photo scatter. ORBIT
- * (the flagship) runs 3 pages, DevFest 2, game nights and spaces one composed
- * page each. Pages page-turn with varied transitions (never the same red
- * wipe), and the whole thing scales to however many photos exist — each frame
- * fills its slots from the event's photo pool and shows a tinted placeholder
- * for any empty slot, so dropping more photos into public/moments/<event>/
- * auto-expands the spread with zero code change.
+ * The Moments spread (build7 §4). Each event gets a STYLISED page —
+ * polaroid, filmstrip, postcard — not one 4-photo scatter, and the pages run
+ * in the year's own order (owner, 2026-07-20): info session first, meetups,
+ * All Stars, the Spaces, game nights (a WhatsApp thing — its page carries
+ * the busiest-night stat), DevFest (before ORBIT), Tech Week and the
+ * Innovation Challenge, then ORBIT closing on a full three-page arc. Pages
+ * page-turn with varied transitions (never the same red wipe), and every
+ * frame fills its slots from the event's photo pool with a tinted
+ * placeholder for any empty slot, so dropping photos into
+ * public/moments/<event>/ fills the spread with zero code change.
  */
 
 type PageKind = "polaroid" | "filmstrip" | "postcard";
@@ -48,23 +50,42 @@ function padTo(arr: (string | undefined)[], n: number): (string | undefined)[] {
   return out;
 }
 
-const orbit = MOMENTS[0]!;
-const devfest = MOMENTS[1]!;
-const games = MOMENTS[2]!;
-const spaces = MOMENTS[3]!;
+function momentById(id: string) {
+  const m = MOMENTS.find((x) => x.id === id);
+  if (!m) throw new Error(`Unknown moment id: ${id}`);
+  return m;
+}
+const info = momentById("info-session");
+const meetups = momentById("meetups");
+const allstars = momentById("allstars");
+const spaces = momentById("spaces");
+const games = momentById("games");
+const devfest = momentById("devfest");
+const techweek = momentById("techweek");
+const innovation = momentById("innovation");
+const orbit = momentById("orbit");
 
 const PAGES: MomentPage[] = [
-  // ORBIT — the flagship, a full three-page arc.
+  // THE INFO SESSION — where the year started.
+  { key: "info-1", event: "INFO SESSION", kind: "polaroid", photos: [info.images[0]], photoStart: 0, caption: info.caption, accent: ACCENT_HEX.blue },
+  // MONTHLY MEETUPS — the rhythm underneath everything else.
+  { key: "meetups-1", event: "MONTHLY MEETUPS", kind: "filmstrip", photos: padTo(meetups.images, 3), photoStart: 0, caption: meetups.caption, accent: ACCENT_HEX.green },
+  // ALL STARS — one proud polaroid.
+  { key: "allstars-1", event: "ALL STARS", kind: "polaroid", photos: [allstars.images[0]], photoStart: 0, caption: allstars.caption, accent: ACCENT_HEX.yellow },
+  // TWITTER SPACES — the live shot plus the two fliers.
+  { key: "spaces-1", event: "TWITTER SPACES", kind: "filmstrip", photos: padTo(spaces.images, 3), photoStart: 0, caption: spaces.caption, accent: ACCENT_HEX.green },
+  // GAME NIGHTS — a WhatsApp thing, so its page IS the loudest-night stat.
+  { key: "games-1", event: "GAME NIGHTS", kind: "postcard", photos: [games.images[0]], photoStart: 0, stat: GROUP_CHAT.busiestDay.count.toLocaleString("en-US"), statLabel: "MESSAGES, ONE NIGHT", caption: games.caption, accent: ACCENT_HEX.yellow },
+  // DEVFEST — before ORBIT, as it happened. Two proud pages.
+  { key: "devfest-1", event: "DEVFEST", kind: "polaroid", photos: [devfest.images[0]], photoStart: 0, caption: devfest.caption, accent: ACCENT_HEX.blue },
+  { key: "devfest-2", event: "DEVFEST", kind: "filmstrip", photos: padTo(devfest.images.slice(1), 3), photoStart: 1, accent: ACCENT_HEX.blue },
+  // BABCOCK TECH WEEK and the INNOVATION CHALLENGE — the campus's week.
+  { key: "techweek-1", event: "BABCOCK TECH WEEK", kind: "polaroid", photos: [techweek.images[0]], photoStart: 0, caption: techweek.caption, accent: ACCENT_HEX.green },
+  { key: "innovation-1", event: "INNOVATION CHALLENGE", kind: "postcard", photos: [innovation.images[0]], photoStart: 0, caption: innovation.caption, accent: ACCENT_HEX.yellow },
+  // ORBIT — the flagship closes the spread, a full three-page arc.
   { key: "orbit-1", event: "ORBIT", kind: "polaroid", photos: [orbit.images[0]], photoStart: 0, caption: orbit.caption, accent: ACCENT_HEX.red },
   { key: "orbit-2", event: "ORBIT", kind: "filmstrip", photos: padTo(orbit.images.slice(1), 3), photoStart: 1, accent: ACCENT_HEX.red },
   { key: "orbit-3", event: "ORBIT", kind: "postcard", photos: [orbit.images[4] ?? orbit.images[0]], photoStart: 4, stat: "547", statLabel: "TICKETS ISSUED", accent: ACCENT_HEX.red },
-  // DEVFEST — the continent's biggest, two proud pages.
-  { key: "devfest-1", event: "DEVFEST", kind: "polaroid", photos: [devfest.images[0]], photoStart: 0, caption: devfest.caption, accent: ACCENT_HEX.blue },
-  { key: "devfest-2", event: "DEVFEST", kind: "filmstrip", photos: padTo(devfest.images.slice(1), 3), photoStart: 1, accent: ACCENT_HEX.blue },
-  // GAME NIGHTS — one composed postcard carrying the loudest-night stat.
-  { key: "games-1", event: "GAME NIGHTS", kind: "postcard", photos: [games.images[0]], photoStart: 0, stat: GROUP_CHAT.busiestDay.count.toLocaleString("en-US"), statLabel: "MESSAGES, ONE NIGHT", caption: games.caption, accent: ACCENT_HEX.yellow },
-  // TWITTER SPACES — one quiet polaroid.
-  { key: "spaces-1", event: "TWITTER SPACES", kind: "polaroid", photos: [spaces.images[0]], photoStart: 0, caption: spaces.caption, accent: ACCENT_HEX.green },
 ];
 
 const EXIT_EASE = [0.83, 0, 0.17, 1] as const;
