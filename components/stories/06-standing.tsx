@@ -27,7 +27,11 @@ function Seal() {
   return (
     <svg width="0" height="0" aria-hidden>
       <defs>
-        <path id={id} d="M 4,54 A 50,50 0 1 1 104,54" fill="none" />
+        {/* The seal text rides the ring itself (r≈92 of the 240 box), a top
+            arc from 9 o'clock over 12 to 3 — it used to sit on a stray r50
+            arc parked in the upper-left, which drove the curved text straight
+            through the TOP wordmark (real-device bug, IMG_6459). */}
+        <path id={id} d="M 28,120 A 92,92 0 1 1 212,120" fill="none" />
       </defs>
     </svg>
   );
@@ -70,12 +74,12 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
       <div className="absolute inset-0 flex flex-col items-center justify-center text-ink px-6 pt-20 pb-16 gap-6 text-center overflow-hidden">
         <DotField accent={ACCENT_HEX.red} edge="both" />
         <Seal />
-        <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
+        <div className="relative flex items-center justify-center" style={{ width: 240, height: 240 }}>
           {/* Beat 1: the seal ring draws in, then keeps its slow rotation. */}
           <motion.svg
-            width="220"
-            height="220"
-            viewBox="0 0 220 220"
+            width="240"
+            height="240"
+            viewBox="0 0 240 240"
             className="absolute inset-0"
             initial={{ scale: reduceMotion ? 1 : 0.85, opacity: reduceMotion ? 1 : 0 }}
             animate={{ scale: 1, opacity: 1, rotate: 360 }}
@@ -86,9 +90,9 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
             }}
           >
             <circle
-              cx="110"
-              cy="110"
-              r="95"
+              cx="120"
+              cy="120"
+              r="100"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
@@ -116,7 +120,7 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
                   }
             }
             className="t-monument text-gdg-red leading-none relative z-10"
-            style={{ fontSize: "clamp(3.5rem, 22cqw, 6rem)" }}
+            style={{ fontSize: "clamp(2.5rem, 15cqw, 4rem)" }}
           >
             {fmt(copy.standing.revealTier, { percentile: tierNum })}
           </motion.p>
@@ -125,7 +129,7 @@ export function StandingStory({ phase, snapshot, guest }: StoryProps) {
             <motion.div
               aria-hidden
               className="absolute rounded-full border-2 border-ink/40"
-              style={{ width: 220, height: 220 }}
+              style={{ width: 240, height: 240 }}
               initial={{ scale: 1, opacity: 0 }}
               animate={{ scale: 1.6, opacity: [0, 0.5, 0] }}
               transition={{ duration: 0.4, delay: 1.15, times: [0, 0.2, 1] }}
