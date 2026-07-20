@@ -570,7 +570,10 @@ export function BuiltStory({ phase, active, paused, onComplete }: StoryProps) {
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.22, ease: "easeOut" }}
               >
-                {currentBeat.node}
+                {/* build7 §8: the saga's stat beats hold 3.2–4s — a slow drift
+                    keeps the hero alive through the hold (law 10, secondary
+                    motion) instead of freezing after it lands. */}
+                <IdleFloat y={-4} duration={5.5} delay={0.9}>{currentBeat.node}</IdleFloat>
               </motion.div>
             </AnimatePresence>
           </div>

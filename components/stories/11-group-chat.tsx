@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { PopLetters } from "@/components/pop-letters";
 import { SlamStat } from "@/components/slam-stat";
 import { StickerChip } from "@/components/sticker-chip";
+import { IdleFloat } from "@/components/idle-float";
 import { GROUP_CHAT, GROUP_TOPICS } from "@/lib/content/chapter";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
@@ -471,7 +472,10 @@ export function GroupChatStory({ phase, active, paused, onComplete }: StoryProps
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            {BEATS[beatIdx]}
+            {/* build7 §8: the beats now hold ~4s (commit 6) — a frozen hero
+                for that long reads as dead (law 10). A slow drift keeps every
+                freeze-frame alive through the longer hold. */}
+            <IdleFloat y={-4} duration={5.5} delay={0.9}>{BEATS[beatIdx]}</IdleFloat>
           </motion.div>
         </AnimatePresence>
       </div>
