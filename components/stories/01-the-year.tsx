@@ -23,13 +23,21 @@ import type { StoryProps } from "./types";
 const COVER_MS = OVERTURE.coverMs;
 const DRIVE_MS = OVERTURE.driveMs;
 const OVERLAY_APPEAR_S = 0.18;
-const OVERLAY_HOLD_MS = 1150;
+const OVERLAY_HOLD_MS = 1000;
 const OVERLAY_FADE_S = 0.2;
 // build7 §2: stage the three lanes in TIME, not all-at-once. Logo stamps
 // first (center), the belt fades into the upper lane, then the cold-open
 // line owns the lower third — each element gets the stage before the next.
 const BELT_APPEAR_S = 0.6;
-const OVERLAY_LINE1_AT = 950;
+// Two captions share ONE `line` state at the same screen position, so their
+// windows must not touch: line 1 must be fully hidden (its OVERLAY_FADE_S
+// fade included) BEFORE line 2 shows, or line 1's hide timer clobbers line 2.
+// Old values (950/1150/2050) made line 1 hide at 2100 — 50ms AFTER line 2
+// showed at 2050 — so "One unhinged year." flashed for 50ms and vanished
+// (owner recording: "a pill for half a second, something about to show, then
+// What a year"). Now: line 1 shows 800→1800 (gone ~2000 after fade), line 2
+// shows 2050→3050 — a clean 250ms gap, both legible, both within DRIVE_MS.
+const OVERLAY_LINE1_AT = 800;
 const OVERLAY_LINE2_AT = 2050;
 // The numeral belt (build6 §2.2, law 10): a continuous marquee replacing
 // the old two-lone-numerals crossing, which held a dead, static-looking
