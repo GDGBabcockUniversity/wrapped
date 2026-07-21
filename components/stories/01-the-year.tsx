@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Counter } from "@/components/counter";
 import { IdleFloat } from "@/components/idle-float";
@@ -254,12 +254,24 @@ function ColdOpen() {
   const hasMounted = useHasMounted();
   const [beat, setBeat] = useState<"cover" | "drive" | "calm">("cover");
 
+  // Read reduced-motion through a ref so the beat schedule below depends ONLY
+  // on hasMounted (which flips false->true exactly once). Keying it on
+  // reduceMotion instead let a late-resolving media query — iOS Safari can
+  // report prefers-reduced-motion a beat AFTER mount — re-fire the effect,
+  // which cleared the running timers and re-armed cover->drive->calm from
+  // the current moment: the intro visibly restarted ("a pill flashes, then
+  // back to What a year again"). The schedule now arms once and never resets.
+  const reduceMotionRef = useRef(reduceMotion);
+  useEffect(() => {
+    reduceMotionRef.current = reduceMotion;
+  }, [reduceMotion]);
+
   useEffect(() => {
     if (!hasMounted) return;
     // Reduced motion skips the drive-through spectacle entirely: cover,
     // then straight to the calm resolve. Deferred through setTimeout rather
     // than calling setState synchronously in the effect body.
-    if (reduceMotion) {
+    if (reduceMotionRef.current) {
       const t = setTimeout(() => setBeat("calm"), 1200);
       return () => clearTimeout(t);
     }
@@ -269,7 +281,7 @@ function ColdOpen() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [hasMounted, reduceMotion]);
+  }, [hasMounted]);
 
   useEffect(() => {
     if (beat === "calm") vibrate(8); // the resolve's moment of contact
