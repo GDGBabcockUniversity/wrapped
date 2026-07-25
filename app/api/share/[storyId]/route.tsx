@@ -16,6 +16,7 @@ import {
   GroupChatCard,
   PeopleCard,
   YourEventsCard,
+  YourRadarCard,
   StandingCard,
   YourChapterCard,
   YourClubCard,
@@ -127,6 +128,8 @@ function renderPersonalCard(id: StoryId, snapshot: Snapshot | null, guest: boole
   switch (id) {
     case "your-events":
       return snapshot ? <YourEventsCard snapshot={snapshot} t={t} /> : guestFallback;
+    case "your-radar":
+      return snapshot ? <YourRadarCard snapshot={snapshot} t={t} /> : guestFallback;
     case "standing":
       return snapshot ? <StandingCard snapshot={snapshot} t={t} /> : guestFallback;
     case "your-chapter":
