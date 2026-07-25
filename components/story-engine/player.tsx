@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { track } from "@vercel/analytics";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { STORIES, TIMING, OVERTURE, SHADER_STORY } from "@/lib/stories";
+import {
+  STORIES,
+  TIMING,
+  OVERTURE,
+  SHADER_STORY,
+  skipsForSnapshot,
+} from "@/lib/stories";
 import { STORY_COMPONENTS } from "@/components/stories";
 import { CLUBS } from "@/lib/clubs";
 import { ACCENT_HEX } from "@/components/gl/shaders";
@@ -182,7 +188,11 @@ export function Player() {
       .then((data: MeResponse) => {
         setMe(data);
         setDbDegraded(!!data.degraded);
-        dispatch({ type: "SET_MEMBER", isMember: !!data.member });
+        dispatch({
+          type: "SET_MEMBER",
+          isMember: !!data.member,
+          skipIds: skipsForSnapshot(data.snapshot ?? null),
+        });
         if (!verifiedTracked.current) {
           verifiedTracked.current = true;
           track("magiclink_verified", { member: !!data.member });

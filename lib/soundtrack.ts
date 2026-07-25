@@ -19,6 +19,7 @@ export const SOUNDTRACK: Record<StoryId, string> = {
   "group-chat": "/audio/loop.mp3", // placeholder → /audio/stories/group-chat.mp3
   people: "/audio/loop.mp3", // placeholder → /audio/stories/people.mp3
   "your-events": "/audio/loop.mp3", // placeholder → /audio/stories/your-events.mp3
+  "your-radar": "/audio/loop.mp3", // placeholder → /audio/stories/your-radar.mp3
   standing: "/audio/loop.mp3", // placeholder → /audio/stories/standing.mp3
   "your-chapter": "/audio/loop.mp3", // placeholder → /audio/stories/your-chapter.mp3
   "your-club": "/audio/loop.mp3", // placeholder → /audio/stories/your-club.mp3

@@ -7,6 +7,7 @@ import { BuiltStory } from "./03-built";
 import { GroupChatStory } from "./11-group-chat";
 import { PeopleStory } from "./04-people";
 import { YourEventsStory } from "./05-your-events";
+import { YourRadarStory } from "./12-your-radar";
 import { StandingStory } from "./06-standing";
 import { YourChapterStory } from "./07-your-chapter";
 import { YourClubStory } from "./08-your-club";
@@ -20,6 +21,7 @@ export const STORY_COMPONENTS: Record<StoryId, ComponentType<StoryProps>> = {
   "group-chat": GroupChatStory,
   people: PeopleStory,
   "your-events": YourEventsStory,
+  "your-radar": YourRadarStory,
   standing: StandingStory,
   "your-chapter": YourChapterStory,
   "your-club": YourClubStory,

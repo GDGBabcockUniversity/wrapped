@@ -21,6 +21,17 @@ export const FIXTURES: Record<string, Snapshot> = {
     messages: { matched: true, count: 2100, activeDays: 210, peakMonthLabel: "November" },
     standing: { percentile: 1, tier: "top1" },
     club: { id: "sprinter", rarityPct: 11 },
+    // Only this fixture carries radar, so /debug/cards exercises both the
+    // populated card and the skip path the other fixtures represent.
+    radar: {
+      reads: 41,
+      readingMinutes: 214,
+      plays: 63,
+      distinctGames: 5,
+      topGame: "wordle",
+      activeDays: 88,
+      longestStreak: 19,
+    },
     flags: { zeroCheckins: false, lowActivity: false },
   },
   member: {

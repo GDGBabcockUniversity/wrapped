@@ -46,6 +46,7 @@ export function storyAccentHex(storyId: StoryId, clubHex?: string): string {
     "group-chat": GREEN,
     people: YELLOW,
     "your-events": BLUE,
+    "your-radar": RED,
     standing: RED,
     "your-chapter": GREEN,
     "your-club": clubHex ?? RED,
@@ -90,6 +91,7 @@ const CLASSIC_BG: Record<StoryId, string> = {
   "group-chat": INK,
   people: CREAM,
   "your-events": INK,
+  "your-radar": INK,
   standing: CREAM,
   "your-chapter": INK,
   "your-club": INK, // panel carries the club color

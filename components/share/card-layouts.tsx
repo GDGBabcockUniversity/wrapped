@@ -533,6 +533,89 @@ export function YourEventsCard({ snapshot, t }: { snapshot: Snapshot; t: CardThe
   );
 }
 
+export function YourRadarCard({ snapshot, t }: { snapshot: Snapshot; t: CardTheme }) {
+  const radar = snapshot.radar;
+  // The deck skips this story without radar data, so the card should never be
+  // requested — but a hand-typed share URL can still reach it.
+  if (!radar) {
+    return (
+      <Base t={t}>
+        <div
+          style={{
+            display: "flex",
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 56,
+            fontWeight: 700,
+            color: t.fg,
+            textAlign: "center",
+            padding: "0 100px",
+          }}
+        >
+          RADAR is waiting.
+        </div>
+        <Watermark t={t} />
+      </Base>
+    );
+  }
+
+  const leadsWithReads = radar.reads > 0;
+  const headline = leadsWithReads ? radar.reads : radar.plays;
+  const caption = leadsWithReads
+    ? `${snapshot.firstName} read ${radar.reads} ${radar.reads === 1 ? "piece" : "pieces"} on RADAR`
+    : `${snapshot.firstName} played ${radar.plays} RADAR ${radar.plays === 1 ? "game" : "games"}`;
+  const sub = leadsWithReads
+    ? radar.readingMinutes > 0
+      ? `${radar.readingMinutes} minutes of attention`
+      : ""
+    : radar.topGame
+      ? `${radar.topGame} was the game`
+      : "";
+
+  return (
+    <Base t={t}>
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 24,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontSize: 420,
+            fontWeight: 700,
+            color: t.accent,
+          }}
+        >
+          {headline}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 48,
+            fontWeight: 700,
+            color: t.fg,
+            textAlign: "center",
+            padding: "0 80px",
+          }}
+        >
+          {caption}
+        </div>
+        {sub !== "" && (
+          <div style={{ display: "flex", fontSize: 30, color: t.muted }}>{sub}</div>
+        )}
+      </div>
+      <Watermark t={t} />
+    </Base>
+  );
+}
+
 export function StandingCard({ snapshot, t }: { snapshot: Snapshot; t: CardTheme }) {
   const isTier = snapshot.standing.tier !== "member";
   if (isTier) {

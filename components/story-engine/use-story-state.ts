@@ -19,7 +19,8 @@ const CANVAS_PATH: [number, number][] = [
   [1, 1], // built -> group-chat        diagonal ↘
   [-1, 1], // group-chat -> people      diagonal ↙ (build5 §5: new boundary)
   [0, 1], // people -> your-events      down
-  [1, 0], // your-events -> standing    across
+  [1, 0], // your-events -> your-radar  across
+  [0, 1], // your-radar -> standing     down
   [-1, 1], // standing -> your-chapter  diagonal ↙
   [0, 1], // your-chapter -> your-club  down
   [1, 1], // your-club -> whats-next    diagonal ↘ (out of the club high)
@@ -43,6 +44,8 @@ export interface EngineState {
   seen: boolean[];
   isMember: boolean;
   memberResolved: boolean;
+  /** Member-specific skips — stories whose snapshot data is empty. */
+  skipIds: StoryId[];
 }
 
 export type Action =
@@ -55,11 +58,16 @@ export type Action =
   | { type: "RESUME" }
   | { type: "OPEN_GRID" }
   | { type: "CLOSE_GRID" }
-  | { type: "SET_MEMBER"; isMember: boolean }
+  | { type: "SET_MEMBER"; isMember: boolean; skipIds?: StoryId[] }
   | { type: "RESTORE_SEEN"; seen: boolean[] };
 
-function activeIndexesFor(isMember: boolean): number[] {
-  return isMember ? STORIES.map((s) => s.index) : getGuestStoryIndexes();
+function activeIndexesFor(isMember: boolean, skipIds: StoryId[] = []): number[] {
+  const base = isMember ? STORIES.map((s) => s.index) : getGuestStoryIndexes();
+  if (skipIds.length === 0) return base;
+  const skipped = new Set(
+    STORIES.filter((s) => skipIds.includes(s.id)).map((s) => s.index)
+  );
+  return base.filter((i) => !skipped.has(i));
 }
 
 function clampToActive(index: number, active: number[]): number {
@@ -83,7 +91,7 @@ function goToStory(state: EngineState, target: number): EngineState {
 }
 
 function reducer(state: EngineState, action: Action): EngineState {
-  const active = activeIndexesFor(state.isMember);
+  const active = activeIndexesFor(state.isMember, state.skipIds);
   const pos = active.indexOf(state.storyIndex);
   const last = active[active.length - 1]!;
   switch (action.type) {
@@ -131,11 +139,13 @@ function reducer(state: EngineState, action: Action): EngineState {
     case "CLOSE_GRID":
       return { ...state, gridOpen: false, paused: false };
     case "SET_MEMBER": {
-      const nextActive = activeIndexesFor(action.isMember);
+      const skipIds = action.skipIds ?? [];
+      const nextActive = activeIndexesFor(action.isMember, skipIds);
       return {
         ...state,
         isMember: action.isMember,
         memberResolved: true,
+        skipIds,
         storyIndex: clampToActive(state.storyIndex, nextActive),
       };
     }
@@ -169,6 +179,7 @@ function init(): EngineState {
     seen: new Array(STORIES.length).fill(false),
     isMember: false,
     memberResolved: false,
+    skipIds: [],
   };
 }
 

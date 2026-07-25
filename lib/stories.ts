@@ -35,6 +35,7 @@ export type StoryId =
   | "group-chat"
   | "people"
   | "your-events"
+  | "your-radar"
   | "standing"
   | "your-chapter"
   | "your-club"
@@ -84,19 +85,36 @@ export const STORIES: StoryDef[] = [
   // 58,950ms = 82,050ms scripted; 82050/0.8 = 102,562.5, rounded up.
   { id: "people", index: 4, personal: false, accent: "yellow", field: "cream", setupMs: 3500, revealMs: 103000, label: "The People" },
   { id: "your-events", index: 5, personal: true, accent: "blue", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Events" },
-  { id: "standing", index: 6, personal: true, accent: "red", field: "cream", setupMs: 3200, revealMs: 8500, label: "Your Standing" },
-  { id: "your-chapter", index: 7, personal: true, accent: "green", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Chapter" },
-  { id: "your-club", index: 8, personal: true, accent: "club", field: "ink", setupMs: 3500, revealMs: 10000, label: "Your Club" },
-  { id: "whats-next", index: 9, personal: false, accent: "green", field: "cream", setupMs: 3000, revealMs: 8000, label: "What's Next" },
-  { id: "summary", index: 10, personal: true, accent: "green", field: "ink", setupMs: 0, revealMs: 0, label: "Your Card" },
+  // Sits with your-events because it's the other half of "what you actually
+  // did". revealMs 9500: up to 4 beats (reads, games, streak, top game) at
+  // the build6 §2.5 stat floor of 3200 would be 12,800 scripted worst case,
+  // but the story renders them as one composed board rather than sequential
+  // beats — 9500 matches its siblings and leaves the same headroom.
+  { id: "your-radar", index: 6, personal: true, accent: "red", field: "ink", setupMs: 3200, revealMs: 9500, label: "Your RADAR" },
+  { id: "standing", index: 7, personal: true, accent: "red", field: "cream", setupMs: 3200, revealMs: 8500, label: "Your Standing" },
+  { id: "your-chapter", index: 8, personal: true, accent: "green", field: "ink", setupMs: 3200, revealMs: 8500, label: "Your Chapter" },
+  { id: "your-club", index: 9, personal: true, accent: "club", field: "ink", setupMs: 3500, revealMs: 10000, label: "Your Club" },
+  { id: "whats-next", index: 10, personal: false, accent: "green", field: "cream", setupMs: 3000, revealMs: 8000, label: "What's Next" },
+  { id: "summary", index: 11, personal: true, accent: "green", field: "ink", setupMs: 0, revealMs: 0, label: "Your Card" },
 ];
 
 export function getGuestStoryIndexes(): number[] {
   // Guests see: 0,1,2,3 public (the-year/moments/built/group-chat), 4
-  // (people, public), 5 (your-events guest variant), skip 6/7 (standing,
-  // your-chapter — members only), 8 (your-club guest variant), 9, 10
-  // (summary guest variant).
-  return [0, 1, 2, 3, 4, 5, 8, 9, 10];
+  // (people, public), 5 (your-events guest variant), skip 6/7/8 (your-radar,
+  // standing, your-chapter — members only), 9 (your-club guest variant), 10,
+  // 11 (summary guest variant).
+  return [0, 1, 2, 3, 4, 5, 9, 10, 11];
+}
+
+/**
+ * Stories a signed-in member still skips because the snapshot has nothing to
+ * show. RADAR is opt-in — plenty of members never opened it, and an empty
+ * "you read 0 things" slide is worse than no slide (same null-skip contract
+ * as the chapter beats in lib/content/chapter.ts).
+ */
+export function skipsForSnapshot(snapshot: { radar?: unknown } | null): StoryId[] {
+  if (!snapshot) return [];
+  return snapshot.radar ? [] : ["your-radar"];
 }
 
 // Shader figure branch per story (build5 §4.4) — branches live in
@@ -111,6 +129,9 @@ export const SHADER_STORY: Record<StoryId, number> = {
   "group-chat": 0,
   people: 3,
   "your-events": 4,
+  // Rides moments' branch (1) — its red accent walks the same runner, so the
+  // new story needs no new GLSL, the way group-chat reuses branch 0.
+  "your-radar": 1,
   standing: 5,
   "your-chapter": 6,
   "your-club": 7,
