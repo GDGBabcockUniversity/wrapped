@@ -9,8 +9,16 @@ import { suggestTopSubgroup, type GroupStatsResult } from "./group-stats";
 // self-corrects as fields get filled in and stops printing them.
 const SAGA_TBD_HINTS: { path: string; get: () => unknown; hint: string }[] = [
   { path: "radar.articles", get: () => PRODUCT_SAGA.radar.articles, hint: "Sanity studio article count" },
-  { path: "radar.mostRead", get: () => PRODUCT_SAGA.radar.mostRead, hint: "Sanity studio / Redis read counts" },
-  { path: "radar.reads", get: () => PRODUCT_SAGA.radar.reads, hint: "Redis — total reads + game plays" },
+  {
+    path: "radar.mostRead",
+    get: () => PRODUCT_SAGA.radar.mostRead,
+    hint: "auth service GET /radar/stats/chapter → top_articles[0]",
+  },
+  {
+    path: "radar.reads",
+    get: () => PRODUCT_SAGA.radar.reads,
+    hint: "auth service GET /radar/stats/chapter (member reads), or the anonymous view total printed by auth/scripts/backfill-radar-stats.js",
+  },
   { path: "votes.elections", get: () => PRODUCT_SAGA.votes.elections, hint: "BabcockVotes admin" },
   { path: "votes.votesCast", get: () => PRODUCT_SAGA.votes.votesCast, hint: "BabcockVotes admin" },
   { path: "orbit.lagos", get: () => PRODUCT_SAGA.orbit.lagos, hint: "owner — field-trip headcount" },
@@ -81,6 +89,30 @@ export function printReport(
     .slice(0, 10);
   for (const s of scored) {
     console.log(`  ${s.name} — score ${s.score.toFixed(3)} (${s.messages} msgs, ${s.checkins} check-ins)`);
+  }
+
+  // RADAR chapter totals, computed from this run. These are MEMBER-attributed
+  // reads (signed-in, inside the year window) — deliberately not the same
+  // number as the anonymous views:<slug> counters, which are larger and
+  // include logged-out readers. PRODUCT_SAGA.radar.reads has historically
+  // quoted the anonymous total; pick one and say which in the copy.
+  const withRadar = members.filter((m) => m.radar.reads > 0 || m.radar.plays > 0);
+  console.log("\n--- RADAR (this run, member-attributed, in-window) ---");
+  console.log(`  members with any RADAR activity: ${withRadar.length}`);
+  console.log(`  reads: ${members.reduce((n, m) => n + m.radar.reads, 0)}`);
+  console.log(`  reading minutes: ${members.reduce((n, m) => n + m.radar.readingMinutes, 0)}`);
+  console.log(`  game plays: ${members.reduce((n, m) => n + m.radar.plays, 0)}`);
+  const topGames = new Map<string, number>();
+  for (const m of members) {
+    if (m.radar.topGame) {
+      topGames.set(m.radar.topGame, (topGames.get(m.radar.topGame) ?? 0) + 1);
+    }
+  }
+  const rankedGames = [...topGames.entries()].sort((a, b) => b[1] - a[1]);
+  if (rankedGames.length > 0) {
+    console.log(
+      `  most common favourite game: ${rankedGames.map(([g, n]) => `${g} (${n})`).join(", ")}`
+    );
   }
 
   // Chapter numbers to paste into lib/content/chapter.ts
