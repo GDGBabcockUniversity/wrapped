@@ -119,16 +119,25 @@ export default function LandingPage() {
           {copy.landing.eyebrow}
         </motion.p>
 
+        {/* w-max, NOT w-full: the title is sized in viewport units but the
+            column is capped at max-w-sm (384px), so on any wide-and-short
+            viewport the glyphs (≈5.2em ≈ 631px at the desktop size) overflow
+            the box. text-align only distributes POSITIVE leftover space — with
+            none to give it leaves the text at the line-start edge, so it spilled
+            entirely rightward and sat ~124px off-centre. Sizing this wrapper to
+            its own content instead lets the parent's items-center do the
+            centering, whatever the glyphs measure. */}
         <motion.div
           {...rise(0.08)}
-          className="w-full"
+          className="w-max"
           style={{ viewTransitionName: "wrapped-title" } as React.CSSProperties}
         >
-          {/* 17vw: 7 outline-tracked glyphs ≈ 4.9em — the widest that still
-              fits a 390px phone inside the px-6 gutters. 22vw clipped. */}
+          {/* 16vw: 7 outline-tracked glyphs measure ≈5.2em WITH the 0.045em
+              tracking (the 4.9em here before counted glyphs only), which is the
+              widest that still fits a 390px phone inside the px-6 gutters. */}
           <h1
             className="text-outline-base text-outline-cream leading-none"
-            style={{ fontSize: "clamp(3.25rem, min(17vw, 16vh), 8rem)" }}
+            style={{ fontSize: "clamp(3.25rem, min(16vw, 16vh), 8rem)" }}
           >
             {copy.landing.title}
           </h1>
