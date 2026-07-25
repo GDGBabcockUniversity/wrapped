@@ -34,6 +34,21 @@ export const SnapshotSchema = z.object({
     id: ClubId,
     rarityPct: z.number().int().min(1).max(100), // share of chapter in this club
   }),
+  // Optional so snapshots written before RADAR was wired still parse — an
+  // older blob simply has no radar beat, matching the null-skip contract the
+  // chapter content already uses.
+  radar: z
+    .object({
+      reads: z.number().int().min(0),
+      readingMinutes: z.number().int().min(0),
+      plays: z.number().int().min(0),
+      distinctGames: z.number().int().min(0),
+      topGame: z.string().nullable(),
+      activeDays: z.number().int().min(0),
+      longestStreak: z.number().int().min(0),
+    })
+    .nullable()
+    .optional(),
   flags: z.object({
     zeroCheckins: z.boolean(),
     lowActivity: z.boolean(), // checkins <= 1 AND (unmatched OR messages < 20)

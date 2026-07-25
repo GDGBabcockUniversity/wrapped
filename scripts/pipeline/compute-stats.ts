@@ -1,5 +1,5 @@
 import type { MatchResult } from "./match-members";
-import type { Universe } from "./universe";
+import { EMPTY_RADAR, type Universe } from "./universe";
 import type { PipelineMember } from "./types";
 import { activityScore, computePercentiles, tierFromPercentile } from "./percentiles";
 import { assignClubs, rarityPercentages } from "./clubs";
@@ -21,6 +21,7 @@ export function buildPipelineMembers(universe: Universe, matchResult: MatchResul
       eventTitles: activity?.titles ?? [],
       checkinMonthlyCounts: activity?.checkinMonthlyCounts ?? {},
       checkinDailyCounts: activity?.checkinDailyCounts ?? {},
+      radar: activity?.radar ?? { ...EMPTY_RADAR },
       radarSignal: activity?.radarSignal ?? 0,
       messagesMatched: !!match,
       messageCount: match?.messageCount ?? 0,
@@ -115,6 +116,13 @@ export function computeSnapshots(
             peakMonthLabel: peakMonthLabel(m.messageMonthlyCounts),
           }
         : { matched: false },
+      // Null rather than a block of zeroes: the deck skips the RADAR story
+      // entirely for members who never used it, instead of showing them a
+      // slide that says nothing.
+      radar:
+        m.radar.reads > 0 || m.radar.plays > 0 || m.radar.activeDays > 0
+          ? m.radar
+          : null,
       standing: { percentile, tier },
       club: { id: assignment.club, rarityPct: rarity[assignment.club] },
       flags: {

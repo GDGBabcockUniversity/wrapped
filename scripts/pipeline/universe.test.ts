@@ -13,6 +13,8 @@ function emptyDb(overrides: Partial<FetchedDb> = {}): FetchedDb {
     registrations: [],
     radarReads: [],
     radarPlays: [],
+    radarTopGame: [],
+    radarDays: [],
     eventTitlesRun: [],
     ...overrides,
   };
@@ -163,12 +165,45 @@ describe("buildUniverse — event dedupe", () => {
 describe("buildUniverse — signals", () => {
   it("maps radar activity back to email and keeps it for event-less members", () => {
     const universe = buildUniverse(
-      emptyDb({ users: [ADA], radarReads: [{ user_id: "uuid-ada", count: 7 }], radarPlays: [{ user_id: "uuid-ada", count: 3 }] }),
+      emptyDb({
+        users: [ADA],
+        radarReads: [{ user_id: "uuid-ada", reads: 7, seconds: 900 }],
+        radarPlays: [{ user_id: "uuid-ada", plays: 3, distinct_games: 2 }],
+        radarTopGame: [{ user_id: "uuid-ada", game: "wordle", plays: 2 }],
+        radarDays: [
+          { user_id: "uuid-ada", day: "2025-11-01" },
+          { user_id: "uuid-ada", day: "2025-11-02" },
+          { user_id: "uuid-ada", day: "2025-11-03" },
+          { user_id: "uuid-ada", day: "2025-11-09" },
+        ],
+      }),
       emptyExternal(),
       YEAR_START,
       YEAR_END
     );
-    expect(universe.activity.get("ada@example.com")!.radarSignal).toBe(10);
+    const activity = universe.activity.get("ada@example.com")!;
+    expect(activity.radarSignal).toBe(10);
+    expect(activity.radar).toEqual({
+      reads: 7,
+      readingMinutes: 15,
+      plays: 3,
+      distinctGames: 2,
+      topGame: "wordle",
+      activeDays: 4,
+      longestStreak: 3,
+    });
+  });
+
+  it("leaves radar empty for members with no radar rows", () => {
+    const universe = buildUniverse(
+      emptyDb({ users: [ADA] }),
+      emptyExternal(),
+      YEAR_START,
+      YEAR_END
+    );
+    const activity = universe.activity.get("ada@example.com");
+    // No event records and no radar rows means no activity entry at all.
+    expect(activity?.radar.plays ?? 0).toBe(0);
   });
 
   it("gives checked-in events without timestamps totals but no timing signal", () => {

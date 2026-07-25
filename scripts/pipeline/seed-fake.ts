@@ -1,6 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { DbUser, DbCheckin, DbRegistration, DbCountRow, FetchedDb } from "./fetch-db";
+import type {
+  DbUser,
+  DbCheckin,
+  DbRegistration,
+  DbRadarReads,
+  DbRadarPlays,
+  DbRadarTopGame,
+  DbRadarDay,
+  FetchedDb,
+} from "./fetch-db";
+
+/** Mirrors the game ids RADAR actually writes (app/lib/games.ts types). */
+const RADAR_GAMES = ["wordle", "connections", "cryptic", "arcade", "quiz"];
 
 const SEED = 25026;
 
@@ -122,8 +134,10 @@ export function generateSeedData(): SeedResult {
 
   const checkins: DbCheckin[] = [];
   const registrations: DbRegistration[] = [];
-  const radarReads: DbCountRow[] = [];
-  const radarPlays: DbCountRow[] = [];
+  const radarReads: DbRadarReads[] = [];
+  const radarPlays: DbRadarPlays[] = [];
+  const radarTopGame: DbRadarTopGame[] = [];
+  const radarDays: DbRadarDay[] = [];
 
   users.forEach((u, i) => {
     let checkinCount: number;
@@ -160,8 +174,30 @@ export function generateSeedData(): SeedResult {
       });
     }
 
-    if (rand() < 0.3) radarReads.push({ user_id: u.id, count: Math.floor(rand() * 15) });
-    if (rand() < 0.2) radarPlays.push({ user_id: u.id, count: Math.floor(rand() * 8) });
+    if (rand() < 0.3) {
+      const reads = Math.floor(rand() * 15);
+      radarReads.push({ user_id: u.id, reads, seconds: reads * 180 });
+    }
+    if (rand() < 0.2) {
+      const plays = Math.floor(rand() * 8);
+      radarPlays.push({
+        user_id: u.id,
+        plays,
+        distinct_games: Math.max(1, Math.min(plays, 1 + Math.floor(rand() * 3))),
+      });
+      radarTopGame.push({
+        user_id: u.id,
+        game: RADAR_GAMES[Math.floor(rand() * RADAR_GAMES.length)]!,
+        plays,
+      });
+      // A short run of days, sometimes consecutive, so streaks are exercised.
+      const start = randomDateBetween(rand, YEAR_START, YEAR_END);
+      for (let d = 0; d < Math.min(plays, 5); d++) {
+        const day = new Date(start.getTime() + d * (rand() < 0.7 ? 1 : 2) * 86400000);
+        if (day >= YEAR_END) break;
+        radarDays.push({ user_id: u.id, day: day.toISOString().slice(0, 10) });
+      }
+    }
   });
 
   // Split matched senders across all three export dialects so the parser's
@@ -264,6 +300,10 @@ export function generateSeedData(): SeedResult {
       registrations,
       radarReads,
       radarPlays,
+      radarTopGame,
+      radarDays: radarDays.sort(
+        (a, b) => a.user_id.localeCompare(b.user_id) || a.day.localeCompare(b.day)
+      ),
       eventTitlesRun: EVENT_TITLES,
     },
     exportFiles,

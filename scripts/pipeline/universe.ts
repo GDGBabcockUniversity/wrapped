@@ -19,13 +19,49 @@ export interface UniverseMember {
   sources: string[]; // "auth" | filenames
 }
 
+/** Per-member RADAR activity within the year window. */
+export interface MemberRadar {
+  reads: number;
+  readingMinutes: number;
+  plays: number;
+  distinctGames: number;
+  topGame: string | null;
+  activeDays: number;
+  longestStreak: number;
+}
+
+export const EMPTY_RADAR: MemberRadar = {
+  reads: 0,
+  readingMinutes: 0,
+  plays: 0,
+  distinctGames: 0,
+  topGame: null,
+  activeDays: 0,
+  longestStreak: 0,
+};
+
 export interface MemberActivity {
   checkins: number; // distinct events checked into
   registrations: number; // distinct events registered for
   titles: string[]; // checked-in event titles, most recent first, capped 8
   checkinMonthlyCounts: Record<string, number>;
   checkinDailyCounts: Record<string, number>;
+  radar: MemberRadar;
+  /** reads + plays — kept as a single scalar because club scoring ranks on it. */
   radarSignal: number;
+}
+
+/** Longest run of consecutive days in an ascending list of "YYYY-MM-DD". */
+export function longestDayStreak(days: string[]): number {
+  if (days.length === 0) return 0;
+  const n = (d: string) => Math.floor(Date.parse(`${d}T00:00:00Z`) / 86400000);
+  let longest = 1;
+  let run = 1;
+  for (let i = 1; i < days.length; i++) {
+    run = n(days[i]!) - n(days[i - 1]!) === 1 ? run + 1 : 1;
+    if (run > longest) longest = run;
+  }
+  return longest;
 }
 
 export interface Universe {
@@ -159,13 +195,57 @@ export function buildUniverse(
     }
   }
 
-  // 5. Radar signal, keyed back to email.
-  const radarByEmail = new Map<string, number>();
-  for (const r of [...db.radarReads, ...db.radarPlays]) {
-    const email = emailByUserId.get(r.user_id);
-    if (!email) continue;
-    radarByEmail.set(email, (radarByEmail.get(email) ?? 0) + r.count);
+  // 5. Radar activity, keyed back to email.
+  const radarByEmail = new Map<string, MemberRadar>();
+  const radarFor = (userId: string): MemberRadar | null => {
+    const email = emailByUserId.get(userId);
+    if (!email) return null;
+    let entry = radarByEmail.get(email);
+    if (!entry) {
+      entry = { ...EMPTY_RADAR };
+      radarByEmail.set(email, entry);
+    }
+    return entry;
+  };
+
+  for (const r of db.radarReads) {
+    const entry = radarFor(r.user_id);
+    if (!entry) continue;
+    entry.reads += r.reads;
+    entry.readingMinutes += Math.floor(r.seconds / 60);
   }
+  for (const p of db.radarPlays) {
+    const entry = radarFor(p.user_id);
+    if (!entry) continue;
+    entry.plays += p.plays;
+    entry.distinctGames = Math.max(entry.distinctGames, p.distinct_games);
+  }
+  for (const t of db.radarTopGame) {
+    const entry = radarFor(t.user_id);
+    if (entry) entry.topGame = t.game;
+  }
+
+  // Days arrive ordered by (user_id, day), so grouping keeps them ascending —
+  // which is what longestDayStreak expects.
+  const daysByEmail = new Map<string, string[]>();
+  for (const d of db.radarDays) {
+    const email = emailByUserId.get(d.user_id);
+    if (!email) continue;
+    const list = daysByEmail.get(email);
+    if (list) list.push(d.day);
+    else daysByEmail.set(email, [d.day]);
+  }
+  for (const [email, days] of daysByEmail) {
+    let entry = radarByEmail.get(email);
+    if (!entry) {
+      entry = { ...EMPTY_RADAR };
+      radarByEmail.set(email, entry);
+    }
+    entry.activeDays = days.length;
+    entry.longestStreak = longestDayStreak(days);
+  }
+
+  const radarSignalFor = (radar: MemberRadar) => radar.reads + radar.plays;
 
   // 6. Collapse per-member event records into MemberActivity.
   const activity = new Map<string, MemberActivity>();
@@ -194,12 +274,13 @@ export function buildUniverse(
       titles: checkedIn.slice(0, 8).map((r) => r.title),
       checkinMonthlyCounts: monthly,
       checkinDailyCounts: daily,
-      radarSignal: radarByEmail.get(email) ?? 0,
+      radar: radarByEmail.get(email) ?? { ...EMPTY_RADAR },
+      radarSignal: radarSignalFor(radarByEmail.get(email) ?? EMPTY_RADAR),
     });
   }
 
   // Members with radar activity but no event records still need their signal.
-  for (const [email, signal] of radarByEmail) {
+  for (const [email, radar] of radarByEmail) {
     if (!activity.has(email)) {
       activity.set(email, {
         checkins: 0,
@@ -207,7 +288,8 @@ export function buildUniverse(
         titles: [],
         checkinMonthlyCounts: {},
         checkinDailyCounts: {},
-        radarSignal: signal,
+        radar,
+        radarSignal: radarSignalFor(radar),
       });
     }
   }

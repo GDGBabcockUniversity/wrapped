@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { assignClubs, pickClub, rarityPercentages } from "./clubs";
 import type { PipelineMember } from "./types";
+import { EMPTY_RADAR } from "./universe";
 
 const YEAR_START = new Date("2025-09-01T00:00:00Z");
 const YEAR_END = new Date("2026-08-01T00:00:00Z");
@@ -16,6 +17,7 @@ function member(id: string, overrides: Partial<PipelineMember>): PipelineMember 
     eventTitles: [],
     checkinMonthlyCounts: {},
     checkinDailyCounts: {},
+    radar: { ...EMPTY_RADAR },
     radarSignal: 0,
     messagesMatched: false,
     messageCount: 0,

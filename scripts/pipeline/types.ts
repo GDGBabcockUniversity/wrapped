@@ -1,3 +1,5 @@
+import type { MemberRadar } from "./universe";
+
 /** The canonical per-member shape assembled by compute-stats.ts, consumed by
  * percentiles.ts, clubs.ts, and write-snapshot.ts. Keyed by lowercased email
  * everywhere — the universe spans platforms, and only auth-platform members
@@ -14,7 +16,8 @@ export interface PipelineMember {
   checkinMonthlyCounts: Record<string, number>; // "yyyy-mm" -> count
   checkinDailyCounts: Record<string, number>; // "yyyy-mm-dd" -> count
 
-  radarSignal: number; // reads + plays
+  radar: MemberRadar; // RADAR activity within the year window
+  radarSignal: number; // reads + plays — the scalar club scoring ranks on
 
   messagesMatched: boolean;
   messageCount: number;
