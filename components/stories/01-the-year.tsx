@@ -23,7 +23,7 @@ import type { StoryProps } from "./types";
 const COVER_MS = OVERTURE.coverMs;
 const DRIVE_MS = OVERTURE.driveMs;
 const OVERLAY_APPEAR_S = 0.18;
-const OVERLAY_HOLD_MS = 1000;
+const OVERLAY_HOLD_MS = 1200;
 const OVERLAY_FADE_S = 0.2;
 // build7 §2: stage the three lanes in TIME, not all-at-once. Logo stamps
 // first (center), the belt fades into the upper lane, then the cold-open
@@ -35,10 +35,15 @@ const BELT_APPEAR_S = 0.6;
 // Old values (950/1150/2050) made line 1 hide at 2100 — 50ms AFTER line 2
 // showed at 2050 — so "One unhinged year." flashed for 50ms and vanished
 // (owner recording: "a pill for half a second, something about to show, then
-// What a year"). Now: line 1 shows 800→1800 (gone ~2000 after fade), line 2
-// shows 2050→3050 — a clean 250ms gap, both legible, both within DRIVE_MS.
+// What a year").
+// Re-derived for the 2026-07-31 retime (HOLD 1000→1200, DRIVE 3400→4000):
+// line 1 shows 800→2000, fully gone at 2200; line 2 shows 2450→3650, gone at
+// 3850. The same clean 250ms gap between them, and 150ms of tail inside
+// DRIVE_MS. Both windows must stay inside DRIVE_MS and must not touch — the
+// two captions share one `line` state at one screen position, so an overlap
+// means line 1's hide timer clobbers line 2.
 const OVERLAY_LINE1_AT = 800;
-const OVERLAY_LINE2_AT = 2050;
+const OVERLAY_LINE2_AT = 2450;
 // The numeral belt (build6 §2.2, law 10): a continuous marquee replacing
 // the old two-lone-numerals crossing, which held a dead, static-looking
 // beat between "25" exiting and "26" entering. Content is duplicated so
@@ -280,7 +285,13 @@ function ColdOpen() {
     // then straight to the calm resolve. Deferred through setTimeout rather
     // than calling setState synchronously in the effect body.
     if (reduceMotionRef.current) {
-      const t = setTimeout(() => setBeat("calm"), 1200);
+      // The drive-through is skipped, but setupMs is fixed, so its time has to
+      // go somewhere: split it between the two beats that remain. A flat
+      // 1200ms here (the old value) dropped the cover almost immediately and
+      // parked the whole rest of the setup on `calm` — 7.4s on one two-line
+      // card after the 2026-07-31 retime. Cover is also the card that answers
+      // "what am I looking at", so it is the wrong one to cut short.
+      const t = setTimeout(() => setBeat("calm"), COVER_MS + DRIVE_MS / 2);
       return () => clearTimeout(t);
     }
     const t1 = setTimeout(() => setBeat("drive"), COVER_MS);

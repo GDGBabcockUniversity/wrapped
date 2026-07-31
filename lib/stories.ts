@@ -15,10 +15,19 @@ export const TIMING = {
 // then the calm two-line beat. the-year's setupMs must equal cover + drive +
 // calm. Shared here because player.tsx times the warp-field shader window
 // off the same numbers.
+//
+// Retimed 2026-07-31 (owner: the first story "is like 3 seconds"). The
+// overture was the fastest-cut passage in the whole deck and it sat at the
+// one moment nobody is oriented yet: cover 2000 and calm 2000, against
+// moments' 3800 pages, built's 3200 stat floor and group-chat's 3600-4400
+// (itself widened in build7 §6 to "calm down, this is a journey"). Five
+// pieces of text went past in 7.4s, so the deck opened at roughly half the
+// tempo it then settled into — hurried first, relaxed after, which is
+// backwards. These now sit inside the deck's own established rhythm.
 export const OVERTURE = {
-  coverMs: 2000,
-  driveMs: 3400,
-  calmMs: 2000,
+  coverMs: 3400,
+  driveMs: 4000,
+  calmMs: 3400,
 } as const;
 
 export const SPRING = {
@@ -55,7 +64,10 @@ export interface StoryDef {
 
 export const STORIES: StoryDef[] = [
   // setupMs = OVERTURE.coverMs + driveMs + calmMs (cover beat added 2026-07-20).
-  { id: "the-year", index: 0, personal: false, accent: "blue", field: "ink", setupMs: 7400, revealMs: 8000, label: "The Year" },
+  // revealMs stays 8000: the receipt's clip wipe, row stagger and count-ups
+  // all settle by ~2s, so the reveal already holds for six seconds. The
+  // opener's problem was never this beat.
+  { id: "the-year", index: 0, personal: false, accent: "blue", field: "ink", setupMs: 10800, revealMs: 8000, label: "The Year" },
   // revealMs 46000 (full slate, 2026-07-20): 11 stylised pages × PAGE_MS
   // 3800 = 41,800ms scripted, then the last page's hold hands off via
   // onComplete — so revealMs is a backstop above the scripted total, no
