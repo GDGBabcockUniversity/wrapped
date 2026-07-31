@@ -6,11 +6,21 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 const LIFE_MS = 5200;
 const EXIT_S = 0.45;
 const SWIPE_S = 1.9; // one full demo swipe, including the pause between
+// How long the visitor has to sit doing nothing before the demo appears at
+// all. Long enough that anyone who was going to swipe unprompted already has,
+// short enough to arrive while they are still wondering what to do.
+const IDLE_BEFORE_MS = 2600;
+// Everything that proves someone can already drive the thing. `wheel` and
+// `touchmove` are in the list because a trackpad or a half-committed drag is
+// someone reaching for the gesture even when it never lands as a swipe.
+const INTERACTIONS = ["pointerdown", "keydown", "wheel", "touchmove"] as const;
 // localStorage, not sessionStorage — "first time" means first time on this
 // DEVICE (owner, 2026-07-20). A returning visitor already knows the moves;
 // only genuinely new people get the flash.
 // v3: the icon-chip legend was replaced by the demonstrated swipe.
-const STORAGE_KEY = "wrapped-coach-v3";
+// v4: it waits for stillness now, so a v3 visitor who never actually saw the
+// old flash is worth showing it to once.
+const STORAGE_KEY = "wrapped-coach-v4";
 
 const CREAM = "#fff6e0";
 
@@ -45,31 +55,80 @@ function Hand() {
  * glyphs and shouty labels that a visitor had to READ. A first-time TikTok
  * user is never told to scroll; they're shown one hand travelling up the
  * screen, once, and they copy it. This shows the swipe instead of naming it:
- * the hand rises along a fading track, twice, over a dim scrim, then leaves
- * forever. The caller passes `active` as the story-0-reveal condition.
+ * the hand rises along a fading track, twice, over a dim scrim.
+ *
+ * It waits to be needed (owner, 2026-07-31: the swipe gimmick "shouldn't
+ * always be visible"). Appearing on a fixed cue meant everybody got taught,
+ * including the majority who had already swiped by the time the demo showed
+ * up and now had a hand crawling over a chapter they were reading. So it
+ * arms on `active` and then holds: only a run of IDLE_BEFORE_MS with nobody
+ * touching anything brings it out, and the first touch of any kind takes it
+ * away again. Someone who interacts before it appears never sees it at all,
+ * and is marked as knowing the moves so no later visit shows it either.
  */
 export function GestureHint({ active }: { active: boolean }) {
   const reduceMotion = useReducedMotion();
   const [show, setShow] = useState(false);
-  const started = useRef(false);
+  const armed = useRef(false);
 
   useEffect(() => {
-    if (!active || started.current) return;
-    started.current = true;
+    if (!active || armed.current) return;
+    armed.current = true;
 
     try {
       if (localStorage.getItem(STORAGE_KEY)) return;
-      localStorage.setItem(STORAGE_KEY, "1");
     } catch {
-      // storage unavailable (private mode) — show anyway, once per load
+      // storage unavailable (private mode) — fall through and coach once
+      // per load, which is the safe way to be wrong.
     }
+
+    function learned() {
+      try {
+        localStorage.setItem(STORAGE_KEY, "1");
+      } catch {
+        // nothing to remember it with; the in-component guards still hold
+      }
+    }
+
     // Deferred through setTimeout rather than calling setState synchronously
     // in the effect body (React's cascading-render guidance).
-    const show = setTimeout(() => setShow(true), 0);
-    const hide = setTimeout(() => setShow(false), LIFE_MS);
+    const idle = setTimeout(() => setShow(true), IDLE_BEFORE_MS);
+    const life = setTimeout(() => {
+      setShow(false);
+      learned();
+    }, IDLE_BEFORE_MS + LIFE_MS);
+
+    // Capture phase, because TapZones sits above the whole stage and stops
+    // plenty of these from bubbling anywhere useful.
+    function onInteract() {
+      clearTimeout(idle);
+      clearTimeout(life);
+      setShow(false);
+      learned();
+      teardown();
+    }
+    function teardown() {
+      for (const type of INTERACTIONS) {
+        window.removeEventListener(type, onInteract, { capture: true });
+      }
+    }
+    for (const type of INTERACTIONS) {
+      window.addEventListener(type, onInteract, { capture: true, passive: true });
+    }
+
     return () => {
-      clearTimeout(show);
-      clearTimeout(hide);
+      clearTimeout(idle);
+      clearTimeout(life);
+      teardown();
+      // `active` going false means story 0's reveal is over — the chapter
+      // this was teaching is gone. Hiding here as well as on the life timer
+      // is not belt and braces: clearing the timers WITHOUT hiding would
+      // strand a visible demo on top of every chapter that followed, which
+      // is the one outcome this component must never produce. It survives
+      // today only because story 0's reveal (8000ms) happens to outlast the
+      // demo (IDLE_BEFORE_MS + LIFE_MS), and no story timing should be able
+      // to break a coach mark.
+      setShow(false);
     };
   }, [active]);
 
