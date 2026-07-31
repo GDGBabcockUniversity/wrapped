@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
 
   let email: string;
   try {
-    const payload = await verifyToken(token, "magic");
+    // Both doors: a link somebody asked for, and one we mailed them.
+    const payload = await verifyToken(token, ["magic", "delivery"]);
     email = payload.email;
   } catch {
     return NextResponse.redirect(`${origin}/?error=expired`);
