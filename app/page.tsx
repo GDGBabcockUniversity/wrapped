@@ -196,12 +196,20 @@ export default function LandingPage() {
           {showEmail ? (
             <EmailForm />
           ) : (
-            <button
-              onClick={() => setShowEmail(true)}
-              className="rounded-full border border-cream/40 text-cream px-8 py-4 t-label w-full"
-            >
-              {copy.landing.ctaPersonal}
-            </button>
+            <>
+              <p className="t-body text-cream/60 text-sm">
+                {copy.landing.sentNotice}
+              </p>
+              {/* A plain text button, not the second pill it used to be. The
+                  Wrapped is sent now, so this is the recovery path for the
+                  people it missed — it should not compete with WATCH. */}
+              <button
+                onClick={() => setShowEmail(true)}
+                className="t-label text-cream/45 underline underline-offset-4 py-1"
+              >
+                {copy.landing.ctaPersonal}
+              </button>
+            </>
           )}
         </motion.div>
 

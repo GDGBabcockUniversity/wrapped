@@ -5,12 +5,17 @@ export const copy = {
     year: "2025–26",
     sub: "The year the chapter shipped, showed up, and showed off. Now it's your turn to see where you fit in it.",
     ctaWatch: "Watch the year",
-    ctaPersonal: "Get your Wrapped",
+    // Members are SENT their Wrapped (owner, 2026-07-31); they do not come
+    // here to ask for it. The email box stays for the two cases sending
+    // cannot cover — a link that never arrived, and an address we do not
+    // have — so it reads as a second chance rather than the front door.
+    sentNotice: "Members: yours is already in your inbox.",
+    ctaPersonal: "Didn't get yours?",
     emailLabel: "Your email",
     emailPlaceholder: "you@school.edu",
-    emailSubmit: "Send my link",
-    emailSent: "Check your inbox. Your Wrapped is waiting.",
-    emailHint: "We'll email you a magic link. No password, no signup.",
+    emailSubmit: "Send it again",
+    emailSent: "On its way. Check your inbox.",
+    emailHint: "We sent it to the address on your membership. Not there? Try it here.",
   },
   theYear: {
     setup: "What a year.",
@@ -199,6 +204,19 @@ export const copy = {
     button: "Open my Wrapped",
     expiry: "This link works for 15 minutes. If it expires, just request a new one.",
     ignore: "If you didn't request this, you can safely ignore this email.",
+  },
+  // The Wrapped we SEND, unprompted. It cannot borrow the copy above: that
+  // block answers "here's the link you asked for", and nobody asked for this
+  // one. The closing line has to say why it arrived, and the link is good for
+  // the season rather than fifteen minutes, so saying "expires" would be a
+  // lie that costs opens.
+  delivery: {
+    subject: "Your GDG Wrapped is here",
+    heading: "Your year, wrapped.",
+    body: "You spent a year with GDG on Campus Babcock. Here's what it looked like — your events, your standing, your club, the whole thing.",
+    button: "Watch my Wrapped",
+    expiry: "The link is yours. It stays live through the season, so watch it when you have five minutes.",
+    ignore: "You're getting this because you were part of the chapter this year.",
   },
   errors: {
     linkExpired: "That link has expired. Request a fresh one — it takes ten seconds.",
