@@ -20,7 +20,13 @@ import { GestureHint } from "./gesture-hint";
 import { TapZones } from "./tap-zones";
 import { preloadStoryAssets } from "./preloader";
 import { useStoryEngine } from "./use-story-state";
-import { primeAudio, setStoryTrack } from "@/lib/audio";
+import {
+  autoplayAudio,
+  preloadStoryTrack,
+  primeAudio,
+  setStoryTrack,
+} from "@/lib/audio";
+import { SoundCue } from "./sound-cue";
 import { initSfx, playSfx } from "@/lib/sfx";
 import type { Snapshot } from "@/lib/snapshot";
 import { copy } from "@/lib/copy";
@@ -229,18 +235,34 @@ export function Player() {
     preloadStoryAssets(state.storyIndex);
   }, [state.storyIndex]);
 
-  // Every story carries its own song (lib/soundtrack.ts). Safe before the
+  // Every chapter carries its own loop (lib/soundtrack.ts). Safe before the
   // first gesture — the engine remembers the track and starts it on unlock.
+  // Chapters that share a loop crossfade to themselves, which is a no-op, so
+  // the music runs unbroken across those boundaries rather than restarting.
   useEffect(() => {
     setStoryTrack(STORIES[state.storyIndex]!.id);
   }, [state.storyIndex]);
 
-  // The soundtrack and the SFX engine can only start from a user gesture
-  // (autoplay policy). primeAudio() owns the listeners now and RETRIES on
-  // every gesture until a `playing` event confirms real sound — the old
-  // `once: true` pair gave the browser exactly one chance to say no, and a
-  // single swallowed rejection meant silence for the whole session.
+  // Fetch the next chapter's loop while this one plays, so the crossfade at
+  // the boundary has bytes to work with instead of stalling on the network.
+  // One ahead only: twelve loops downloaded up front would cost more than
+  // the whole rest of the experience.
   useEffect(() => {
+    const next = STORIES[state.storyIndex + 1];
+    if (next) preloadStoryTrack(next.id);
+  }, [state.storyIndex]);
+
+  // Sound on by default (owner, 2026-07-31). The landing CTA normally spends
+  // its own click unlocking audio and then navigates client-side, so by the
+  // time this mounts the music is already running and primeAudio() is a
+  // no-op. This covers the cold loads it cannot: a magic link, a refresh, a
+  // shared ?story= deep link. autoplayAudio() asks anyway — some browsers
+  // grant it on engagement history — and primeAudio() arms the fallback,
+  // RETRYING on every gesture until a `playing` event confirms real sound.
+  // The old `once: true` pair gave the browser exactly one chance to say no,
+  // and a single swallowed rejection meant silence for the whole session.
+  useEffect(() => {
+    autoplayAudio();
     const disarm = primeAudio();
     function unlockSfx() {
       initSfx();
@@ -400,10 +422,15 @@ export function Player() {
         }
       />
 
-      {/* build6 §4.2: the reference Wrapped's own cue that a visitor CAN
-          act even though the story auto-advances — once per session, only
-          over story 0's reveal. */}
+      {/* build6 §4.2: the reference Wrapped's own cue that a visitor CAN act
+          even though the story auto-advances. Armed over story 0's reveal,
+          but it only surfaces after a stretch of nobody touching anything,
+          and any interaction retires it for good (owner, 2026-07-31). */}
       <GestureHint active={state.storyIndex === 0 && state.phase === "reveal"} />
+
+      {/* Only when the browser actually refused the soundtrack — a cold load
+          with no gesture to spend. Silent otherwise. */}
+      <SoundCue />
 
       {/* build6 §2.4: never on summary — revealMs 0 means there's no timer
           to pause, so the toast was pure noise sitting on top of the

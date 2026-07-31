@@ -1,10 +1,12 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { track } from "@vercel/analytics";
 import { copy } from "@/lib/copy";
+import { setStoryTrack, unlockAudio } from "@/lib/audio";
+import { STORIES } from "@/lib/stories";
 
 // Staggered entrance for the landing column — the first thing anyone sees
 // must already be moving.
@@ -99,6 +101,31 @@ function ErrorBanner() {
 
 export default function LandingPage() {
   const [showEmail, setShowEmail] = useState(false);
+  const router = useRouter();
+
+  /**
+   * The soundtrack starts here, not in the player (owner, 2026-07-31: "the
+   * sound should auto play by default like spotify").
+   *
+   * A browser grants audio to a DOCUMENT once someone has interacted with it,
+   * and this click is that interaction. Following the href would throw the
+   * permission away with the document and leave /wrapped begging for a tap it
+   * has no reason to ask for, so the click starts the first chapter's loop and
+   * then moves there client-side, carrying both the permission and the
+   * already-playing engine across.
+   *
+   * The anchor and its href stay real: modifier-clicks and middle-clicks fall
+   * through to the browser, and with JS off it is still an ordinary link to
+   * /wrapped that plays silently until the first tap.
+   */
+  function enterWrapped(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (e.defaultPrevented || e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    setStoryTrack(STORIES[0]!.id);
+    unlockAudio();
+    router.push("/wrapped");
+  }
 
   return (
     <main className="min-h-dvh bg-ink text-cream relative overflow-hidden flex flex-col items-center justify-center px-6 py-8 md:py-12">
@@ -160,6 +187,7 @@ export default function LandingPage() {
         <motion.div {...rise(0.24)} className="flex flex-col items-center gap-3 w-full mt-2">
           <a
             href="/wrapped"
+            onClick={enterWrapped}
             className="rounded-full bg-cream text-ink px-8 py-4 t-label w-full text-center"
           >
             {copy.landing.ctaWatch}
