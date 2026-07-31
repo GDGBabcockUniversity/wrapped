@@ -306,10 +306,29 @@ export function unlockAudio(): void {
  * NOT create the AudioContext: constructing one outside a gesture leaves a
  * suspended context that makeDeck() would decline to route through anyway,
  * and on iOS it can claim the page's audio session while producing nothing.
- * A refusal here is expected and costs nothing — the armed listeners take
- * over, and isAudioBlocked() lets the player say so.
+ *
+ * The refusal is expected, and the call is still worth making. It builds the
+ * deck and starts it buffering, so when the first touch does arrive the sound
+ * is there immediately rather than after a download. That is the whole reason
+ * to ask for something the browser will almost certainly decline.
+ *
+ * Starting muted, which is the usual way around this, does NOT work: the
+ * muted-autoplay allowance covers <video>, and Chromium refuses a muted
+ * <audio> exactly as it refuses an unmuted one (measured 2026-07-31, at
+ * document-start under --autoplay-policy=document-user-activation-required).
+ * Wrapping every loop in a dummy video track would buy a preroll, at the cost
+ * of an entirely separate encode of every file.
  */
 export function autoplayAudio(): void {
+  // Save-Data exists to stop precisely this: several megabytes fetched on the
+  // chance the visitor might later want to hear it. Wait to be asked.
+  if (
+    typeof navigator !== "undefined" &&
+    (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+      ?.saveData
+  ) {
+    return;
+  }
   attemptPlay();
 }
 
