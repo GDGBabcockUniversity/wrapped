@@ -1,35 +1,47 @@
 "use client";
 
 /**
- * The soundtrack engine (§12 build2.md, per-story tracks 2026-07-20). Every
- * story carries its own song (lib/soundtrack.ts — placeholder map the owner
- * edits); the engine crossfades between them on story change, mute
- * preference remembered across sessions.
+ * The soundtrack engine (§12 build2.md; per-story loops 2026-07-31). Every
+ * chapter carries its own loop (lib/soundtrack.ts); the engine crossfades
+ * between them on story change and remembers the mute preference across
+ * sessions.
  *
- * Autoplay policy is the whole difficulty here, and the 2026-07-20 rebuild
- * fixes three ways the previous version could end in permanent silence:
+ * Autoplay policy is the whole difficulty here, and it is worth stating
+ * plainly what a browser will and will not allow, because the design brief
+ * ("sound on by default, like Spotify") sits right on the line:
  *
- *  1. It unlocked on the FIRST gesture only (`once: true`) and swallowed the
- *     play() rejection. One rejected call — a track still loading, a context
- *     the browser hadn't resumed yet, an iOS gesture that didn't count — and
- *     the music never came back for the rest of the session. Now every
- *     gesture retries until a `playing` event actually confirms sound, and
- *     only then are the listeners removed.
- *  2. It played through a bare HTMLAudioElement while lib/sfx.ts built its
- *     own AudioContext. The element is now routed INTO the shared context
- *     (lib/audio-context.ts) so music and SFX share one graph and one iOS
- *     audio session.
- *  3. A suspended context stayed suspended. ensureAudioContext() resumes on
- *     every gesture.
+ *  - A page cannot start audio on a cold load. Chrome and Safari both block
+ *    it until the visitor has interacted with the document, and a magic-link
+ *    visitor arrives at /wrapped having interacted with nothing.
+ *  - The permission belongs to the DOCUMENT, not to the click. Tapping WATCH
+ *    on the landing page grants it — provided the move to /wrapped is a
+ *    client-side navigation rather than a fresh document. That is the whole
+ *    trick, and it is what app/page.tsx does: unlock inside the click
+ *    handler, then router.push.
  *
- * Degradation contract is unchanged: a story track that fails to load falls
+ * So there are three ways in, in order of preference:
+ *
+ *  1. unlockAudio() from the landing CTA's own gesture — the common path, and
+ *     the one where sound is already playing before the first chapter draws.
+ *  2. autoplayAudio() on a cold load, which succeeds on browsers that have
+ *     decided this origin has earned it and fails silently everywhere else.
+ *  3. The armed unlock listeners below, which retry on EVERY gesture until a
+ *     `playing` event confirms real sound. An earlier version listened
+ *     `once: true` and swallowed the rejection, so a single "no" — a track
+ *     still loading, a context not yet resumed — meant silence for the whole
+ *     session.
+ *
+ * When all three fail, `isAudioBlocked()` goes true and the player shows a
+ * cue, because silence with no explanation reads as a broken build.
+ *
+ * Degradation contract is unchanged: a story loop that fails to load falls
  * back to FALLBACK_TRACK without interrupting playback; if the fallback
  * itself is missing, `available` flips false, the mute button hides, and the
  * feature degrades to silence with zero UI residue.
  */
 
 import { ensureAudioContext, getAudioContext } from "@/lib/audio-context";
-import { FALLBACK_TRACK, SOUNDTRACK } from "@/lib/soundtrack";
+import { FALLBACK_TRACK, trackFor } from "@/lib/soundtrack";
 import type { StoryId } from "@/lib/stories";
 
 const MUTE_KEY = "wrapped-muted";
@@ -51,6 +63,7 @@ let current: Deck | null = null;
 let fadeRaf = 0;
 let desiredSrc: string | null = null; // set before first gesture, played on unlock
 let playing = false; // confirmed by a real `playing` event, not by hope
+let blocked = false; // a play() call was actually refused
 let primed = false; // unlock listeners armed
 let available = true;
 const badSrcs = new Set<string>(); // 404'd tracks — don't retry, fall back
@@ -88,6 +101,17 @@ export function isAudioPlaying(): boolean {
   return playing;
 }
 
+/**
+ * True when there IS a soundtrack, the visitor has not muted it, and the
+ * browser refused to start it. The player shows a cue on this, and only this
+ * — "not playing yet" is not the same as "refused", and showing a tap-for-
+ * sound prompt while the first loop is merely still downloading would be a
+ * lie the visitor acts on.
+ */
+export function isAudioBlocked(): boolean {
+  return available && blocked && !playing && !isMuted();
+}
+
 let visibilityHooked = false;
 function hookVisibility() {
   if (visibilityHooked || typeof document === "undefined") return;
@@ -109,6 +133,60 @@ function resolveSrc(src: string): string {
   return badSrcs.has(src) ? FALLBACK_TRACK : src;
 }
 
+/** Start an element and record whether the browser actually allowed it. */
+function play(el: HTMLAudioElement) {
+  const started = el.play();
+  if (!started) return; // older browsers return void
+  started
+    .then(() => {
+      if (!blocked) return;
+      blocked = false;
+      notify();
+    })
+    .catch(() => {
+      // NotAllowedError (no gesture yet) or AbortError (a newer play()
+      // superseded this one). Either way we are not making sound, and the
+      // armed listeners are still there to try again.
+      if (blocked || playing) return;
+      blocked = true;
+      notify();
+    });
+}
+
+// Loops are fetched one chapter ahead so the crossfade has bytes to work
+// with. These elements are never played — they exist to warm the HTTP cache
+// and are held in a Set purely so nothing collects them mid-download.
+const warmed = new Map<string, HTMLAudioElement>();
+const WARM_LIMIT = 3;
+
+/** Fetch a chapter's loop ahead of time. Never plays, never makes sound. */
+export function preloadStoryTrack(storyId: StoryId): void {
+  if (typeof window === "undefined" || !available) return;
+  if (
+    (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+      ?.saveData
+  ) {
+    return;
+  }
+  const src = resolveSrc(trackFor(storyId));
+  // Nothing to fetch if it is already playing, already warmed, or known bad.
+  // desiredSrc is checked as well as the live deck because on a cold load the
+  // player asks for this warm-up before the first deck exists, and warming a
+  // file the very next line is about to stream costs a second full download
+  // of it — which today, with every chapter on the shared loop, is 4MB.
+  if (src === current?.src || src === desiredSrc) return;
+  if (warmed.has(src) || badSrcs.has(src)) return;
+
+  const el = new Audio();
+  el.preload = "auto";
+  el.src = src;
+  warmed.set(src, el);
+  if (warmed.size > WARM_LIMIT) {
+    const oldest = warmed.keys().next().value;
+    if (oldest !== undefined && oldest !== src) warmed.delete(oldest);
+  }
+}
+
 function makeDeck(src: string): Deck {
   const el = new Audio(src);
   el.loop = true;
@@ -117,6 +195,10 @@ function makeDeck(src: string): Deck {
   // iOS refuses inline playback for media without this, even audio-only.
   el.setAttribute("playsinline", "");
   el.addEventListener("playing", () => {
+    if (blocked) {
+      blocked = false;
+      notify();
+    }
     if (playing) return;
     playing = true;
     disarmUnlock();
@@ -131,7 +213,7 @@ function makeDeck(src: string): Deck {
       notify();
       return;
     }
-    // A story track 404'd mid-play — glide onto the shared loop instead.
+    // A story loop 404'd mid-play — glide onto the shared loop instead.
     if (current?.src === src) {
       current = null;
       crossfadeTo(FALLBACK_TRACK);
@@ -165,7 +247,7 @@ function crossfadeTo(src: string) {
   const old = current;
   const next = makeDeck(target);
   current = next;
-  if (!isMuted()) next.el.play().catch(() => {});
+  if (!isMuted()) play(next.el);
 
   cancelAnimationFrame(fadeRaf);
   const t0 = performance.now();
@@ -203,15 +285,36 @@ function attemptPlay() {
     return;
   }
   if (current.el.paused) {
-    current.el.play().catch(() => {});
+    play(current.el);
   }
 }
 
-function onUnlockGesture() {
+/**
+ * Start the soundtrack from inside a user gesture. Exported so the landing
+ * page can spend its CTA click on it and hand an already-playing engine to
+ * /wrapped through a client-side navigation.
+ */
+export function unlockAudio(): void {
   // The context must be created/resumed from inside the gesture, before the
   // deck is built — makeDeck() routes into it only if it is already running.
   ensureAudioContext();
   attemptPlay();
+}
+
+/**
+ * Try to start on a cold load, with no gesture to spend. Deliberately does
+ * NOT create the AudioContext: constructing one outside a gesture leaves a
+ * suspended context that makeDeck() would decline to route through anyway,
+ * and on iOS it can claim the page's audio session while producing nothing.
+ * A refusal here is expected and costs nothing — the armed listeners take
+ * over, and isAudioBlocked() lets the player say so.
+ */
+export function autoplayAudio(): void {
+  attemptPlay();
+}
+
+function onUnlockGesture() {
+  unlockAudio();
 }
 
 function disarmUnlock() {
@@ -229,6 +332,9 @@ function disarmUnlock() {
  */
 export function primeAudio(): () => void {
   if (typeof window === "undefined") return () => {};
+  // Already audible — the landing CTA got there first. Arming listeners now
+  // would only give them something to remove.
+  if (playing) return () => {};
   if (primed) return disarmUnlock;
   primed = true;
   for (const type of UNLOCK_EVENTS) {
@@ -238,12 +344,14 @@ export function primeAudio(): () => void {
 }
 
 /**
- * Point the engine at a story's song. Safe to call before the first user
+ * Point the engine at a story's loop. Safe to call before the first user
  * gesture — the src is remembered and starts on unlock. After unlock it
- * crossfades from whatever is playing.
+ * crossfades from whatever is playing. Chapters that share a loop (every
+ * chapter, until the per-story files land) are a no-op, so the music runs
+ * unbroken across the boundary instead of restarting.
  */
 export function setStoryTrack(storyId: StoryId): void {
-  const src = SOUNDTRACK[storyId] ?? FALLBACK_TRACK;
+  const src = trackFor(storyId);
   desiredSrc = src;
   if (current) crossfadeTo(src);
 }
@@ -259,9 +367,11 @@ export function toggleMute(): void {
     current?.el.pause();
   } else {
     // Unmuting is itself a gesture — a good moment to (re)try everything.
-    ensureAudioContext();
+    // Restore the volume BEFORE unlocking: a deck that already exists was
+    // paused at whatever level it held, while one unlockAudio() has to build
+    // is created at 0 and fades in on its own.
     if (current) current.el.volume = VOLUME;
-    attemptPlay();
+    unlockAudio();
   }
   notify();
 }
