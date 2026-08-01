@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { track } from "@vercel/analytics";
 import { copy } from "@/lib/copy";
-import { setStoryTrack, unlockAudio } from "@/lib/audio";
-import { STORIES } from "@/lib/stories";
 
 // Staggered entrance for the landing column — the first thing anyone sees
 // must already be moving.
@@ -104,26 +102,22 @@ export default function LandingPage() {
   const router = useRouter();
 
   /**
-   * The soundtrack starts here, not in the player (owner, 2026-07-31: "the
-   * sound should auto play by default like spotify").
+   * Client-side navigation into the deck, so the browser's audio permission —
+   * which is granted to a DOCUMENT once someone interacts with it — survives
+   * the move. A hard navigation throws it away with the document.
    *
-   * A browser grants audio to a DOCUMENT once someone has interacted with it,
-   * and this click is that interaction. Following the href would throw the
-   * permission away with the document and leave /wrapped begging for a tap it
-   * has no reason to ask for, so the click starts the first chapter's loop and
-   * then moves there client-side, carrying both the permission and the
-   * already-playing engine across.
+   * Nothing is started here any more. The deck opens on its own Play screen,
+   * and that tap is both the gesture and the thing the visitor came to do;
+   * priming a second engine from this click is how two soundtracks end up
+   * playing over each other.
    *
-   * The anchor and its href stay real: modifier-clicks and middle-clicks fall
-   * through to the browser, and with JS off it is still an ordinary link to
-   * /wrapped that plays silently until the first tap.
+   * The anchor and its href stay real, so modifier-clicks, middle-clicks and
+   * a JS-less load all still work.
    */
   function enterWrapped(e: React.MouseEvent<HTMLAnchorElement>) {
     if (e.defaultPrevented || e.button !== 0) return;
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
-    setStoryTrack(STORIES[0]!.id);
-    unlockAudio();
     router.push("/wrapped");
   }
 
