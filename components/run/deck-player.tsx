@@ -3,62 +3,105 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { DECK, MOVEMENTS, timeline } from "@/lib/deck";
-import { assignTitle } from "@/lib/titles";
+import { visualFor, vectorBetween } from "@/lib/deck-visuals";
+import { STORY_COMPONENTS } from "@/components/stories";
+import { StoryFrame } from "@/components/story-engine/story-frame";
+import { TapZones } from "@/components/story-engine/tap-zones";
+import { ACCENT_HEX } from "@/components/gl/shaders";
+import { CLUBS } from "@/lib/clubs";
+import { LoudestDay } from "@/components/run/loudest-day";
 import type { Snapshot } from "@/lib/snapshot";
-import * as C from "@/lib/deck-copy";
 
 const AUDIO_SRC = "/audio/wrapped.mp3";
 const FULL_GAIN = 0.6;
-/**
- * §2: make the braid audible. Org beats play the full mix; personal beats duck
- * to the same track, quieter. The handoff from "31 events run" to "you were in
- * 9 of those rooms" gets felt before it is read.
- */
-const PERSONAL_GAIN = 0.28;
+/** §2: make the braid audible. Org beats play the full mix; personal beats
+    duck, so the handoff is felt before it is read. */
+const PERSONAL_GAIN = 0.3;
 const DUCK_MS = 450;
 
+const CLUB_PATTERN_INDEX = { grid: 0, waves: 1, halftone: 2, diagonals: 3 } as const;
+
+type Vector = [number, number];
 type Phase = "idle" | "running" | "gated" | "done";
 
-interface BeatContent {
-  lines: C.Line[];
-  club?: ReturnType<typeof C.club>;
-  credits?: boolean;
+// The canvas camera. Screens live on a plane and advancing whips across it —
+// outgoing and incoming travel TOGETHER, never mode="wait", or the whip reads
+// as two slides instead of one move.
+const pct = (n: number) => `${n}%`;
+const WHIP_TIMES = [0, 0.19, 1];
+const WHIP_EASE: ["easeOut", [number, number, number, number]] = ["easeOut", [0.83, 0, 0.17, 1]];
+const WHIP_DURATION = 0.47;
+const ANTICIPATE_PCT = 1.5;
+const SMEAR_TIMES = [0, 0.19, 0.745, 1];
+const WHIP_TRANSITION = { duration: WHIP_DURATION, times: WHIP_TIMES, ease: WHIP_EASE };
+const SMEAR_TRANSITION = { duration: WHIP_DURATION, times: SMEAR_TIMES, ease: WHIP_EASE };
+
+/** Motion blur without `filter`: the travelling screen stretches along its
+    dominant axis and eases back in the whip's last 120ms. */
+function smear(v: Vector, axis: "x" | "y"): number[] {
+  const dominant = v[1] !== 0 ? "y" : "x";
+  return axis === dominant ? [1, 1, 1.045, 1] : [1, 1, 1, 1];
 }
 
-function contentFor(id: string, snap: Snapshot | null): BeatContent | null {
-  switch (id) {
-    case "cold-open": return { lines: C.coldOpen() };
-    case "arrival": return { lines: C.arrival(snap) };
-    case "the-year": return { lines: C.theYear(snap) };
-    case "built": return { lines: C.built(snap) };
-    case "moments": return { lines: C.moments(snap) };
-    case "group-chat": return { lines: C.groupChat(snap) };
-    case "loudest-day": { const l = C.loudestDay(snap); return l && { lines: l }; }
-    case "rooms": { const l = C.rooms(snap); return l && { lines: l }; }
-    case "title": {
-      if (!snap) return null;
-      // Real assignment, on placeholder z-scores until the pipeline computes
-      // them — the engine is what is being exercised here, not the inputs.
-      const z: Record<string, number> = {
-        messages: snap.messages.matched ? Math.min(3, snap.messages.count / 400) : 0,
-        checkins: Math.min(3, snap.events.checkins / 8),
-        reads: snap.radar ? Math.min(3, snap.radar.reads / 12) : 0,
-        plays: snap.radar ? Math.min(3, snap.radar.plays / 20) : 0,
-      };
-      const t = assignTitle({ z, tier: snap.standing.percentile <= 15 ? "A" : snap.standing.percentile <= 50 ? "B" : "C" });
-      return { lines: [
-        { text: "Everyone in this chat has a reputation." },
-        { kicker: "YOU ARE", text: t.title, sub: t.because },
-      ] };
-    }
-    case "club": { const c = C.club(snap); return c && { lines: [], club: c }; }
-    case "people": return { lines: [], credits: true };
-    case "handover": return { lines: C.handover(snap) };
-    default: return null;
-  }
+interface CameraCustom { v: Vector; reduceMotion: boolean }
+
+const CAMERA_VARIANTS = {
+  enter: ({ v }: CameraCustom) => ({ x: pct(v[0] * 100), y: pct(v[1] * 100), scaleX: 1, scaleY: 1 }),
+  center: ({ v }: CameraCustom) => ({
+    x: [pct(v[0] * 100), pct(v[0] * 100 + v[0] * ANTICIPATE_PCT), pct(0)],
+    y: [pct(v[1] * 100), pct(v[1] * 100 + v[1] * ANTICIPATE_PCT), pct(0)],
+    scaleX: smear(v, "x"),
+    scaleY: smear(v, "y"),
+    transition: { x: WHIP_TRANSITION, y: WHIP_TRANSITION, scaleX: SMEAR_TRANSITION, scaleY: SMEAR_TRANSITION },
+  }),
+  exit: ({ v, reduceMotion }: CameraCustom) => {
+    // Sideways exits shear; clean verticals hold straight, which falls out of
+    // sign(v[0]) without branching. Reduced motion zeroes it.
+    const s = reduceMotion ? 0 : Math.sign(v[0]);
+    return {
+      x: [pct(0), pct(v[0] * ANTICIPATE_PCT), pct(-v[0] * 100)],
+      y: [pct(0), pct(v[1] * ANTICIPATE_PCT), pct(-v[1] * 100)],
+      scaleX: smear(v, "x"),
+      scaleY: smear(v, "y"),
+      rotate: [0, 0.4 * s, 2.2 * s],
+      transition: {
+        x: WHIP_TRANSITION, y: WHIP_TRANSITION,
+        scaleX: SMEAR_TRANSITION, scaleY: SMEAR_TRANSITION, rotate: WHIP_TRANSITION,
+      },
+    };
+  },
+};
+
+/** Content travels 12% further than its screen, on a softer spring. Two
+    layers at different speeds is what reads as space rather than a slide. */
+const PARALLAX_SPRING = { type: "spring" as const, stiffness: 260, damping: 32 };
+const PARALLAX_VARIANTS = {
+  enter: (v: Vector) => ({ x: pct(v[0] * 12), y: pct(v[1] * 12) }),
+  center: { x: "0%", y: "0%", transition: { x: PARALLAX_SPRING, y: PARALLAX_SPRING } },
+  exit: (v: Vector) => ({ x: pct(-v[0] * 12), y: pct(-v[1] * 12), transition: { x: PARALLAX_SPRING, y: PARALLAX_SPRING } }),
+};
+
+/** Screens are transparent so the shader shows through, so each travelling
+    screen carries its own opaque backdrop while moving and fades it once
+    settled. Without this the whip double-exposes. */
+const BACKDROP_VARIANTS = {
+  enter: { opacity: 1 },
+  center: { opacity: 0, transition: { delay: 0.15, duration: 0.3 } },
+  exit: { opacity: 1, transition: { duration: 0 } },
+};
+
+/** A blink of the incoming beat's accent at the seam — connective tissue. */
+const SEAM_VARIANTS = {
+  enter: { opacity: 0.9 },
+  center: { opacity: 0, transition: { delay: 0.1, duration: 0.3 } },
+  exit: { opacity: 0 },
+};
+
+function seamEdge(v: Vector): "top" | "bottom" | "left" | "right" {
+  if (v[1] !== 0) return v[1] > 0 ? "top" : "bottom";
+  return v[0] > 0 ? "right" : "left";
 }
 
-/** The beat covering a moment on the deck timeline. */
 function beatAt<T extends { atSec: number }>(beats: T[], t: number): T | undefined {
   let found = beats[0];
   for (const b of beats) if (t >= b.atSec) found = b;
@@ -70,41 +113,40 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [now, setNow] = useState(0);
+  const [vector, setVector] = useState<Vector>([0, 1]);
   const gainRef = useRef(FULL_GAIN);
+  // The shader field reads progress every frame without re-rendering React.
+  const progressRef = useRef(0);
 
-  // Beats a member has no data for are dropped, and the deck CLOSES UP around
-  // them. Filtering a already-timed deck instead leaves every surviving beat
-  // sitting at its original position, so a guest — who loses four personal
-  // beats — spends forty-two seconds on one screen while the audio plays on.
-  // Drop first, time second.
-  const beats = useMemo(
-    () => timeline(DECK.filter((b) => contentFor(b.id, snapshot) !== null)),
-    [snapshot]
-  );
+  const beats = useMemo(() => {
+    const guest = !snapshot;
+    // A guest has nothing to show on the personal beats, and an empty frame
+    // is worse than no frame.
+    return timeline(
+      DECK.filter((b) => !(guest && (b.id === "loudest-day" || b.id === "rooms" || b.id === "title" || b.id === "club")))
+    );
+  }, [snapshot]);
 
   const active = useMemo(() => beatAt(beats, now), [beats, now]);
-
-  const content = active ? contentFor(active.id, snapshot) : null;
+  const index = active ? beats.indexOf(active) : 0;
   const total = beats.length ? beats.at(-1)!.atSec + beats.at(-1)!.durationSec : 1;
 
-  // The clock reads these so it does not have to re-arm every time the deck
-  // or its length changes. Written in an effect rather than during render:
-  // touching a ref while rendering is exactly the tearing React warns about.
   const beatsRef = useRef(beats);
   const totalRef = useRef(total);
-  useEffect(() => {
-    beatsRef.current = beats;
-    totalRef.current = total;
-  }, [beats, total]);
+  useEffect(() => { beatsRef.current = beats; totalRef.current = total; }, [beats, total]);
 
-  // The AUDIO is the clock. Driving the deck from its own timer and hoping it
-  // stays with the track is what puts a reveal next to the downbeat instead of
-  // on it; reading currentTime cannot drift by construction.
-  //
-  // The gate and the end of the deck are decided HERE rather than in effects
-  // that watch `now`, because both are consequences of the clock advancing.
-  // An effect that watches state and then sets state is a cascading render
-  // waiting to happen, and React lints it for good reason.
+  // Whip direction follows the move that actually happened, so a tap back
+  // travels the reverse of the way it came.
+  const prevIndexRef = useRef(0);
+  useEffect(() => {
+    if (prevIndexRef.current !== index) {
+      setVector(vectorBetween(prevIndexRef.current, index));
+      prevIndexRef.current = index;
+    }
+  }, [index]);
+
+  // The AUDIO is the clock — reading currentTime cannot drift from the music,
+  // which a parallel timer eventually always does.
   const gatedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (phase !== "running") return;
@@ -114,27 +156,20 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
       if (el) {
         const t = el.currentTime;
         setNow(t);
-
         const beat = beatAt(beatsRef.current, t);
-        if (beat?.interactive && !gatedRef.current.has(beat.id)) {
-          // An interactive beat genuinely waits, so the audio waits with it.
-          // Pausing is safe HERE specifically because resuming happens inside
-          // a tap handler, the one moment a mobile browser always honours.
-          //
-          // The latch matters: resuming leaves the playhead past the gate, so
-          // without a record of which beats have asked, this re-fires on the
-          // next frame and the tap does nothing but re-pause.
-          if (t >= beat.atSec + beat.durationSec * 0.45) {
-            gatedRef.current.add(beat.id);
-            el.pause();
-            setPhase("gated");
-            return;
-          }
-        }
+        if (beat) progressRef.current = Math.min(1, (t - beat.atSec) / beat.durationSec);
 
+        if (beat?.interactive && !gatedRef.current.has(beat.id)
+            && t >= beat.atSec + beat.durationSec * 0.45) {
+          // The beat genuinely waits, so the audio waits with it. Latched,
+          // because resuming leaves the playhead past the gate and this would
+          // otherwise re-fire on the next frame.
+          gatedRef.current.add(beat.id);
+          el.pause();
+          setPhase("gated");
+          return;
+        }
         if (t >= totalRef.current - 0.05) {
-          // A shortened deck ends before the stitched file does, so the audio
-          // has to be told. Without this the track plays under the end card.
           el.pause();
           setPhase("done");
           return;
@@ -146,8 +181,7 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
     return () => cancelAnimationFrame(raf);
   }, [phase]);
 
-  // Duck for personal beats, ramped rather than stepped so the change reads as
-  // a mix move and not a glitch.
+  // Duck for personal beats, ramped so it reads as a mix move not a glitch.
   useEffect(() => {
     const el = audioRef.current;
     if (!el || !active) return;
@@ -166,6 +200,15 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
     return () => cancelAnimationFrame(raf);
   }, [active]);
 
+  const seek = useCallback((to: number) => {
+    const el = audioRef.current;
+    const target = beatsRef.current[Math.max(0, Math.min(beatsRef.current.length - 1, to))];
+    if (!el || !target) return;
+    el.currentTime = target.atSec + 0.01;
+    setNow(el.currentTime);
+    if (el.paused && phase !== "idle") { el.play().catch(() => {}); setPhase("running"); }
+  }, [phase]);
+
   const start = useCallback(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -178,17 +221,108 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
     setPhase("running");
   }, []);
 
-  const movement = active ? MOVEMENTS[active.movement] : null;
+  const v = active ? visualFor(active) : null;
+  const clubMeta = snapshot ? CLUBS[snapshot.club.id] : null;
+  const accentHex = v
+    ? v.accent === "club" ? clubMeta?.hex ?? ACCENT_HEX.green : ACCENT_HEX[v.accent]
+    : ACCENT_HEX.blue;
+  const StoryComponent = v?.story ? STORY_COMPONENTS[v.story] : null;
+  const edge = seamEdge(vector);
+  const edgeVertical = edge === "top" || edge === "bottom";
 
   return (
-    <main className="fixed inset-0 bg-ink text-cream overflow-hidden select-none">
+    <StoryFrame
+      field={v?.field ?? "ink"}
+      storyIndex={v?.shader ?? 0}
+      accentHex={accentHex}
+      pattern={clubMeta ? CLUB_PATTERN_INDEX[clubMeta.pattern] : 0}
+      progressRef={progressRef}
+    >
       <audio ref={audioRef} src={AUDIO_SRC} preload="auto" playsInline />
 
+      <AnimatePresence initial={false} custom={{ v: vector, reduceMotion: !!reduceMotion }}>
+        {phase !== "idle" && active && (
+          <motion.div
+            key={active.id}
+            custom={{ v: vector, reduceMotion: !!reduceMotion }}
+            variants={CAMERA_VARIANTS}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="absolute inset-0 z-10 will-change-transform"
+          >
+            <motion.div
+              aria-hidden
+              variants={BACKDROP_VARIANTS}
+              className={`absolute inset-0 ${v?.field === "ink" ? "bg-ink" : "bg-cream"}`}
+            />
+            <motion.div
+              aria-hidden
+              variants={SEAM_VARIANTS}
+              className="absolute pointer-events-none"
+              style={
+                edgeVertical
+                  ? { background: accentHex, left: 0, right: 0, height: 2, [edge]: 0 }
+                  : { background: accentHex, top: 0, bottom: 0, width: 2, [edge]: 0 }
+              }
+            />
+            <motion.div variants={PARALLAX_VARIANTS} custom={vector} className="absolute inset-0">
+              {StoryComponent ? (
+                <StoryComponent
+                  phase={v!.phase}
+                  active
+                  snapshot={snapshot}
+                  guest={!snapshot}
+                  paused={phase !== "running"}
+                  onReplay={() => seek(0)}
+                />
+              ) : (
+                <LoudestDay snapshot={snapshot} />
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tap the sides, swipe for whole beats — the gesture every visitor
+          already has in their thumbs. */}
+      {phase === "running" && (
+        <TapZones
+          onNext={() => seek(index + 1)}
+          onPrev={() => seek(index - 1)}
+          onNextStory={() => seek(index + 1)}
+          onPrevStory={() => seek(index - 1)}
+          onPause={() => { audioRef.current?.pause(); setPhase("gated"); }}
+          onResume={resume}
+          paused={false}
+        />
+      )}
+
+      {phase !== "idle" && (
+        <div className="absolute top-0 inset-x-0 z-30 flex gap-1 p-2 pointer-events-none">
+          {beats.map((b) => {
+            const done = now >= b.atSec + b.durationSec;
+            const within = now >= b.atSec && !done;
+            const pctDone = within ? ((now - b.atSec) / b.durationSec) * 100 : done ? 100 : 0;
+            return (
+              <div key={b.id} className="h-[3px] flex-1 rounded-full bg-cream/25 overflow-hidden">
+                <div className="h-full bg-cream" style={{ width: `${pctDone}%` }} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {phase !== "idle" && active && (
+        <div className="absolute top-5 left-3 z-30 t-label text-cream/30 pointer-events-none"
+             style={{ fontSize: "0.5rem" }}>
+          {MOVEMENTS[active.movement].numeral} · {active.movement.toUpperCase()}
+        </div>
+      )}
+
       {phase === "idle" && (
-        <button
-          onClick={start}
-          className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-5"
-        >
+        <button onClick={start}
+                className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-5">
           <span className="t-label text-cream/50">GDG ON CAMPUS BABCOCK</span>
           <span className="text-outline-base text-outline-cream leading-none"
                 style={{ fontSize: "clamp(3rem, 15vw, 7rem)" }}>WRAPPED</span>
@@ -199,61 +333,10 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
         </button>
       )}
 
-      {/* Progress: one segment per beat, so where you are in the deck is
-          legible without a scrubber. */}
-      {phase !== "idle" && (
-        <div className="absolute top-0 inset-x-0 z-30 flex gap-1 p-2">
-          {beats.map((b) => {
-            const done = now >= b.atSec + b.durationSec;
-            const within = now >= b.atSec && !done;
-            const pct = within ? ((now - b.atSec) / b.durationSec) * 100 : done ? 100 : 0;
-            return (
-              <div key={b.id} className="h-[3px] flex-1 rounded-full bg-cream/20 overflow-hidden">
-                <div className="h-full bg-cream" style={{ width: `${pct}%` }} />
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {phase !== "idle" && movement && active && (
-        <div className="absolute top-5 left-3 z-30 t-label text-cream/35" style={{ fontSize: "0.55rem" }}>
-          {movement.numeral} · {active.movement.toUpperCase()} · {active.shape}
-        </div>
-      )}
-
-      <AnimatePresence mode="wait">
-        {phase !== "idle" && active && content && (
-          <motion.div
-            key={active.id}
-            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -24 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0 flex items-center justify-center px-8"
-          >
-            {content.credits ? (
-              <Credits durationSec={active.durationSec} reduceMotion={!!reduceMotion} />
-            ) : content.club ? (
-              <ClubBeat club={content.club} gated={phase === "gated"} onPick={resume} />
-            ) : (
-              <Lines
-                lines={content.lines}
-                atSec={now - active.atSec}
-                durationSec={active.durationSec}
-                shape={active.shape}
-              />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {phase === "gated" && active?.shape === "GATE" && (
-        <button
-          onClick={resume}
-          className="absolute bottom-24 left-1/2 -translate-x-1/2 z-40 rounded-full bg-cream text-ink px-8 py-4 t-label"
-        >
-          Show me
+      {phase === "gated" && (
+        <button onClick={resume}
+                className="absolute bottom-24 left-1/2 -translate-x-1/2 z-40 rounded-full bg-cream text-ink px-8 py-4 t-label">
+          {active?.interactive ? "Show me" : "Resume"}
         </button>
       )}
 
@@ -264,131 +347,13 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
             That was the point.
           </p>
           <button
-            onClick={() => {
-              gatedRef.current.clear();
-              setNow(0);
-              if (audioRef.current) audioRef.current.currentTime = 0;
-              start();
-            }}
+            onClick={() => { gatedRef.current.clear(); seek(0); start(); }}
             className="mt-4 rounded-full border border-cream/40 text-cream px-6 py-3 t-label"
           >
             Watch again
           </button>
         </div>
       )}
-    </main>
-  );
-}
-
-/** A beat's lines, revealed in sequence across the beat's own duration. */
-function Lines({
-  lines, atSec, durationSec, shape,
-}: { lines: C.Line[]; atSec: number; durationSec: number; shape: string }) {
-  // MONTAGE accelerates; everything else divides its time evenly.
-  const weights = shape === "MONTAGE"
-    ? lines.map((_, i) => Math.max(0.5, 2 - i * 0.3))
-    : lines.map(() => 1);
-  const totalW = weights.reduce((a, b) => a + b, 0);
-  const startAt = weights.reduce<number[]>((acc, w, i) => {
-    acc.push(i === 0 ? 0 : acc[i - 1]! + (weights[i - 1]! / totalW) * durationSec);
-    return acc;
-  }, []);
-  let index = 0;
-  for (let i = 0; i < startAt.length; i++) if (atSec >= startAt[i]!) index = i;
-  const line = lines[index];
-  if (!line) return null;
-
-  return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={index}
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.28, ease: "easeOut" }}
-        className="flex flex-col items-center text-center gap-3 max-w-lg"
-      >
-        {line.kicker && <span className="t-label text-gdg-blue">{line.kicker}</span>}
-        {line.stat && (
-          <span className="t-display text-cream leading-none"
-                style={{ fontSize: "clamp(3rem, 18vw, 7rem)" }}>{line.stat}</span>
-        )}
-        {line.text && (
-          <span className={line.stat ? "t-label text-cream/70" : "t-display text-cream"}
-                style={line.stat ? undefined : { fontSize: "clamp(1.5rem, 7vw, 2.75rem)" }}>
-            {line.text}
-          </span>
-        )}
-        {line.sub && <span className="t-body text-cream/60 text-sm max-w-sm">{line.sub}</span>}
-      </motion.div>
-    </AnimatePresence>
-  );
-}
-
-function ClubBeat({
-  club, gated, onPick,
-}: { club: NonNullable<ReturnType<typeof C.club>>; gated: boolean; onPick: () => void }) {
-  const [guess, setGuess] = useState<string | null>(null);
-  return (
-    <div className="flex flex-col items-center text-center gap-5 max-w-md">
-      {!guess ? (
-        <>
-          <p className="t-display text-cream" style={{ fontSize: "clamp(1.3rem,6vw,2rem)" }}>
-            {club.setup}
-          </p>
-          <p className="t-body text-cream/60 text-sm">{club.setupSub}</p>
-          <p className="t-label text-gdg-blue mt-2">GUESS YOURS</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {club.options.map((o) => (
-              <button
-                key={o}
-                onClick={() => { setGuess(o); if (gated) onPick(); }}
-                className="rounded-full border border-cream/40 px-5 py-3 t-label text-cream"
-              >
-                {o}
-              </button>
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <p className="t-label text-gdg-blue">
-            {guess === club.answer ? "Correct. You know yourself." : "Not quite."}
-          </p>
-          <p className="t-display text-cream leading-none" style={{ fontSize: "clamp(2rem,11vw,4rem)" }}>
-            {club.answer}
-          </p>
-          <p className="t-body text-cream/75 text-sm">{club.definition}</p>
-          <p className="t-label text-cream/45">{club.rarity}</p>
-        </>
-      )}
-    </div>
-  );
-}
-
-/** Sixteen bars of continuous scroll. Its own physics, per §3. */
-function Credits({ durationSec, reduceMotion }: { durationSec: number; reduceMotion: boolean }) {
-  return (
-    <div className="absolute inset-0 overflow-hidden">
-      <motion.div
-        initial={{ y: "60%" }}
-        animate={{ y: "-115%" }}
-        transition={{ duration: durationSec, ease: "linear" }}
-        className="flex flex-col items-center gap-7 px-8 text-center"
-      >
-        <p className="t-label text-gdg-blue">NONE OF THIS HAPPENED BY ITSELF</p>
-        {C.CREDITS.map((c, i) => (
-          <div key={i} className="flex flex-col items-center gap-1">
-            {c.section && <span className="t-label text-cream/40" style={{ fontSize: "0.6rem" }}>{c.section}</span>}
-            <span className="t-body text-cream/90">{c.line}</span>
-          </div>
-        ))}
-      </motion.div>
-      {reduceMotion && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="t-body text-cream/70">Roll credits.</span>
-        </div>
-      )}
-    </div>
+    </StoryFrame>
   );
 }
