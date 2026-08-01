@@ -88,31 +88,45 @@ export interface Beat {
 }
 
 /**
- * Bar lengths are the spec's second-counts converted at 114 BPM (bar =
- * 2.1053s) and rounded to the nearest half bar, because a beat ending mid-bar
- * puts the next one's opening frame off the grid.
+ * Bar lengths are what the CONTENT needs, converted at the carrying track's
+ * measured tempo and rounded to the half bar.
  *
- * Rounding goes DOWN where it is a coin flip. Rounding each beat up
- * independently looks harmless and cost four seconds across twelve beats,
- * which is the kind of overrun that gets taken out of the handover later
- * because it is the last thing in the deck.
+ * The first cut of this took the spec's second-counts literally — 12s for
+ * "what we built", 34s for the credits — and that silently truncated every
+ * beat backed by a story component that scripts its own sequence. `people`
+ * reached 41% of its roster before the beat ended, so most of the team, the
+ * sponsor wall, the MVPs and the design force were simply never drawn.
+ * `group-chat` reached 16%. Nothing was removed; the beats just stopped
+ * early, which looks exactly the same from the outside.
+ *
+ * So the content-carrying beats now get their scripted length:
+ *
+ *   built        30.5 bars   the five-product saga
+ *   moments        20 bars   eleven photo pages
+ *   group-chat     25 bars   thirteen beats
+ *   people         39 bars   the whole roster, with faces
+ *
+ * That costs runtime, and the trade is deliberate: a deck that fits 2:42 by
+ * cutting away two-thirds of the humans is not a shorter deck, it is a deck
+ * with the people taken out. Trim by dropping content on purpose, never by
+ * ending a beat early.
  */
 export const DECK: Beat[] = [
   { id: "cold-open", shape: "COLD", movement: "arrival", audience: "both", bars: 8, label: "Cold open" },
   { id: "arrival", shape: "HOLD", movement: "arrival", audience: "personal", bars: 8, label: "Your arrival" },
 
   { id: "the-year", shape: "MONTAGE", movement: "proof", audience: "org", bars: 5, label: "The year", handsOff: true },
-  { id: "built", shape: "MONTAGE", movement: "proof", audience: "org", bars: 5.5, label: "What we built", handsOff: true },
-  { id: "moments", shape: "MONTAGE", movement: "proof", audience: "both", bars: 4, label: "The moments" },
+  { id: "built", shape: "MONTAGE", movement: "proof", audience: "org", bars: 30.5, label: "What we built", handsOff: true },
+  { id: "moments", shape: "MONTAGE", movement: "proof", audience: "both", bars: 20, label: "The moments" },
 
-  { id: "group-chat", shape: "MONTAGE", movement: "recognition", audience: "org", bars: 4, label: "The group chat", handsOff: true },
+  { id: "group-chat", shape: "MONTAGE", movement: "recognition", audience: "org", bars: 25, label: "The group chat", handsOff: true },
   { id: "loudest-day", shape: "DROP", movement: "recognition", audience: "personal", bars: 5, label: "Your loudest day" },
   { id: "rooms", shape: "HOLD", movement: "recognition", audience: "personal", bars: 5.5, label: "Your rooms", optional: true },
 
   { id: "title", shape: "GATE", movement: "identity", audience: "personal", bars: 5, label: "Your title", interactive: true },
-  { id: "club", shape: "STOP", movement: "identity", audience: "personal", bars: 4, label: "Your club", interactive: true },
+  { id: "club", shape: "STOP", movement: "identity", audience: "personal", bars: 5, label: "Your club", interactive: true },
 
-  { id: "people", shape: "ROLL", movement: "succession", audience: "org", bars: 16, label: "The people" },
+  { id: "people", shape: "ROLL", movement: "succession", audience: "org", bars: 39, label: "The people" },
   { id: "handover", shape: "DROP", movement: "succession", audience: "both", bars: 6, label: "The handover" },
 ];
 

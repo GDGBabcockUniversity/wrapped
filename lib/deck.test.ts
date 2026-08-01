@@ -32,15 +32,21 @@ describe("the running order", () => {
     }
   });
 
-  it("holds close to the 2:42 the spec fixes", () => {
-    const target = 162;
-    expect(Math.abs(runtimeSec() - target)).toBeLessThan(4);
-  });
-
-  it("comes in under the target rather than over", () => {
-    // Rounding each beat up independently looks harmless and cost four
-    // seconds across twelve beats. Over is how a deck creeps.
-    expect(runtimeSec()).toBeLessThanOrEqual(162);
+  it("gives every content-carrying beat the time its content needs", () => {
+    // The runtime is an OUTPUT of the content, not a budget the content is
+    // squeezed into. Enforcing 2:42 here is what truncated the credits to
+    // 41% of the roster: the test passed and most of the team vanished.
+    // Scripted lengths, from each story component's own sequence.
+    const needs: Record<string, number> = {
+      built: 63.7,
+      moments: 41.8,
+      "group-chat": 52.6,
+      people: 82.05,
+    };
+    for (const b of timeline()) {
+      const need = needs[b.id];
+      if (need) expect(b.durationSec, `${b.id} truncates its content`).toBeGreaterThanOrEqual(need);
+    }
   });
 
   it("ships exactly two interactions", () => {

@@ -1,7 +1,7 @@
 {
   "generatedBy": "npm run stitch-audio",
   "src": "/audio/wrapped.mp3",
-  "runtimeSec": 160.578,
+  "runtimeSec": 342.077,
   "crossfadeSec": 0.9,
   "movements": [
     {
@@ -16,31 +16,31 @@
       "id": "proof",
       "numeral": "II",
       "fromSec": 33.6842,
-      "toSec": 64.2105,
+      "toSec": 150.5263,
       "track": "mcbh",
       "standIn": true
     },
     {
       "id": "recognition",
       "numeral": "III",
-      "fromSec": 64.2105,
-      "toSec": 94.7368,
+      "fromSec": 150.5263,
+      "toSec": 225.2632,
       "track": "mcbh",
       "standIn": true
     },
     {
       "id": "identity",
       "numeral": "IV",
-      "fromSec": 94.7368,
-      "toSec": 113.8519,
+      "fromSec": 225.2632,
+      "toSec": 246.5021,
       "track": "gratitude",
       "standIn": true
     },
     {
       "id": "succession",
       "numeral": "V",
-      "fromSec": 113.8519,
-      "toSec": 160.5776,
+      "fromSec": 246.5021,
+      "toSec": 342.0773,
       "track": "gratitude",
       "standIn": false
     }
@@ -84,9 +84,9 @@
       "shape": "MONTAGE",
       "movement": "proof",
       "audience": "org",
-      "bars": 5.5,
+      "bars": 30.5,
       "atSec": 44.2105,
-      "durationSec": 11.5789,
+      "durationSec": 64.2105,
       "interactive": false,
       "optional": false
     },
@@ -95,9 +95,9 @@
       "shape": "MONTAGE",
       "movement": "proof",
       "audience": "both",
-      "bars": 4,
-      "atSec": 55.7895,
-      "durationSec": 8.4211,
+      "bars": 20,
+      "atSec": 108.4211,
+      "durationSec": 42.1053,
       "interactive": false,
       "optional": false
     },
@@ -106,9 +106,9 @@
       "shape": "MONTAGE",
       "movement": "recognition",
       "audience": "org",
-      "bars": 4,
-      "atSec": 64.2105,
-      "durationSec": 8.4211,
+      "bars": 25,
+      "atSec": 150.5263,
+      "durationSec": 52.6316,
       "interactive": false,
       "optional": false
     },
@@ -118,7 +118,7 @@
       "movement": "recognition",
       "audience": "personal",
       "bars": 5,
-      "atSec": 72.6316,
+      "atSec": 203.1579,
       "durationSec": 10.5263,
       "interactive": false,
       "optional": false
@@ -129,7 +129,7 @@
       "movement": "recognition",
       "audience": "personal",
       "bars": 5.5,
-      "atSec": 83.1579,
+      "atSec": 213.6842,
       "durationSec": 11.5789,
       "interactive": false,
       "optional": true
@@ -140,7 +140,7 @@
       "movement": "identity",
       "audience": "personal",
       "bars": 5,
-      "atSec": 94.7368,
+      "atSec": 225.2632,
       "durationSec": 10.6195,
       "interactive": true,
       "optional": false
@@ -150,9 +150,9 @@
       "shape": "STOP",
       "movement": "identity",
       "audience": "personal",
-      "bars": 4,
-      "atSec": 105.3563,
-      "durationSec": 8.4956,
+      "bars": 5,
+      "atSec": 235.8826,
+      "durationSec": 10.6195,
       "interactive": true,
       "optional": false
     },
@@ -161,9 +161,9 @@
       "shape": "ROLL",
       "movement": "succession",
       "audience": "org",
-      "bars": 16,
-      "atSec": 113.8519,
-      "durationSec": 33.9823,
+      "bars": 39,
+      "atSec": 246.5021,
+      "durationSec": 82.8319,
       "interactive": false,
       "optional": false
     },
@@ -173,7 +173,7 @@
       "movement": "succession",
       "audience": "both",
       "bars": 6,
-      "atSec": 147.8342,
+      "atSec": 329.334,
       "durationSec": 12.7434,
       "interactive": false,
       "optional": false
