@@ -9,6 +9,7 @@ import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { IdleFloat } from "@/components/idle-float";
 import { PolaroidFrame, FilmstripFrame, PostcardFrame } from "@/components/moments/frame";
 import { MOMENTS, GROUP_CHAT } from "@/lib/content/chapter";
+import { MOMENTS_KEEP } from "@/lib/deck-cuts";
 import { copy } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { ACCENT_HEX } from "@/components/gl/shaders";
@@ -65,7 +66,7 @@ const techweek = momentById("techweek");
 const innovation = momentById("innovation");
 const orbit = momentById("orbit");
 
-const PAGES: MomentPage[] = [
+const ALL_PAGES: MomentPage[] = [
   // THE INFO SESSION — where the year started.
   { key: "info-1", event: "INFO SESSION", kind: "polaroid", photos: [info.images[0]], photoStart: 0, caption: info.caption, accent: ACCENT_HEX.blue },
   // MONTHLY MEETUPS — the rhythm underneath everything else.
@@ -87,6 +88,13 @@ const PAGES: MomentPage[] = [
   { key: "orbit-2", event: "ORBIT", kind: "filmstrip", photos: padTo(orbit.images.slice(1), 3), photoStart: 1, accent: ACCENT_HEX.red },
   { key: "orbit-3", event: "ORBIT", kind: "postcard", photos: [orbit.images[4] ?? orbit.images[0]], photoStart: 4, stat: "547", statLabel: "TICKETS ISSUED", accent: ACCENT_HEX.red },
 ];
+
+// Five pages, not eleven (spec §5). The spread keeps its treatments — a
+// filmstrip, a postcard carrying a stat, two polaroids, a closing number —
+// so what goes is the repetition, not the craft.
+const PAGES: MomentPage[] = MOMENTS_KEEP
+  .map((k) => ALL_PAGES.find((p) => p.key === k))
+  .filter((p): p is MomentPage => Boolean(p));
 
 const EXIT_EASE = [0.83, 0, 0.17, 1] as const;
 // build7 §4/§8: page turns alternate a horizontal slide and a vertical rise

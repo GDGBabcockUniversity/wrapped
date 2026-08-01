@@ -37,11 +37,15 @@ describe("the running order", () => {
     // squeezed into. Enforcing 2:42 here is what truncated the credits to
     // 41% of the roster: the test passed and most of the team vanished.
     // Scripted lengths, from each story component's own sequence.
+    // Measured schedules of the CUT sequences (lib/deck-cuts.ts). Shorten a
+    // beat without cutting its content and this fails, which is the whole
+    // point: the credits once reached 41% of the roster while a runtime test
+    // passed happily.
     const needs: Record<string, number> = {
-      built: 63.7,
-      moments: 41.8,
-      "group-chat": 52.6,
-      people: 82.05,
+      built: 38.0,
+      moments: 19.0,
+      "group-chat": 15.8,
+      people: 60.0,
     };
     for (const b of timeline()) {
       const need = needs[b.id];

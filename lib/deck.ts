@@ -88,8 +88,8 @@ export interface Beat {
 }
 
 /**
- * Bar lengths are what the CONTENT needs, converted at the carrying track's
- * measured tempo and rounded to the half bar.
+ * Bar lengths are what the CUT content needs (lib/deck-cuts.ts), converted at
+ * the carrying track's measured tempo and rounded up to the half bar.
  *
  * The first cut of this took the spec's second-counts literally — 12s for
  * "what we built", 34s for the credits — and that silently truncated every
@@ -99,34 +99,35 @@ export interface Beat {
  * `group-chat` reached 16%. Nothing was removed; the beats just stopped
  * early, which looks exactly the same from the outside.
  *
- * So the content-carrying beats now get their scripted length:
+ * Both halves have to move together. The spec shortens these beats AND cuts
+ * what they show; taking only the durations truncates, and taking only the
+ * content leaves the deck padded. Every length below is the measured schedule
+ * of the CUT sequence, so each beat plays to its last frame:
  *
- *   built        30.5 bars   the five-product saga
- *   moments        20 bars   eleven photo pages
- *   group-chat     25 bars   thirteen beats
- *   people         39 bars   the whole roster, with faces
+ *   built        18.5 bars   12 beats of the saga, 38.0s
+ *   moments        10 bars   5 photo pages, 19.0s
+ *   group-chat      8 bars   4 beats, 15.8s
+ *   people         29 bars   12 chapters, the roster with faces
  *
- * That costs runtime, and the trade is deliberate: a deck that fits 2:42 by
- * cutting away two-thirds of the humans is not a shorter deck, it is a deck
- * with the people taken out. Trim by dropping content on purpose, never by
- * ending a beat early.
+ * Trim further by cutting content in deck-cuts.ts and re-deriving these.
+ * Never by shortening a beat and leaving its sequence alone.
  */
 export const DECK: Beat[] = [
   { id: "cold-open", shape: "COLD", movement: "arrival", audience: "both", bars: 8, label: "Cold open" },
   { id: "arrival", shape: "HOLD", movement: "arrival", audience: "personal", bars: 8, label: "Your arrival" },
 
   { id: "the-year", shape: "MONTAGE", movement: "proof", audience: "org", bars: 5, label: "The year", handsOff: true },
-  { id: "built", shape: "MONTAGE", movement: "proof", audience: "org", bars: 30.5, label: "What we built", handsOff: true },
-  { id: "moments", shape: "MONTAGE", movement: "proof", audience: "both", bars: 20, label: "The moments" },
+  { id: "built", shape: "MONTAGE", movement: "proof", audience: "org", bars: 18.5, label: "What we built", handsOff: true },
+  { id: "moments", shape: "MONTAGE", movement: "proof", audience: "both", bars: 10, label: "The moments" },
 
-  { id: "group-chat", shape: "MONTAGE", movement: "recognition", audience: "org", bars: 25, label: "The group chat", handsOff: true },
+  { id: "group-chat", shape: "MONTAGE", movement: "recognition", audience: "org", bars: 8, label: "The group chat", handsOff: true },
   { id: "loudest-day", shape: "DROP", movement: "recognition", audience: "personal", bars: 5, label: "Your loudest day" },
   { id: "rooms", shape: "HOLD", movement: "recognition", audience: "personal", bars: 5.5, label: "Your rooms", optional: true },
 
   { id: "title", shape: "GATE", movement: "identity", audience: "personal", bars: 5, label: "Your title", interactive: true },
   { id: "club", shape: "STOP", movement: "identity", audience: "personal", bars: 5, label: "Your club", interactive: true },
 
-  { id: "people", shape: "ROLL", movement: "succession", audience: "org", bars: 39, label: "The people" },
+  { id: "people", shape: "ROLL", movement: "succession", audience: "org", bars: 29, label: "The people" },
   { id: "handover", shape: "DROP", movement: "succession", audience: "both", bars: 6, label: "The handover" },
 ];
 

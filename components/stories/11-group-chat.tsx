@@ -7,6 +7,7 @@ import { SlamStat } from "@/components/slam-stat";
 import { StickerChip } from "@/components/sticker-chip";
 import { IdleFloat } from "@/components/idle-float";
 import { GROUP_CHAT, GROUP_TOPICS } from "@/lib/content/chapter";
+import { GROUP_CHAT_KEEP } from "@/lib/deck-cuts";
 import { copy, fmt } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { useGlQualityContext } from "@/components/gl/quality-context";
@@ -421,7 +422,10 @@ const BEAT_MS = [
   4000, // streak (stat/moment)
   4400, // subgroup (headline + 4-row ranking)
 ];
-const BEATS = buildBeats();
+// Four beats, not thirteen (spec §5): messages, peak hour and after
+// midnight, the loudest five, who restarts the chat. A montage dies at beat
+// six and this chapter can eat the whole runtime.
+const BEATS = buildBeats().slice(0, GROUP_CHAT_KEEP);
 
 export function GroupChatStory({ phase, active, paused, onComplete }: StoryProps) {
   const glQuality = useGlQualityContext();

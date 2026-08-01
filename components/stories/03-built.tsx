@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { KineticWords } from "@/components/kinetic-words";
 import { PopLetters } from "@/components/pop-letters";
 import { PRODUCTS, GUESS_GAME, PRODUCT_SAGA, type SagaStat } from "@/lib/content/chapter";
+import { BUILT_LIMIT } from "@/lib/deck-cuts";
 import { copy } from "@/lib/copy";
 import { SPRING, TIMING } from "@/lib/stories";
 import { useGlQualityContext } from "@/components/gl/quality-context";
@@ -400,7 +401,10 @@ function buildSagaBeats(): SagaBeat[] {
     });
   }
 
-  return beats;
+  // The saga's strongest run, not all of it (spec §5). Every product keeps a
+  // number; the intermediate line beats and the tail of the ORBIT stat run
+  // come out, because by beat fifteen a montage has stopped being a montage.
+  return beats.slice(0, BUILT_LIMIT);
 }
 
 const SAGA_BEATS = buildSagaBeats();

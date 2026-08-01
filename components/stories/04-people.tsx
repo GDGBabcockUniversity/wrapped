@@ -7,6 +7,7 @@ import { PEOPLE, SPONSOR_WALL, ADVISORS, MVPS, SPECIAL_FORCE, type Person } from
 import { InitialsAvatar } from "@/components/initials-avatar";
 import { PopLetters } from "@/components/pop-letters";
 import { SlamStat } from "@/components/slam-stat";
+import { PEOPLE_LIMIT } from "@/lib/deck-cuts";
 import { copy } from "@/lib/copy";
 import { SPRING } from "@/lib/stories";
 import { useGlQualityContext } from "@/components/gl/quality-context";
@@ -135,7 +136,7 @@ const mediaChapters: Chapter[] = MEDIA_SUBTEAMS.map((m) => ({
   cardMs: 1100,
 }));
 
-const CHAPTERS: Chapter[] = [
+const ALL_CHAPTERS: Chapter[] = [
   ...nonMediaChapters.slice(0, devPosition),
   ...mediaChapters,
   ...nonMediaChapters.slice(devPosition),
@@ -182,6 +183,13 @@ const CHAPTERS: Chapter[] = [
     contentMs: 3400,
   },
 ];
+
+// The credits keep the FACES. This is the one place the spec's own cut — a
+// roll of seventeen section lines — costs more than it saves, because the
+// people are the beat, not a list of what they did. So the roster chapters
+// stay and the tail comes out: the sponsor wall and the closer arc are the
+// parts a member scrolls past on the way to finding themselves.
+const CHAPTERS: Chapter[] = ALL_CHAPTERS.slice(0, PEOPLE_LIMIT);
 
 // Cadence (build5 §6.7): one combined chapter card (title + its editorial
 // line) holds 1600ms (media subteams compress to 1100ms), then the cast
