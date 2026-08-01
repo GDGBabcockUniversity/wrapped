@@ -94,6 +94,9 @@ export function Card({ snapshot }: { snapshot: Snapshot | null }) {
           transition={{ type: "spring", stiffness: 190, damping: 24 }}
           className="flex flex-col items-center gap-3 border border-cream/20 bg-ink/70 rounded-sm px-6 py-7 w-full max-w-xs"
         >
+          <span className="t-label text-cream/45" style={{ fontSize: "0.5rem" }}>
+            {snapshot.name}
+          </span>
           <SlamStat
             value={title.title}
             className="t-display text-cream leading-none"

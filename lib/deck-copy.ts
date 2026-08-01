@@ -60,11 +60,13 @@ export function milestoneAfter(joinDate: string): string | null {
 
 // ------------------------------------------------------------------ beats
 
-export function coldOpen(): Line[] {
+export function coldOpen(s: Snapshot | null): Line[] {
   return [
-    { text: "" }, // brand mark holds through the first vocal phrase
+    { text: "" }, // the brand mark holds one bar
     { text: "We kept receipts on the whole year." },
-    { text: "Including yours." },
+    // Naming them here is the promise the whole deck is built on, made in the
+    // first eight seconds rather than implied for four minutes.
+    { text: s ? `Including yours, ${s.firstName}.` : "Including yours." },
     { text: "Let's start there." },
   ];
 }

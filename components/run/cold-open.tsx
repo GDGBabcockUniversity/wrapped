@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { PopLetters } from "@/components/pop-letters";
 import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { coldOpen } from "@/lib/deck-copy";
+import type { Snapshot } from "@/lib/snapshot";
 
 /**
  * The cold open (build spec §00), on the drop.
@@ -28,8 +29,8 @@ import { coldOpen } from "@/lib/deck-copy";
 const BAR = 2.1053; // 114 BPM, measured
 const CUES = [0, BAR, BAR * 3, BAR * 5];
 
-export function ColdOpen({ atSec }: { atSec: number }) {
-  const lines = coldOpen();
+export function ColdOpen({ atSec, snapshot }: { atSec: number; snapshot: Snapshot | null }) {
+  const lines = coldOpen(snapshot);
   let index = 0;
   for (let i = 0; i < CUES.length; i++) if (atSec >= CUES[i]!) index = i;
   const line = lines[index];

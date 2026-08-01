@@ -142,7 +142,7 @@ function BeatBody({
   }
   switch (id) {
     // Three lines on the intro's vocal phrases (§00).
-    case "cold-open": return <ColdOpen atSec={elapsed} />;
+    case "cold-open": return <ColdOpen atSec={elapsed} snapshot={snapshot} />;
     // One number per screen, accelerating (§02).
     case "the-year":
       return <Montage lines={C.theYear(snapshot)} progress={progress} field={field} />;

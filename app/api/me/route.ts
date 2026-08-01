@@ -5,15 +5,28 @@ import { FIXTURES } from "@/lib/fixtures";
 
 export const dynamic = "force-dynamic";
 
+/** A fixture by key, by first name, or the default. Only ever null when the
+    caller explicitly asks for the guest deck. */
+function resolveFixture(asked: string | null) {
+  if (asked === "guest" || asked === "none") return null;
+  if (!asked) return FIXTURES.top1;
+  const key = asked.toLowerCase();
+  if (FIXTURES[key]) return FIXTURES[key];
+  const byName = Object.values(FIXTURES).find(
+    (f) => f.firstName.toLowerCase() === key || f.name.toLowerCase().startsWith(key)
+  );
+  return byName ?? FIXTURES.top1;
+}
+
 export async function GET(req: NextRequest) {
   const debug = process.env.NODE_ENV !== "production" || process.env.ALLOW_DEBUG;
   if (debug) {
-    const fixture = req.nextUrl.searchParams.get("fixture");
-    // Named fixture, or a default one. Without the default, a local run with
-    // no session falls through to the guest path, which drops every personal
-    // beat — so the deck someone is trying to look at is mostly not there,
-    // and nothing on screen explains why.
-    const snapshot = (fixture && FIXTURES[fixture]) || (!fixture && FIXTURES.top1);
+    const asked = req.nextUrl.searchParams.get("fixture");
+    // Resolve by key OR by the person's name, and NEVER fall through to guest
+    // on a miss. The fixture keyed `top1` is a member called Ada Lovelace, so
+    // ?fixture=ada is the obvious thing to type and used to return the guest
+    // deck in silence — four beats missing, nothing on screen saying why.
+    const snapshot = resolveFixture(asked);
     if (snapshot) {
       return NextResponse.json(
         { member: true, snapshot },
