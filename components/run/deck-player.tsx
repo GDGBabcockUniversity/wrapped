@@ -208,16 +208,47 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
     }
   }, [index]);
 
-  // The AUDIO is the clock — reading currentTime cannot drift from the music,
-  // which a parallel timer eventually always does.
+  // The clock.
+  //
+  // Audio leads, because reading currentTime is the only way cues stay with
+  // the music. But it CANNOT be the sole source of truth: currentTime stops
+  // advancing the instant the element stalls, and a 4MB file on campus LTE
+  // stalls. The deck then freezes on whatever beat it was on, silently and
+  // for good — which is exactly what a stuck screen for the whole runtime
+  // looks like from the outside.
+  //
+  // So wall time carries the deck and audio corrects it. While the element is
+  // genuinely playing, the clock is pulled onto currentTime and the two stay
+  // locked. The moment audio stops advancing — a stall, a failed load, a
+  // decode the browser gave up on — wall time keeps going and the deck plays
+  // out. Out of sync beats frozen.
   const gatedRef = useRef<Set<string>>(new Set());
+  const clockRef = useRef(0);
+  const lastAudioRef = useRef(-1);
+  const [audioLive, setAudioLive] = useState(true);
   useEffect(() => {
     if (phase !== "running") return;
     let raf = 0;
-    const tick = () => {
+    let wall = performance.now();
+    const tick = (frameTime: number) => {
       const el = audioRef.current;
-      if (el) {
-        const t = el.currentTime;
+      const dt = Math.min(0.25, (frameTime - wall) / 1000); // clamp tab-switch jumps
+      wall = frameTime;
+
+      const audioT = el && !el.paused ? el.currentTime : -1;
+      const advancing = audioT >= 0 && audioT !== lastAudioRef.current;
+      lastAudioRef.current = audioT;
+
+      if (advancing) {
+        clockRef.current = audioT;
+        if (!audioLive) setAudioLive(true);
+      } else {
+        clockRef.current += dt;
+        if (audioLive && el && !el.paused) setAudioLive(false);
+      }
+
+      {
+        const t = clockRef.current;
         setNow(t);
         const beat = beatAt(beatsRef.current, t);
         if (beat) progressRef.current = Math.min(1, (t - beat.atSec) / beat.durationSec);
@@ -228,7 +259,9 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
           // because resuming leaves the playhead past the gate and this would
           // otherwise re-fire on the next frame.
           gatedRef.current.add(beat.id);
-          el.pause();
+          // The element may be absent or already stalled; the gate still has
+          // to hold, because it is a beat that waits for a person.
+          el?.pause();
           setPhase("gated");
           return;
         }
@@ -242,7 +275,7 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [phase]);
+  }, [phase, audioLive]);
 
   // Duck for personal beats, ramped so it reads as a mix move not a glitch.
   useEffect(() => {
@@ -268,7 +301,9 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
     const target = beatsRef.current[Math.max(0, Math.min(beatsRef.current.length - 1, to))];
     if (!el || !target) return;
     el.currentTime = target.atSec + 0.01;
-    setNow(el.currentTime);
+    clockRef.current = target.atSec + 0.01;
+    lastAudioRef.current = -1;
+    setNow(clockRef.current);
     if (el.paused && phase !== "idle") { el.play().catch(() => {}); setPhase("running"); }
   }, [phase]);
 
@@ -419,7 +454,13 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
         <div className="absolute inset-0 z-40 bg-ink">
           <Card snapshot={snapshot} />
           <button
-            onClick={() => { gatedRef.current.clear(); setRevealed([]); seek(0); start(); }}
+            onClick={() => {
+              gatedRef.current.clear();
+              setRevealed([]);
+              clockRef.current = 0;
+              seek(0);
+              start();
+            }}
             className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full border border-cream/30 text-cream/70 px-5 py-2.5 t-label"
             style={{ fontSize: "0.55rem" }}
           >

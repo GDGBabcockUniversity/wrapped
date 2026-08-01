@@ -114,7 +114,12 @@ try {
     current = out;
   }
 
-  ffmpeg(["-i", current, "-codec:a", "libmp3lame", "-b:a", "160k", OUT_MP3]);
+  // 112k VBR-ish, not 160k. This file is fetched once over campus mobile
+  // data before anything can play, and 4.8MB of it is a long time to wait on
+  // LTE — long enough that the element stalls mid-deck. The deck now survives
+  // a stall, but not stalling is better than recovering from one, and nobody
+  // is listening to a Wrapped on studio monitors.
+  ffmpeg(["-i", current, "-codec:a", "libmp3lame", "-b:a", "112k", OUT_MP3]);
 
   // ---- the cue sheet the player reads ------------------------------------
   const beats = timeline().map((b) => ({
