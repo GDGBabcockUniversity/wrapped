@@ -12,7 +12,8 @@
     "pipeline": "tsx scripts/pipeline/run.ts",
     "build-mapping": "tsx scripts/pipeline/build-mapping.ts",
     "suggest-mappings": "tsx scripts/pipeline/suggest-mappings.ts",
-    "send-wrapped": "tsx scripts/send-wrapped.ts"
+    "send-wrapped": "tsx scripts/send-wrapped.ts",
+    "measure-tempo": "node scripts/measure-tempo.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
