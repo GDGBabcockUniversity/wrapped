@@ -49,6 +49,48 @@ export const SnapshotSchema = z.object({
     })
     .nullable()
     .optional(),
+  // ---- build spec §04, §06, §07 -----------------------------------------
+  // All optional so snapshots written before these existed still parse, the
+  // same null-skip contract the radar block already uses: a beat with no data
+  // is dropped rather than rendered empty.
+
+  /** Moment ids the member checked into, for the YOU WERE HERE stamps (§04).
+      The check-in data already exists; this is it, keyed to the gallery. */
+  attendedMomentIds: z.array(z.string()).nullable().optional(),
+
+  /** The one day the chat remembers, for THIS member (§06). Derived by
+      grouping their messages by day, taking the max, and joining to the
+      events table on the date. */
+  loudestDay: z
+    .object({
+      dateLabel: z.string(), // "FEB 22"
+      count: z.number().int().min(0),
+      startHour: z.string(), // "9PM"
+      endHour: z.string(), // "2AM"
+      eventName: z.string().nullable(),
+    })
+    .nullable()
+    .optional(),
+
+  /** The social graph (§07), all of it from check-ins alone. */
+  rooms: z
+    .object({
+      /** Distinct members who shared at least one event. */
+      count: z.number().int().min(0),
+      /** Highest co-attendance. Directional: their card may name someone else. */
+      top: z.object({ name: z.string(), events: z.number().int() }).nullable(),
+      /** Everyone who completed a multi-day series together. */
+      group: z
+        .object({ others: z.number().int(), days: z.number().int(), seriesName: z.string() })
+        .nullable(),
+      /** The first person they ever checked in beside. */
+      origin: z
+        .object({ name: z.string(), dateLabel: z.string(), eventName: z.string() })
+        .nullable(),
+    })
+    .nullable()
+    .optional(),
+
   flags: z.object({
     zeroCheckins: z.boolean(),
     lowActivity: z.boolean(), // checkins <= 1 AND (unmatched OR messages < 20)

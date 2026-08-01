@@ -185,42 +185,60 @@ export function TitleBeat({ snapshot, revealed }: { snapshot: Snapshot | null; r
  * can copy, because none of them know who else was in the room.
  */
 export function RoomsBeat({ snapshot }: { snapshot: Snapshot | null }) {
-  if (!snapshot || snapshot.events.checkins === 0) return null;
-  const first = snapshot.events.firstEventTitle;
+  const r = snapshot?.rooms;
+  if (!snapshot || !r || snapshot.events.checkins === 0) return null;
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center">
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
       <AmbientScribbles field="ink" />
-      <motion.p {...rise(0)} className="t-display text-cream" style={{ fontSize: "clamp(1.4rem, 6.5vw, 2.3rem)" }}>
+      <motion.p {...rise(0)} className="t-display text-cream" style={{ fontSize: "clamp(1.3rem, 6vw, 2.1rem)" }}>
         You didn&apos;t do this alone.
       </motion.p>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ ...SPRING.default, delay: 0.6 }}
+        transition={{ ...SPRING.default, delay: 0.5 }}
         className="flex flex-col items-center gap-1"
       >
         <Counter
-          value={snapshot.events.checkins}
+          value={r.count}
           durationMs={TIMING.countUpMs}
           active
           className="t-display text-gdg-blue leading-none"
         />
-        <span className="t-label text-cream/60">ROOMS YOU WERE IN</span>
+        <span className="t-label text-cream/60">MEMBERS IN A ROOM WITH YOU</span>
       </motion.div>
 
-      {first && (
-        <motion.div {...rise(1.5)} className="mt-2 flex flex-col items-center gap-1">
-          <span className="t-label text-cream/40" style={{ fontSize: "0.55rem" }}>
-            IT STARTED AT
+      {/* Co-attendance is DIRECTIONAL: this member's card says Victor, and
+          Victor's may say someone else. "Most often with" is true either way.
+          "You two were inseparable" claims something the data cannot know —
+          name freely, never infer feeling from proximity. */}
+      {r.top && (
+        <motion.p {...rise(1.1)} className="t-body text-cream/85 text-sm">
+          Most often with <span className="text-cream">{r.top.name}</span>. {r.top.events} events.
+        </motion.p>
+      )}
+
+      {r.group && (
+        <motion.p {...rise(1.5)} className="t-body text-cream/70 text-sm max-w-xs">
+          You and {r.group.others} others made all {r.group.days} days of {r.group.seriesName}.
+        </motion.p>
+      )}
+
+      {r.origin && (
+        <motion.div {...rise(1.9)} className="mt-2 flex flex-col items-center gap-1">
+          <span className="t-label text-cream/40" style={{ fontSize: "0.5rem" }}>
+            FIRST PERSON YOU EVER CHECKED IN BESIDE
           </span>
-          <span className="t-body text-cream/85">{first}</span>
+          <span className="t-display text-cream" style={{ fontSize: "clamp(1.05rem, 5vw, 1.5rem)" }}>
+            {r.origin.name}
+          </span>
+          <span className="t-body text-cream/50 text-xs">
+            {r.origin.dateLabel} &middot; {r.origin.eventName}
+          </span>
         </motion.div>
       )}
-      {/* TODO(pipeline): rooms.top and rooms.origin — who you were most often
-          beside, and the first person you ever checked in next to. The
-          check-in rows carry user_id and event, so both are derivable. */}
     </div>
   );
 }

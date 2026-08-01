@@ -27,9 +27,14 @@ export interface BeatVisual {
 }
 
 export const BEAT_VISUALS: Record<string, BeatVisual> = {
-  // The overture, unchanged: cover card, numeral drive-through over the warp
-  // field, calm resolve.
-  "cold-open": { story: "the-year", phase: "setup" },
+  // §00's three lines over the intro, not the old overture. The overture was
+  // a cover card and a numeral drive-through, all of it about the chapter;
+  // this puts the member inside the deck before GDG appears at all.
+  // Branch 0, not the overture's warp field (10). The warp is a full-bleed
+  // concentric churn built to be looked AT, and the three lines have to be
+  // read over it — on the build it swallowed them. The stripe band gives the
+  // same movement without competing with type.
+  "cold-open": { phase: "setup", field: "ink", accent: "blue", shader: 0 },
   // Built, not borrowed: the era stamp is new writing and your-chapter has
   // no idea it exists.
   arrival: { phase: "reveal", field: "ink", accent: "blue", shader: SHADER_STORY["your-chapter"] },

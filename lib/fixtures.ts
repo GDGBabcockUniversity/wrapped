@@ -32,6 +32,24 @@ export const FIXTURES: Record<string, Snapshot> = {
       activeDays: 88,
       longestStreak: 19,
     },
+    // MOCKED for development (build spec §04, §06, §07). Shapes are real;
+    // the pipeline fills them from data that already exists — check-in rows
+    // carry user_id, event and timestamp, and SenderStats already keeps a
+    // per-day message count.
+    attendedMomentIds: ["devfest", "orbit", "games", "meetups"],
+    loudestDay: {
+      dateLabel: "FEB 22",
+      count: 84,
+      startHour: "9PM",
+      endHour: "2AM",
+      eventName: "Game Night Vol. 3",
+    },
+    rooms: {
+      count: 74,
+      top: { name: "Victor Ibironke", events: 11 },
+      group: { others: 6, days: 3, seriesName: "ORBIT" },
+      origin: { name: "Lawal Sharon", dateLabel: "18 September 2024", eventName: "ORBIT Kickoff" },
+    },
     flags: { zeroCheckins: false, lowActivity: false },
   },
   member: {

@@ -14,6 +14,7 @@ import { EraBeat, HandoffFrame, HandoverBeat, RoomsBeat, TitleBeat } from "@/com
 import { Montage } from "@/components/run/montage";
 import { ClubBeat } from "@/components/run/club-beat";
 import { Card } from "@/components/run/card";
+import { ColdOpen } from "@/components/run/cold-open";
 import * as C from "@/lib/deck-copy";
 import type { Snapshot } from "@/lib/snapshot";
 
@@ -116,7 +117,7 @@ function beatAt<T extends { atSec: number }>(beats: T[], t: number): T | undefin
 /** What a beat draws: a story component, one of the new beats, or the
     personal line an org montage hands off to. */
 function BeatBody({
-  id, story, storyPhase, field, snapshot, paused, revealed, handoff, progress, onReplay, onAnswer,
+  id, story, storyPhase, field, snapshot, paused, revealed, handoff, progress, elapsed, onReplay, onAnswer,
 }: {
   id: string;
   story?: keyof typeof STORY_COMPONENTS;
@@ -127,6 +128,8 @@ function BeatBody({
   revealed: boolean;
   handoff: boolean;
   progress: number;
+  /** Seconds into this beat, for cues that land on the music. */
+  elapsed: number;
   onReplay: () => void;
   onAnswer: () => void;
 }) {
@@ -138,6 +141,8 @@ function BeatBody({
     return <HandoffFrame line={lines[lines.length - 1]!} field={field} />;
   }
   switch (id) {
+    // Three lines on the intro's vocal phrases (§00).
+    case "cold-open": return <ColdOpen atSec={elapsed} />;
     // One number per screen, accelerating (§02).
     case "the-year":
       return <Montage lines={C.theYear(snapshot)} progress={progress} field={field} />;
@@ -336,6 +341,7 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
                 paused={phase !== "running"}
                 revealed={revealed.includes(active.id)}
                 progress={handoffProgress}
+                elapsed={active ? now - active.atSec : 0}
                 onAnswer={resume}
                 handoff={
                   // The braid: an org montage spends its last bars on one of

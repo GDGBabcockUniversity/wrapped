@@ -206,7 +206,7 @@ function SetupTease() {
   );
 }
 
-export function MomentsStory({ phase, active, paused, onComplete }: StoryProps) {
+export function MomentsStory({ phase, active, paused, snapshot, onComplete }: StoryProps) {
   const reduceMotion = useReducedMotion();
   const [pageIdx, setPageIdx] = useState(0);
 
@@ -244,10 +244,28 @@ export function MomentsStory({ phase, active, paused, onComplete }: StoryProps) 
   }
 
   const page = PAGES[pageIdx]!;
+  // YOU WERE HERE (spec §04). Check-in data already exists, so reusing it as
+  // an overlay turns a passive gallery into a personal attendance record —
+  // the highest value per engineering hour in the document, and the reason
+  // the deck needs no separate attendance chapter.
+  const attended = new Set(snapshot?.attendedMomentIds ?? []);
+  const wasHere = attended.has(page.key.replace(/-\d+$/, ""));
 
   return (
     <div className="absolute inset-0 text-ink pt-20 pb-16 overflow-hidden">
       <AmbientScribbles field="cream" />
+      {wasHere && (
+        <motion.div
+          key={`${page.key}-stamp`}
+          initial={{ opacity: 0, scale: 1.6, rotate: -14 }}
+          animate={{ opacity: 1, scale: 1, rotate: -9 }}
+          transition={{ type: "spring", stiffness: 420, damping: 22, delay: 0.45 }}
+          className="absolute z-30 right-5 top-24 border-[3px] px-3 py-1.5 pointer-events-none"
+          style={{ borderColor: page.accent, color: page.accent }}
+        >
+          <span className="t-label" style={{ fontSize: "0.62rem" }}>YOU WERE HERE</span>
+        </motion.div>
+      )}
       <AnimatePresence custom={pageIdx}>
         <PageView key={page.key} page={page} index={pageIdx} />
       </AnimatePresence>
