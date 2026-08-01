@@ -55,11 +55,15 @@ export interface MovementAudio {
 }
 
 export const MOVEMENT_AUDIO: Record<Movement, MovementAudio> = {
-  // The cold open and the arrival HOLD, exactly as scored in §8.2: the intro
-  // carries the three cold-open lines and the wordless refrain at 0:16.96
-  // carries the text-heavy arrival beat, because sung vowels with no lexical
-  // content do not compete with reading.
-  arrival: { track: "mcbh", fromSec: 0, standIn: false, wants: "MCBH" },
+  // Starts on the DROP at 0:18, not the intro (owner). MCBH's first seventeen
+  // seconds are three spoken phrases over almost nothing, and opening a
+  // Wrapped on them asks for patience before it has earned any. 0:16.96 is
+  // where the wordless refrain lands, so 18s puts the first frame on the hook.
+  //
+  // It also happens to be the best copy bed on the track: sung vowels with no
+  // lexical content, so the text-heavy opening beats do not compete with a
+  // lyric for the same attention.
+  arrival: { track: "mcbh", fromSec: 18, standIn: false, wants: "MCBH" },
   // §8.2's own suggested option: hold MCBH into the year montage, where
   // "Proper, we gon' prosper" sits under the org receipts.
   proof: { track: "mcbh", fromSec: 33.83, standIn: true, wants: "T2 — from during the year" },

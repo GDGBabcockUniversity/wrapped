@@ -6,12 +6,10 @@ import { AmbientScribbles } from "@/components/ambient-scribbles";
 import { coldOpen } from "@/lib/deck-copy";
 
 /**
- * The cold open (build spec §00).
+ * The cold open (build spec §00), on the drop.
  *
- * Three lines over MCBH's intro, landing on the vocal phrases rather than a
- * fixed clock: 0:05.91, 0:10.87, 0:14.85, with the brand mark holding through
- * the first phrase. The refrain at 0:16.96 then carries the arrival beat,
- * because sung vowels with no lexical content do not compete with reading.
+ * Three lines over MCBH's refrain, with the brand mark holding one bar before
+ * it gets out of the way.
  *
  * What it replaces is the old overture — a cover card, a numeral drive-through
  * and a calm resolve, all of it about the chapter. Three lines that put the
@@ -19,8 +17,16 @@ import { coldOpen } from "@/lib/deck-copy";
  * argument of §1 in seventeen seconds.
  */
 
-/** Vocal-phrase cues, seconds from the top of the track (§8.2). */
-const CUES = [0, 5.91, 10.87, 14.85];
+/**
+ * Cues in seconds from the START OF THE BEAT, which is now 0:18 of the track.
+ *
+ * They were the intro's spoken phrases (5.91, 10.87, 14.85) and became
+ * meaningless the moment the deck stopped playing the intro. On the refrain
+ * the phrasing is even — the LRC puts its four phrases 4.31 / 4.16 / 4.23 /
+ * 4.17s apart — so the lines sit two bars apart and land with it.
+ */
+const BAR = 2.1053; // 114 BPM, measured
+const CUES = [0, BAR, BAR * 3, BAR * 5];
 
 export function ColdOpen({ atSec }: { atSec: number }) {
   const lines = coldOpen();

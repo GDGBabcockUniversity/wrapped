@@ -6,11 +6,17 @@ import { FIXTURES } from "@/lib/fixtures";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  if (process.env.NODE_ENV !== "production" || process.env.ALLOW_DEBUG) {
+  const debug = process.env.NODE_ENV !== "production" || process.env.ALLOW_DEBUG;
+  if (debug) {
     const fixture = req.nextUrl.searchParams.get("fixture");
-    if (fixture && FIXTURES[fixture]) {
+    // Named fixture, or a default one. Without the default, a local run with
+    // no session falls through to the guest path, which drops every personal
+    // beat — so the deck someone is trying to look at is mostly not there,
+    // and nothing on screen explains why.
+    const snapshot = (fixture && FIXTURES[fixture]) || (!fixture && FIXTURES.top1);
+    if (snapshot) {
       return NextResponse.json(
-        { member: true, snapshot: FIXTURES[fixture] },
+        { member: true, snapshot },
         { headers: { "Cache-Control": "private, no-store" } }
       );
     }
