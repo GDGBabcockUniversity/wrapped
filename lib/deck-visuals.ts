@@ -33,8 +33,10 @@ export const BEAT_VISUALS: Record<string, BeatVisual> = {
   // Built, not borrowed: the era stamp is new writing and your-chapter has
   // no idea it exists.
   arrival: { phase: "reveal", field: "ink", accent: "blue", shader: SHADER_STORY["your-chapter"] },
-  // The receipt that prints off the till roll.
-  "the-year": { story: "the-year", phase: "reveal" },
+  // NOT the receipt. §02: "Never five numbers on one screen. One number per
+  // screen is the whole difference between a recap and a dashboard." The
+  // receipt is a lovely object that puts all five on one till roll.
+  "the-year": { phase: "reveal", field: "ink", accent: "blue", shader: SHADER_STORY["the-year"] },
   built: { story: "built", phase: "reveal" },
   moments: { story: "moments", phase: "reveal" },
   "group-chat": { story: "group-chat", phase: "reveal" },
@@ -47,7 +49,9 @@ export const BEAT_VISUALS: Record<string, BeatVisual> = {
   // standing renders a percentile. This beat is a name, and the engine that
   // assigns it had no way onto the screen at all.
   title: { phase: "reveal", field: "cream", accent: "red", shader: SHADER_STORY.standing },
-  club: { story: "your-club", phase: "reveal" },
+  // OBSERVER and SPRINTER are gone; the guess, the definition, the role and
+  // the because-line are all new (§09).
+  club: { phase: "reveal", field: "ink", accent: "club", shader: SHADER_STORY["your-club"] },
   people: { story: "people", phase: "reveal" },
   handover: { phase: "reveal", field: "cream", accent: "green", shader: SHADER_STORY["whats-next"] },
 };

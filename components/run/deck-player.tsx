@@ -11,6 +11,9 @@ import { ACCENT_HEX } from "@/components/gl/shaders";
 import { CLUBS } from "@/lib/clubs";
 import { LoudestDay } from "@/components/run/loudest-day";
 import { EraBeat, HandoffFrame, HandoverBeat, RoomsBeat, TitleBeat } from "@/components/run/beats";
+import { Montage } from "@/components/run/montage";
+import { ClubBeat } from "@/components/run/club-beat";
+import { Card } from "@/components/run/card";
 import * as C from "@/lib/deck-copy";
 import type { Snapshot } from "@/lib/snapshot";
 
@@ -113,7 +116,7 @@ function beatAt<T extends { atSec: number }>(beats: T[], t: number): T | undefin
 /** What a beat draws: a story component, one of the new beats, or the
     personal line an org montage hands off to. */
 function BeatBody({
-  id, story, storyPhase, field, snapshot, paused, revealed, handoff, onReplay,
+  id, story, storyPhase, field, snapshot, paused, revealed, handoff, progress, onReplay, onAnswer,
 }: {
   id: string;
   story?: keyof typeof STORY_COMPONENTS;
@@ -123,7 +126,9 @@ function BeatBody({
   paused: boolean;
   revealed: boolean;
   handoff: boolean;
+  progress: number;
   onReplay: () => void;
+  onAnswer: () => void;
 }) {
   if (handoff) {
     const lines =
@@ -133,7 +138,11 @@ function BeatBody({
     return <HandoffFrame line={lines[lines.length - 1]!} field={field} />;
   }
   switch (id) {
+    // One number per screen, accelerating (§02).
+    case "the-year":
+      return <Montage lines={C.theYear(snapshot)} progress={progress} field={field} />;
     case "arrival": return <EraBeat snapshot={snapshot} />;
+    case "club": return <ClubBeat snapshot={snapshot} onAnswer={onAnswer} />;
     case "loudest-day": return <LoudestDay snapshot={snapshot} />;
     case "rooms": return <RoomsBeat snapshot={snapshot} />;
     case "title": return <TitleBeat snapshot={snapshot} revealed={revealed} />;
@@ -219,7 +228,7 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
           return;
         }
         if (t >= totalRef.current - 0.05) {
-          el.pause();
+          // Deliberately NOT paused: Gratitude carries the card (§8.3).
           setPhase("done");
           return;
         }
@@ -326,6 +335,8 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
                 snapshot={snapshot}
                 paused={phase !== "running"}
                 revealed={revealed.includes(active.id)}
+                progress={handoffProgress}
+                onAnswer={resume}
                 handoff={
                   // The braid: an org montage spends its last bars on one of
                   // the member's own numbers. Without this the principle the
@@ -395,15 +406,16 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
         </button>
       )}
 
+      {/* The card is where the deck stops, and it never auto-advances (§12).
+          Gratitude keeps playing under it — that is the screen members linger
+          on, and the track carries the lingering. */}
       {phase === "done" && (
-        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-ink/90">
-          <p className="t-label text-cream/50">GDG&middot;BABCOCK&middot;2025&ndash;26</p>
-          <p className="t-display text-cream" style={{ fontSize: "clamp(1.6rem,7vw,3rem)" }}>
-            That was the point.
-          </p>
+        <div className="absolute inset-0 z-40 bg-ink">
+          <Card snapshot={snapshot} />
           <button
             onClick={() => { gatedRef.current.clear(); setRevealed([]); seek(0); start(); }}
-            className="mt-4 rounded-full border border-cream/40 text-cream px-6 py-3 t-label"
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full border border-cream/30 text-cream/70 px-5 py-2.5 t-label"
+            style={{ fontSize: "0.55rem" }}
           >
             Watch again
           </button>
