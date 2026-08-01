@@ -1,0 +1,182 @@
+{
+  "generatedBy": "npm run stitch-audio",
+  "src": "/audio/wrapped.mp3",
+  "runtimeSec": 160.578,
+  "crossfadeSec": 0.9,
+  "movements": [
+    {
+      "id": "arrival",
+      "numeral": "I",
+      "fromSec": 0,
+      "toSec": 33.6842,
+      "track": "mcbh",
+      "standIn": false
+    },
+    {
+      "id": "proof",
+      "numeral": "II",
+      "fromSec": 33.6842,
+      "toSec": 64.2105,
+      "track": "mcbh",
+      "standIn": true
+    },
+    {
+      "id": "recognition",
+      "numeral": "III",
+      "fromSec": 64.2105,
+      "toSec": 94.7368,
+      "track": "mcbh",
+      "standIn": true
+    },
+    {
+      "id": "identity",
+      "numeral": "IV",
+      "fromSec": 94.7368,
+      "toSec": 113.8519,
+      "track": "gratitude",
+      "standIn": true
+    },
+    {
+      "id": "succession",
+      "numeral": "V",
+      "fromSec": 113.8519,
+      "toSec": 160.5776,
+      "track": "gratitude",
+      "standIn": false
+    }
+  ],
+  "beats": [
+    {
+      "id": "cold-open",
+      "shape": "COLD",
+      "movement": "arrival",
+      "audience": "both",
+      "bars": 8,
+      "atSec": 0,
+      "durationSec": 16.8421,
+      "interactive": false,
+      "optional": false
+    },
+    {
+      "id": "arrival",
+      "shape": "HOLD",
+      "movement": "arrival",
+      "audience": "personal",
+      "bars": 8,
+      "atSec": 16.8421,
+      "durationSec": 16.8421,
+      "interactive": false,
+      "optional": false
+    },
+    {
+      "id": "the-year",
+      "shape": "MONTAGE",
+      "movement": "proof",
+      "audience": "org",
+      "bars": 5,
+      "atSec": 33.6842,
+      "durationSec": 10.5263,
+      "interactive": false,
+      "optional": false
+    },
+    {
+      "id": "built",
+      "shape": "MONTAGE",
+      "movement": "proof",
+      "audience": "org",
+      "bars": 5.5,
+      "atSec": 44.2105,
+      "durationSec": 11.5789,
+      "interactive": false,
+      "optional": false
+    },
+    {
+      "id": "moments",
+      "shape": "MONTAGE",
+      "movement": "proof",
+      "audience": "both",
+      "bars": 4,
+      "atSec": 55.7895,
+      "durationSec": 8.4211,
+      "interactive": false,
+      "optional": false
+    },
+    {
+      "id": "group-chat",
+      "shape": "MONTAGE",
+      "movement": "recognition",
+      "audience": "org",
+      "bars": 4,
+      "atSec": 64.2105,
+      "durationSec": 8.4211,
+      "interactive": false,
+      "optional": false
+    },
+    {
+      "id": "loudest-day",
+      "shape": "DROP",
+      "movement": "recognition",
+      "audience": "personal",
+      "bars": 5,
+      "atSec": 72.6316,
+      "durationSec": 10.5263,
+      "interactive": false,
+      "optional": false
+    },
+    {
+      "id": "rooms",
+      "shape": "HOLD",
+      "movement": "recognition",
+      "audience": "personal",
+      "bars": 5.5,
+      "atSec": 83.1579,
+      "durationSec": 11.5789,
+      "interactive": false,
+      "optional": true
+    },
+    {
+      "id": "title",
+      "shape": "GATE",
+      "movement": "identity",
+      "audience": "personal",
+      "bars": 5,
+      "atSec": 94.7368,
+      "durationSec": 10.6195,
+      "interactive": true,
+      "optional": false
+    },
+    {
+      "id": "club",
+      "shape": "STOP",
+      "movement": "identity",
+      "audience": "personal",
+      "bars": 4,
+      "atSec": 105.3563,
+      "durationSec": 8.4956,
+      "interactive": true,
+      "optional": false
+    },
+    {
+      "id": "people",
+      "shape": "ROLL",
+      "movement": "succession",
+      "audience": "org",
+      "bars": 16,
+      "atSec": 113.8519,
+      "durationSec": 33.9823,
+      "interactive": false,
+      "optional": false
+    },
+    {
+      "id": "handover",
+      "shape": "DROP",
+      "movement": "succession",
+      "audience": "both",
+      "bars": 6,
+      "atSec": 147.8342,
+      "durationSec": 12.7434,
+      "interactive": false,
+      "optional": false
+    }
+  ]
+}

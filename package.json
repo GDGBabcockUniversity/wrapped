@@ -13,7 +13,8 @@
     "build-mapping": "tsx scripts/pipeline/build-mapping.ts",
     "suggest-mappings": "tsx scripts/pipeline/suggest-mappings.ts",
     "send-wrapped": "tsx scripts/send-wrapped.ts",
-    "measure-tempo": "node scripts/measure-tempo.mjs"
+    "measure-tempo": "node scripts/measure-tempo.mjs",
+    "stitch-audio": "tsx scripts/stitch-audio.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
