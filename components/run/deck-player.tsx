@@ -10,6 +10,8 @@ import { TapZones } from "@/components/story-engine/tap-zones";
 import { ACCENT_HEX } from "@/components/gl/shaders";
 import { CLUBS } from "@/lib/clubs";
 import { LoudestDay } from "@/components/run/loudest-day";
+import { EraBeat, HandoffFrame, HandoverBeat, RoomsBeat, TitleBeat } from "@/components/run/beats";
+import * as C from "@/lib/deck-copy";
 import type { Snapshot } from "@/lib/snapshot";
 
 const AUDIO_SRC = "/audio/wrapped.mp3";
@@ -108,12 +110,59 @@ function beatAt<T extends { atSec: number }>(beats: T[], t: number): T | undefin
   return found;
 }
 
+/** What a beat draws: a story component, one of the new beats, or the
+    personal line an org montage hands off to. */
+function BeatBody({
+  id, story, storyPhase, field, snapshot, paused, revealed, handoff, onReplay,
+}: {
+  id: string;
+  story?: keyof typeof STORY_COMPONENTS;
+  storyPhase: "setup" | "reveal";
+  field: "ink" | "cream";
+  snapshot: Snapshot | null;
+  paused: boolean;
+  revealed: boolean;
+  handoff: boolean;
+  onReplay: () => void;
+}) {
+  if (handoff) {
+    const lines =
+      id === "the-year" ? C.theYear(snapshot)
+      : id === "built" ? C.built(snapshot)
+      : C.groupChat(snapshot);
+    return <HandoffFrame line={lines[lines.length - 1]!} field={field} />;
+  }
+  switch (id) {
+    case "arrival": return <EraBeat snapshot={snapshot} />;
+    case "loudest-day": return <LoudestDay snapshot={snapshot} />;
+    case "rooms": return <RoomsBeat snapshot={snapshot} />;
+    case "title": return <TitleBeat snapshot={snapshot} revealed={revealed} />;
+    case "handover": return <HandoverBeat snapshot={snapshot} />;
+    default: break;
+  }
+  if (!story) return null;
+  const Story = STORY_COMPONENTS[story];
+  return (
+    <Story
+      phase={storyPhase}
+      active
+      snapshot={snapshot}
+      guest={!snapshot}
+      paused={paused}
+      onReplay={onReplay}
+    />
+  );
+}
+
 export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
   const reduceMotion = useReducedMotion();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [now, setNow] = useState(0);
   const [vector, setVector] = useState<Vector>([0, 1]);
+  // Which interactive beats have been answered. State, not a ref: the render
+  // needs it, and reading a ref during render is the tearing React warns about.
+  const [revealed, setRevealed] = useState<string[]>([]);
   const gainRef = useRef(FULL_GAIN);
   // The shader field reads progress every frame without re-rendering React.
   const progressRef = useRef(0);
@@ -217,16 +266,18 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
   }, []);
 
   const resume = useCallback(() => {
+    const beat = beatAt(beatsRef.current, audioRef.current?.currentTime ?? 0);
+    if (beat?.interactive) setRevealed((r) => (r.includes(beat.id) ? r : [...r, beat.id]));
     audioRef.current?.play().catch(() => {});
     setPhase("running");
   }, []);
 
+  const handoffProgress = active ? (now - active.atSec) / active.durationSec : 0;
   const v = active ? visualFor(active) : null;
   const clubMeta = snapshot ? CLUBS[snapshot.club.id] : null;
   const accentHex = v
     ? v.accent === "club" ? clubMeta?.hex ?? ACCENT_HEX.green : ACCENT_HEX[v.accent]
     : ACCENT_HEX.blue;
-  const StoryComponent = v?.story ? STORY_COMPONENTS[v.story] : null;
   const edge = seamEdge(vector);
   const edgeVertical = edge === "top" || edge === "bottom";
 
@@ -267,18 +318,22 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
               }
             />
             <motion.div variants={PARALLAX_VARIANTS} custom={vector} className="absolute inset-0">
-              {StoryComponent ? (
-                <StoryComponent
-                  phase={v!.phase}
-                  active
-                  snapshot={snapshot}
-                  guest={!snapshot}
-                  paused={phase !== "running"}
-                  onReplay={() => seek(0)}
-                />
-              ) : (
-                <LoudestDay snapshot={snapshot} />
-              )}
+              <BeatBody
+                id={active.id}
+                story={v?.story}
+                storyPhase={v!.phase}
+                field={v?.field ?? "ink"}
+                snapshot={snapshot}
+                paused={phase !== "running"}
+                revealed={revealed.includes(active.id)}
+                handoff={
+                  // The braid: an org montage spends its last bars on one of
+                  // the member's own numbers. Without this the principle the
+                  // whole deck is built on never reaches the screen.
+                  !!active.handsOff && handoffProgress > 0.78
+                }
+                onReplay={() => seek(0)}
+              />
             </motion.div>
           </motion.div>
         )}
@@ -347,7 +402,7 @@ export function DeckPlayer({ snapshot }: { snapshot: Snapshot | null }) {
             That was the point.
           </p>
           <button
-            onClick={() => { gatedRef.current.clear(); seek(0); start(); }}
+            onClick={() => { gatedRef.current.clear(); setRevealed([]); seek(0); start(); }}
             className="mt-4 rounded-full border border-cream/40 text-cream px-6 py-3 t-label"
           >
             Watch again

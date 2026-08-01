@@ -30,8 +30,9 @@ export const BEAT_VISUALS: Record<string, BeatVisual> = {
   // The overture, unchanged: cover card, numeral drive-through over the warp
   // field, calm resolve.
   "cold-open": { story: "the-year", phase: "setup" },
-  // Join date, tenure, the era stamp — this beat IS your-chapter's reveal.
-  arrival: { story: "your-chapter", phase: "reveal" },
+  // Built, not borrowed: the era stamp is new writing and your-chapter has
+  // no idea it exists.
+  arrival: { phase: "reveal", field: "ink", accent: "blue", shader: SHADER_STORY["your-chapter"] },
   // The receipt that prints off the till roll.
   "the-year": { story: "the-year", phase: "reveal" },
   built: { story: "built", phase: "reveal" },
@@ -40,15 +41,15 @@ export const BEAT_VISUALS: Record<string, BeatVisual> = {
   // New. Built from SlamStat and PopLetters, on group-chat's shader branch so
   // it reads as part of the same movement.
   "loudest-day": { phase: "reveal", field: "ink", accent: "green", shader: SHADER_STORY["group-chat"] },
-  // Rooms is the attendance record seen from the side, so it borrows the beat
-  // that already knows how to render one.
-  rooms: { story: "your-events", phase: "reveal" },
-  // The certified seal and the slam — standing's treatment is exactly what a
-  // title reveal wants.
-  title: { story: "standing", phase: "reveal" },
+  // The social graph. your-events renders an attendance record, which is a
+  // different beat wearing similar numbers.
+  rooms: { phase: "reveal", field: "ink", accent: "blue", shader: SHADER_STORY["your-events"] },
+  // standing renders a percentile. This beat is a name, and the engine that
+  // assigns it had no way onto the screen at all.
+  title: { phase: "reveal", field: "cream", accent: "red", shader: SHADER_STORY.standing },
   club: { story: "your-club", phase: "reveal" },
   people: { story: "people", phase: "reveal" },
-  handover: { story: "whats-next", phase: "reveal" },
+  handover: { phase: "reveal", field: "cream", accent: "green", shader: SHADER_STORY["whats-next"] },
 };
 
 const BY_ID = new Map(STORIES.map((s) => [s.id, s]));
